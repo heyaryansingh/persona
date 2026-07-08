@@ -106,6 +106,8 @@ class Researcher:
         return seeded + propose_interests(self.me.store, top_k=3)
 
     def notebook(self, n: int = 40) -> list[str]:
+        if not self.me.notebook_path.exists():
+            return []
         lines = self.me.notebook_path.read_text(encoding="utf-8").splitlines()
         return [ln for ln in lines if ln.startswith("- ")][-n:]
 
@@ -165,6 +167,8 @@ class Researcher:
     def artifacts(self) -> dict:
         ids = [c.claim_id for c in self.me.store.core_claims()]
         review = mini_review(self.me.store, ids, title=f"{self.name}: state of the field")
-        errors = [ln for ln in self.me.errors_path.read_text(encoding="utf-8").splitlines()
-                  if ln.startswith("- ")]
+        errors = []
+        if self.me.errors_path.exists():
+            errors = [ln for ln in self.me.errors_path.read_text(encoding="utf-8").splitlines()
+                      if ln.startswith("- ")]
         return {"mini_review": review, "error_log": errors}

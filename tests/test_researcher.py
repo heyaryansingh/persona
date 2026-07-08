@@ -51,7 +51,24 @@ def test_full_researcher_cycle():
             r.close()
 
 
+def test_views_survive_missing_self_files():
+    """notebook()/artifacts() must not 500 if a self-file goes missing at runtime."""
+    import os
+    with tempfile.TemporaryDirectory() as d:
+        r = Researcher(root=d, adapter=EuropePMCAdapter(cache=DiskCache(root=str(FIXTURES))))
+        try:
+            r.tick(queries=[CACHED_QUERY])
+            os.remove(r.me.errors_path)
+            os.remove(r.me.notebook_path)
+            assert r.artifacts()["error_log"] == []      # graceful, not a crash
+            assert r.notebook() == []
+        finally:
+            r.close()
+
+
 if __name__ == "__main__":
     test_full_researcher_cycle()
     print("PASS test_full_researcher_cycle")
+    test_views_survive_missing_self_files()
+    print("PASS test_views_survive_missing_self_files")
     print("\nresearcher facade test passed.")
