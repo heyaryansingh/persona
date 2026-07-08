@@ -74,6 +74,32 @@ Frequent commits (11 so far on `build/persona-mvp`).
 - **Self-test reanalysis** left as an honestly-labelled first-pass replay (no API key here);
   the real Claude-Science backend is a drop-in behind the `Tester` Protocol.
 
+## v2 (real LLM + scale) — implemented
+Driven by an 8-domain critical tech sweep (`planning/TECH_RESEARCH_V2.json`) that **pushed
+back on the framework wishlist**: CrewAI/LangChain-agents/AutoGen/Chroma/day-one-fine-tuning
+all SKIP; the winning stack is raw Anthropic SDK + Batch + caching + a lean async
+orchestrator + MedCPT/FAISS RAG + NetworkX/DuckDB bi-temporal graph + OTel. Phases P0–P9
+built, tested (61 green), committed.
+
+**v2 bugs found & fixed (root causes):**
+1. **tool-use truncation:** `max_tokens=1024` cut off the extraction JSON → 0 claims parsed.
+   Fix: raise to 4096 (extraction now returns 7 clean claims).
+2. **crash-resume not idempotent (incremental commit):** belief magnitude depended on the
+   crash schedule. Fix: belief = deterministic function of accumulated independent evidence
+   (`set_swarm_belief`) + durable observation log → byte-identical resume.
+3. **poison test collapsed under dedup:** 8 poison candidates shared one `doc_id` → the new
+   source-dedup collapsed them to 1. Fix: model poison as distinct docs (correct model).
+4. **convergence never happened at scale:** Claude phrased entities differently across papers
+   ("microglia" vs "microglial activation") → different keys → no convergence. Fix: prompt
+   canonical short entity names → 40 papers now converge (7 sources on the headline belief).
+5. **artifacts 500 / missing-file brittleness:** `read_text()` unguarded. Fix: existence guards.
+6. **malformed-claim crash:** a non-string subject/object crashed extraction. Fix: coerce + skip.
+7. **subagents refuse under residual plan-mode injection** — built the UI screens directly.
+
+**v2 pivots:** LangGraph decided by numbers (bake-off: asyncio wins, byte-identical resume,
+15.7× speedup, 0 deps); fine-tuning deferred (few-shot Claude is ~$0.001-0.003/abstract);
+in-memory membrane → durable observation-backed (crash-safe); Chroma → numpy/FAISS.
+
 ## Side ideas / cutting-edge pulled in (for the paper / future)
 - Two-tier + bi-temporal memory (Letta / Graphiti); consolidation ≈ A-MEM/sleep-time compute.
 - Conformal selective-prediction (SConU/COIN) + semantic entropy for the calibration gate (E11).

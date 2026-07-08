@@ -9,7 +9,23 @@ escalating to a human exactly when it needs judgment it cannot produce alone.
 
 Built for the Claude Science hackathon (Gladstone Institutes). The plan and its evidence
 base are in [`planning/`](planning/) and [`results/`](results/); read
-[`planning/PHASE0_PLAN.md`](planning/PHASE0_PLAN.md) first.
+[`planning/PHASE0_PLAN.md`](planning/PHASE0_PLAN.md) then
+[`planning/VISION_AND_ROADMAP_V2.md`](planning/VISION_AND_ROADMAP_V2.md) first.
+
+## v2 (real LLM + scale) — now implemented
+Real Claude extraction (structured claims, not keyword fragments), a durable async **swarm**
+that reads in parallel with crash-resume (byte-identical, 15.7× speedup — LangGraph proven
+unnecessary), **hybrid retrieval** (MiniLM+TF-IDF+RRF, MRR 0.947), a **bi-temporal
+idea-evolution graph**, a **live Swarm Control Room** (SSE), a real **first-pass reanalysis**
+loop, conformal escalation, and an **always-on autonomous cycle**. Validated at scale:
+40 live papers converge to *"neuroinflammation causes neurodegeneration"* with **7 independent
+sources** for $0.144. Set `ANTHROPIC_API_KEY` in `.env`; then:
+```bash
+python scripts/populate_demo.py 40     # real read at scale -> converged beliefs
+python scripts/run_autonomous.py 2     # always-on: read -> reflect -> self-test -> retrieve
+python -m uvicorn persona.api.app:app --port 8000   # + cd ui && npm run dev  (Swarm Control Room, Idea Graph)
+```
+Full status + honest gaps: `planning/VISION_AND_ROADMAP_V2.md` §6b.
 
 ## Architecture (`persona/`)
 | Module | What it is |

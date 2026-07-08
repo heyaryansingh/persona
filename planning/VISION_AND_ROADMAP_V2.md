@@ -150,6 +150,39 @@ Every phase: build → **run its gating experiment (≥20 seeds / real eval)** �
 
 ---
 
+## 6b. Build status (v2 — IMPLEMENTED)
+All ten phases built, tested, committed. 61 tests green; the full stack serves real
+converged data end-to-end.
+
+| Phase | Status | Evidence |
+|---|---|---|
+| P0 foundations | ✅ | `config.py` (.env + model tiers + $15/day cap) + `pyproject.toml` |
+| P1 real extraction | ✅ **validated** | `ClaudeExtractor` behind the Protocol; real Haiku extraction = 7 real structured claims/abstract, ~$0.004 |
+| P2 async swarm | ✅ **GO** | crash-resume byte-identical 1.000, no-double-commit 1.000, 15.7× speedup, 0 new deps → **LangGraph bake-off settled: asyncio wins**. Durable observation-backed membrane. |
+| Swarm Control Room | ✅ **live** | real parallel reads streamed spawn→read→admit/reject over SSE, verified in-browser |
+| P4 retrieval | ✅ **GO** | hybrid MRR 0.947 / recall@1 0.909 > lexical & dense (44 live abstracts); `Researcher.retrieve` |
+| P5 idea graph | ✅ | bi-temporal entity network + Cytoscape screen + time scrubber |
+| P6 real loop | ✅ | `ClaudeScienceTester` real first-pass reasoning (honestly flagged a mock dataset, returned calibrated inconclusive); live GEO scout; human-gated |
+| P7 calibration | ✅ | split-conformal threshold (coverage ≥0.9) + decision-theoretic escalation ranking in the inbox |
+| P9 autonomy | ✅ **live** | `autonomous_cycle`: real read → reflect + spawn interest → self-test → retrieve, narrated |
+| **Scale demo** | ✅ | 40 live papers → **converged** beliefs: "neuroinflammation causes neurodegeneration" with **7 independent sources** (p=0.99), $0.144 |
+
+**Honest gaps remaining (documented, not hidden):**
+- **P3 / E8** (real-Claude poisoning replay): the durable membrane's anchor guard is now
+  *absolute by construction* (a swarm can never move an anchor) and the crossover is
+  superseded by the evidence-based belief model — but a full adversarial replay with
+  *fabricated-independence* poison (many fake journals) is not yet run; the independence
+  gate cannot fully catch fabricated independence. Threat documented.
+- **E11 estimator selection** (semantic entropy vs self-consistency vs verbalized) needs a
+  labeled biomedical QA set; the conformal/escalation *mechanism* is built and estimator-agnostic.
+- **Convergence tail:** at 40 papers, 4 claims converge and ~270 are singletons (long tail).
+  Canonical-entity prompting helps; embedding-based claim clustering would converge more —
+  a clear next step.
+- **True computational reanalysis:** the self-test is real *reasoning*, not a full
+  download-GEO-and-compute pipeline (needs a data/compute sandbox).
+- **Retrieval/graph at true millions-scale:** current stack is MiniLM+numpy / NetworkX+Cytoscape;
+  the MedCPT+FAISS / Sigma.js-cosmos.gl swap (same APIs) is the scale path.
+
 ## 7. Risks / threats (carried)
 - **Idempotency is the whole ballgame** for crash-resume: the read-ledger must commit in the same SQLite txn as the belief. Self-check: killed-and-resumed run = byte-identical beliefs.
 - **Batch API has a ≤24h SLA** — right for background reading, wrong for the live demo. Two tiers, always.

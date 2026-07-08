@@ -100,3 +100,17 @@ All 50 seeds, mean ± 95% CI. Each experiment drives the actual `persona.membran
 E6 (dependency extraction precision), E7 (VoI vs expert), E8 (real-Claude poisoning replay),
 E11 (calibration estimator), E12 (swarm vs single), E15 (contradiction-trigger precision).
 Pre-registered as stubs under `experiments/`.
+
+## v2 build gates (real LLM + scale)
+| Gate | Result |
+|---|---|
+| P1 real extraction | Claude Haiku extracts **7 real structured claims** from a real abstract (~$0.004); night-and-day vs v1 keyword fragments |
+| **P2 crash-resume bake-off** | resume **byte-identical 1.000**, no-double-commit 1.000, **15.7× parallel speedup**, 0 new deps → asyncio swarm wins; **LangGraph unnecessary** (bake-off settled) |
+| P4 retrieval | hybrid (RRF) **MRR 0.947 / recall@1 0.909** > lexical (0.936/0.886) & dense (0.919/0.864), 44 live abstracts |
+| P7 calibration | split-conformal coverage ≥0.9; decision-theoretic escalation |
+| **Scale convergence** | 40 live papers → **"neuroinflammation causes neurodegeneration" with 7 independent sources** (p=0.99) + 3 more converged beliefs, $0.144 |
+
+Architectural change validated in v2: a swarm belief is now a **deterministic function of its
+accumulated independent evidence** (not an incremental step) over a **durable observation
+log** — making the membrane crash-safe and re-reads idempotent, and making the anchor guard
+**absolute by construction**. This supersedes (and strengthens) the boolean-sim crossover.
