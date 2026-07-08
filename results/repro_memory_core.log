@@ -1,0 +1,24 @@
+
+=== E1 low-noise | noise=0.2 contradiction_burst=False | 40 worlds, budget=40/1k obs ===
+agent               final_acc           final_brier         flip_lag          flips_caught  
+naive_absorb        0.960+/-0.006      0.029+/-0.004        1204+/-29       0.86+/-0.02
+membrane            0.875+/-0.010      0.102+/-0.007        1263+/-63       0.51+/-0.04
+surprise_replay     0.928+/-0.008      0.055+/-0.006         902+/-50       0.72+/-0.03
+uniform_replay      0.875+/-0.010      0.102+/-0.007        1263+/-63       0.51+/-0.04
+anchored_surprise   0.909+/-0.008      0.082+/-0.008         838+/-50       0.64+/-0.03
+
+=== E2 high-noise | noise=0.35 contradiction_burst=False | 40 worlds, budget=40/1k obs ===
+agent               final_acc           final_brier         flip_lag          flips_caught  
+naive_absorb        0.888+/-0.010      0.093+/-0.008        1036+/-69       0.64+/-0.04
+membrane            0.862+/-0.013      0.110+/-0.008         902+/-87       0.57+/-0.04
+surprise_replay     0.887+/-0.015      0.085+/-0.008         684+/-61       0.72+/-0.04
+uniform_replay      0.862+/-0.013      0.110+/-0.008         902+/-87       0.57+/-0.04
+anchored_surprise   0.885+/-0.015      0.087+/-0.008         674+/-58       0.71+/-0.04
+
+=== E_ANCHOR adversarial high-noise | noise=0.45 contradiction_burst=True | 40 worlds, budget=40/1k obs ===
+agent               final_acc           final_brier         flip_lag          flips_caught  
+membrane            0.697+/-0.015      0.219+/-0.009         469+/-64       0.66+/-0.03
+surprise_replay     0.700+/-0.016      0.214+/-0.010         419+/-60       0.72+/-0.04
+anchored_surprise   0.700+/-0.016      0.215+/-0.010         417+/-60       0.72+/-0.04
+
+Saved -> results/memory_core_results.json

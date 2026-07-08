@@ -1,0 +1,12 @@
+
+=== CORRELATED SUSTAINED POISONING | correlated poison strength=0.85 ===
+agent           human_acc_DURING    human_acc_AFTER     all_poisoned_AFTER  stable_AFTER  
+naive           0.762+/-0.022      0.709+/-0.045      0.683+/-0.039      1.000+/-0.000
+quorum          0.950+/-0.010      0.811+/-0.039      0.738+/-0.032      0.999+/-0.001
+human_anchored  1.000+/-0.000      1.000+/-0.000      0.880+/-0.019      0.999+/-0.001
+
+=== milder correlated poisoning | correlated poison strength=0.65 ===
+agent           human_acc_DURING    human_acc_AFTER     all_poisoned_AFTER  stable_AFTER  
+naive           0.973+/-0.008      0.973+/-0.015      0.965+/-0.014      1.000+/-0.000
+quorum          0.999+/-0.002      0.996+/-0.006      0.975+/-0.011      0.999+/-0.001
+human_anchored  1.000+/-0.000      1.000+/-0.000      0.978+/-0.010      0.999+/-0.001

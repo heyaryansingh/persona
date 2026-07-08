@@ -1,0 +1,1018 @@
+{
+  "summary": "Current-literature (last ~18mo) verification of the 6 technique bets in the Persona BUILD_PLAN; adversarial verdicts per plan choice",
+  "agentCount": 6,
+  "logs": [],
+  "result": [
+    {
+      "domain": "Persistent-agent memory & continual learning for LLM agents",
+      "key_works": [
+        {
+          "name": "Letta / MemGPT — memory blocks (core memory) + AgentFile (.af)",
+          "year": "2023-2025",
+          "one_line": "Productizes exactly the plan's 'living-docs' bet: small, human-readable, agent-editable text 'memory blocks' pinned to context, plus a large out-of-context archival/recall store retrieved via tool calls; .af serializes a stateful agent's whole self.",
+          "venue_or_url": "MemGPT arXiv 2310.08560; Letta docs.letta.com; github.com/letta-ai/agent-file",
+          "confidence": "high"
+        },
+        {
+          "name": "Zep: A Temporal Knowledge Graph Architecture for Agent Memory (Graphiti)",
+          "year": "2025",
+          "one_line": "Bi-temporal KG memory (facts carry valid-from/valid-to + provenance, edges get invalidated when superseded); beats MemGPT on DMR (94.8 vs 93.4) and targets temporal reasoning on LongMemEval. This is the SOTA substrate for 'belief that changed over time'.",
+          "venue_or_url": "arXiv 2501.13956; github.com/getzep/graphiti",
+          "confidence": "high"
+        },
+        {
+          "name": "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory",
+          "year": "2025",
+          "one_line": "Head-to-head of 10 memory systems on LOCOMO; crucial adversarial datapoint — graph memory (Mem0g) adds only ~2pt overall (66.9→68.4) at ~1.5x latency, with gains concentrated in temporal/multi-hop. Graph structure is not a free win.",
+          "venue_or_url": "arXiv 2504.19413; ECAI 2025",
+          "confidence": "high"
+        },
+        {
+          "name": "A-MEM: Agentic Memory for LLM Agents",
+          "year": "2025",
+          "one_line": "Zettelkasten note-based memory with LLM-driven link generation and 'memory evolution' (new notes update old ones) — a concrete, better-than-flat mechanism for the Reflector/consolidation pass.",
+          "venue_or_url": "arXiv 2502.12110",
+          "confidence": "high"
+        },
+        {
+          "name": "Sleep-time Compute: Beyond Inference Scaling at Test-time",
+          "year": "2025",
+          "one_line": "Letta/Berkeley: pre-compute/anticipate offline (during 'sleep') to cut test-time cost — the literature's named analog of the plan's 'consolidation on sleep' Reflector.",
+          "venue_or_url": "arXiv 2504.13171",
+          "confidence": "high"
+        },
+        {
+          "name": "Generative Agents: Interactive Simulacra of Human Behavior",
+          "year": "2023",
+          "one_line": "Seminal source of 'reflection' (cluster observations → synthesize higher-level insights) and recency+importance+relevance retrieval; the Reflector's intellectual ancestor.",
+          "venue_or_url": "arXiv 2304.03442; UIST 2023",
+          "confidence": "high"
+        },
+        {
+          "name": "From RAG to Memory: Non-Parametric Continual Learning for LLMs (HippoRAG 2)",
+          "year": "2025",
+          "one_line": "Neurobiologically-inspired open-KG + Personalized PageRank retrieval; frames external structured memory as the continual-learning substrate (no weight updates), matching the plan's stance.",
+          "venue_or_url": "arXiv 2502.14802; ICML 2025 (HippoRAG v1: arXiv 2405.14831)",
+          "confidence": "high"
+        },
+        {
+          "name": "Titans: Learning to Memorize at Test Time",
+          "year": "2025",
+          "one_line": "The alternative the plan implicitly rejects — memory in model weights (neural long-term memory module learning at test time). Great for long context, but NOT legible/auditable, so it's the right thing to reject on Persona's legibility thesis.",
+          "venue_or_url": "arXiv 2501.00663 (Google)",
+          "confidence": "high"
+        },
+        {
+          "name": "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory",
+          "year": "2025",
+          "one_line": "Standard eval for the exact abilities Persona needs — knowledge updates, temporal reasoning, and abstention; commercial assistants drop ~30% here. The defensible benchmark for the self/membrane.",
+          "venue_or_url": "arXiv 2410.10813; ICLR 2025",
+          "confidence": "high"
+        },
+        {
+          "name": "MINJA: memory injection attack against LLM agents (+ PoisonedRAG)",
+          "year": "2024-2025",
+          "one_line": "Query-only memory-poisoning achieving >95% injection success; PoisonedRAG (USENIX Sec 2025) corrupts retrieval with a single passage. Confirms the anchoring threat model is real, not a strawman.",
+          "venue_or_url": "MINJA arXiv 2503.03704 (approx); PoisonedRAG USENIX Security 2025",
+          "confidence": "medium"
+        },
+        {
+          "name": "Continual Learning of Large Language Models: A Comprehensive Survey",
+          "year": "2025",
+          "one_line": "Field consensus: for fast-changing knowledge use external/context memory, reserve weight fine-tuning for genuine capability change — exactly the fast/slow split Persona uses to avoid catastrophic forgetting.",
+          "venue_or_url": "ACM Computing Surveys 2025; github.com/Wang-ML-Lab/llm-continual-learning-survey",
+          "confidence": "high"
+        },
+        {
+          "name": "Provenance-aware / trust-tiered agent memory + poisoning defenses (A-MemGuard, reasoning-guard rerankers, evidence-tracing surveys)",
+          "year": "2025-2026",
+          "one_line": "The field's framing of what the plan calls 'anchoring': per-write source/confidence/lineage + integrity labels + write-policy gating; multiple 2026 preprints, but no single defense is robust (attacks reportedly beat A-MemGuard).",
+          "venue_or_url": "various 2026 arXiv preprints (unverified individually)",
+          "confidence": "low"
+        }
+      ],
+      "verdicts": [
+        {
+          "plan_ref": "5.5",
+          "plan_claim": "Durable 'self' stored as human-readable Markdown/JSON living-docs (identity.md, agenda.md, beliefs.json, notebook.md).",
+          "verdict": "CONFIRM",
+          "why": "This is current SOTA, not naive. Letta/MemGPT productizes exactly this: editable, human-readable 'memory blocks' pinned to context, serialized via the open AgentFile (.af) format. Legibility of memory is a first-class goal there too, so the choice is validated by the leading agent-memory system."
+        },
+        {
+          "plan_ref": "5.5",
+          "plan_claim": "Living-docs are re-hydrated (loaded wholesale) each wake.",
+          "verdict": "UPDATE",
+          "why": "SOTA splits memory into a SMALL always-in-context 'core' tier vs. a LARGE out-of-context archival/recall tier fetched by tool calls (Letta). Re-hydrating the full self (growing beliefs.json + notebook.md) each wake will blow the context window; only identity/agenda belong in-context, the rest behind retrieval."
+        },
+        {
+          "plan_ref": "5.5",
+          "plan_claim": "Living-docs are 'backed by a claim-graph'.",
+          "verdict": "UPDATE",
+          "why": "Converge on a bi-temporal KG (Graphiti/Zep: valid-from/valid-to, invalidation edges, source provenance) rather than a plain claim-graph — it is purpose-built for belief-that-changed-over-time and contradiction detection, Persona's core loop. Caveat from Mem0: graph memory adds only ~2pt overall on LOCOMO at higher latency, so justify it by the temporal/multi-hop workload, not blanket accuracy."
+        },
+        {
+          "plan_ref": "5.5",
+          "plan_claim": "Three memory types: episodic / semantic / procedural.",
+          "verdict": "CONFIRM",
+          "why": "This tripartite split is canonical across 2025-2026 agent-memory surveys and systems. It is table stakes — correct and low-risk, but not a differentiator."
+        },
+        {
+          "plan_ref": "5.5",
+          "plan_claim": "'Consolidation on sleep' Reflector pass.",
+          "verdict": "CONFIRM",
+          "why": "A recognized, named technique with converging lineages: Generative Agents 'reflection' (2023, seminal), Letta/Berkeley 'Sleep-time Compute' (2504.13171, 2025), A-MEM 'memory evolution', and Mem0 consolidation. Strongly grounded; borrow A-MEM's link-generation + note-evolution and consider novelty-gated incremental consolidation instead of full re-derivation each sleep."
+        },
+        {
+          "plan_ref": "5.4",
+          "plan_claim": "Identity ANCHORING of human-confirmed beliefs is the anti-corruption mechanism.",
+          "verdict": "UPDATE",
+          "why": "The threat is real and timely (MINJA achieves >95% memory-injection success; PoisonedRAG needs one passage), so protecting HUMAN_CONFIRMED beliefs is well-motivated. But 'anchoring' is home-grown terminology; the field frames the same goal as provenance-typed / trust-tiered memory (per-write source, confidence, lineage; FIDES-style integrity labels) plus poisoning-defense rerankers. Reframe accordingly and don't treat anchoring alone as sufficient — no single defense in the literature is robust."
+        }
+      ],
+      "challenges": [
+        "Re-hydrating ALL living-docs each wake contradicts the SOTA core/archival/recall split (Letta); it will bloat context and degrade as beliefs.json/notebook.md grow. Only a small identity/agenda tier should be in-context.",
+        "'Anchoring' is non-standard terminology; the field frames the same objective as provenance/integrity-labeled writes + write-policy gating + poisoning-defense rerankers, and reports that even published defenses (e.g. A-MemGuard) get beaten by newer attacks — so anchoring cannot be assumed sufficient on its own.",
+        "A plain claim-graph is weaker than a bi-temporal KG for the plan's OWN contradiction-detection/temporal-evolution use case; the plan under-specifies time-validity and invalidation semantics that Graphiti/Zep already standardize.",
+        "Graph memory's measured benefit is modest overall (Mem0: ~2pt on LOCOMO, higher latency), concentrated in temporal/multi-hop. The claim-graph must be justified by Persona's specific workload, not assumed to dominate flat text.",
+        "Parametric/test-time memory (Titans) is a live alternative substrate the plan never addresses; rejecting it is correct for a legibility-first product, but the plan should state that reasoning explicitly rather than leaving it implicit."
+      ],
+      "recommendations": [
+        "Adopt Letta-style two-tier memory: keep identity.md/agenda.md as small human-readable in-context 'core memory' blocks, and move beliefs.json/notebook.md into a tool-retrieved archival store — do not re-hydrate everything each wake. Consider building the durable self directly on Letta/AgentFile (.af) rather than reinventing serialization.",
+        "Make the claim-graph bi-temporal (Graphiti/Zep style: valid-from/valid-to, invalidation edges, source provenance per fact). This substrate directly powers contradiction detection and belief-trajectory views the plan wants, and avoids re-deriving temporal reasoning by hand.",
+        "Keep the Reflector but name and borrow mechanisms: A-MEM link-generation + note-evolution for semantic linking; sleep-time-compute to pre-compute likely queries/anticipations during sleep; a novelty gate so consolidation is incremental, not a full re-scan each cycle.",
+        "Reframe 'anchoring' as provenance/integrity-labeled writes + an explicit write-policy: new READ/INFERRED evidence cannot silently overwrite HUMAN_CONFIRMED/TESTED beliefs; add a reasoning-guard reranker on candidate writes. Harden the existing eval by adding a MINJA-style query-only injection attack alongside the correlated-noise oracle (exp_when_protection_matters).",
+        "Explicitly justify external legible memory over parametric/test-time memory (Titans) in BUILD_PLAN §5 — legibility/auditability is the product thesis and is the correct, defensible reason to reject weight-based memory.",
+        "Benchmark the self/membrane on LongMemEval (especially the knowledge-updates and abstention subsets) and consider MemoryAgentBench's selective-forgetting task; these are the standard 2025-2026 evals and would give a skeptical reviewer real numbers rather than in-house-only metrics."
+      ]
+    },
+    {
+      "domain": "Multi-agent LLM orchestration & swarms (orchestrator-worker fan-out, budgeted heterogeneous agents, harvest-then-commit aggregation, adaptive backpressure) — as applied to reading-at-scale over biomedical literature.",
+      "key_works": [
+        {
+          "name": "Anthropic — How we built our multi-agent research system",
+          "year": "2025",
+          "one_line": "Production orchestrator-worker: Opus-4 lead + Sonnet-4 subagents beat single-agent Opus-4 by 90.2% on internal research eval; subagents return findings to the lead (never write directly), a separate CitationAgent post-processes; multi-agent uses ~15x chat tokens and token usage alone explains ~80% of performance variance; wins only on breadth-first parallelizable tasks that exceed one context window; production adds durable checkpointing/resume, full decision-trace observability, retry-on-tool-failure, and rainbow deployments.",
+          "venue_or_url": "anthropic.com/engineering/multi-agent-research-system",
+          "confidence": "high"
+        },
+        {
+          "name": "Cemri, Pan, Yang et al. — Why Do Multi-Agent LLM Systems Fail? (MAST taxonomy)",
+          "year": "2025",
+          "one_line": "UC Berkeley/CMU; 14 failure modes in 3 categories from 1600+ traces across 7 MAS frameworks (kappa=0.88): specification/role-ambiguity (~42%), inter-agent misalignment/coordination (~37%), and verification gaps (~21%) — i.e. most failures are organizational, not model-capability.",
+          "venue_or_url": "arXiv:2503.13657",
+          "confidence": "high"
+        },
+        {
+          "name": "Cognition — Don't Build Multi-Agents",
+          "year": "2025",
+          "one_line": "Two principles: (1) share full context and full agent traces, not just messages; (2) actions carry implicit decisions, so conflicting parallel decisions produce incompatible results; concludes parallel collaborating agents are fragile, and the only currently-safe multi-agent form is single-purpose read-only subagents that answer a well-defined question and do not write.",
+          "venue_or_url": "cognition.com/blog/dont-build-multi-agents",
+          "confidence": "high"
+        },
+        {
+          "name": "Tran & Kiela — Single-Agent LLMs Outperform Multi-Agent Systems on Multi-Hop Reasoning Under Equal Thinking Token Budgets",
+          "year": "2026",
+          "one_line": "Stanford; under matched compute a single agent matches or beats multi-agent variants across Qwen3, DeepSeek-R1-Distill-Llama, and Gemini 2.5; grounded in the Data Processing Inequality — every inter-agent handoff can only lose information, never create it; reported MAS gains are largely unaccounted compute/context effects.",
+          "venue_or_url": "arXiv:2604.02460",
+          "confidence": "high"
+        },
+        {
+          "name": "Jwalapuram, Lin et al. — The Illusion of Multi-Agent Advantage",
+          "year": "2026",
+          "one_line": "Automated multi-agent frameworks cost ~10x Chain-of-Thought-with-Self-Consistency for negligible gains, and exhibit redundancy and functional collapse rather than the promised specialization when evaluated fairly against a single-agent baseline.",
+          "venue_or_url": "arXiv:2606.13003",
+          "confidence": "high"
+        },
+        {
+          "name": "OpenAI Agents SDK (productionized from the experimental Swarm)",
+          "year": "2025",
+          "one_line": "Swarm (Oct 2024) became the Agents SDK (Mar 2025); three primitives — Agents, Handoffs, Guardrails; canonical topology is a triage agent + ~3-4 specialists; guardrails are first-class input/output validators at agent boundaries, a stage the Persona swarm spec omits.",
+          "venue_or_url": "openai.github.io/openai-agents-python",
+          "confidence": "high"
+        },
+        {
+          "name": "LangGraph — durable graph orchestration",
+          "year": "2025",
+          "one_line": "Largest production footprint in 2026; directed graph with conditional edges plus durable execution (checkpoint/resume of a stateful orchestrator) — the always-on-recovery capability Persona's 5.1/5.2 assumes but does not specify.",
+          "venue_or_url": "langchain-ai.github.io/langgraph",
+          "confidence": "high"
+        },
+        {
+          "name": "Adaptive/budget-aware test-time compute for agents (AgentTTS; Budget-Aware Tool-Use; 'Anytime Verified Agents')",
+          "year": "2025-2026",
+          "one_line": "Current SOTA for fan-out control is dynamic, not static: allocate compute by task-complexity/model-confidence, expand search via value-of-information, and use selective verification cascades with early exit under a fixed budget — supersedes a fixed budgeted-fan-out schedule.",
+          "venue_or_url": "arXiv:2508.00890 (AgentTTS), arXiv:2511.17006 (Budget-Aware Tool-Use)",
+          "confidence": "medium"
+        },
+        {
+          "name": "Multi-agent debate approximates self-consistency (Smit et al., 'Should we be going MAD?')",
+          "year": "2024",
+          "one_line": "Under an equal generation budget, multi-agent debate is at best marginally better than — and often worse than — plain self-consistency majority voting; debate behaves as a consistency mechanism, not genuine critique. Cautions against turning Persona's reasoning agents into a debate ensemble.",
+          "venue_or_url": "reconstructed from memory; surfaced repeatedly in 2025 debate-vs-SC search results but exact paper not re-confirmed",
+          "confidence": "low"
+        },
+        {
+          "name": "Reliability caveats on many-agent rounds ('The Confident Liar'; 'More Rounds, More Noise')",
+          "year": "2026",
+          "one_line": "More agent/review rounds add noise rather than signal on cross-context verification, and debate confidence can be miscalibrated (confidently wrong) — directly relevant to Persona's 'backpressure under correlated disagreement', since same-base-model readers have correlated errors and their agreement is not independent confirmation.",
+          "venue_or_url": "arXiv:2606.10296, arXiv:2603.16244",
+          "confidence": "medium"
+        }
+      ],
+      "verdicts": [
+        {
+          "plan_ref": "5.1",
+          "plan_claim": "Orchestrator-worker swarm of bounded, disposable, single-job READ-ONLY agents (reader/extractor/dataset-scout) fanned out to read at scale.",
+          "verdict": "CONFIRM",
+          "why": "This is the one niche where current evidence robustly favors many agents over one: Anthropic's orchestrator-worker read swarm beat single-agent Opus-4 by 90.2% precisely because research is breadth-first, parallelizable, and exceeds one context window. Cognition — the loudest multi-agent skeptic — explicitly carves out read-only single-purpose subagents that don't write as the acceptable form. Persona's reader swarm sits squarely in the zone both camps endorse."
+        },
+        {
+          "plan_ref": "5.2",
+          "plan_claim": "Budgeted fan-out with cheaper models for readers and the strongest model reserved for hypothesizer/tester.",
+          "verdict": "CONFIRM",
+          "why": "Anthropic literally ships Opus lead + Sonnet subagents, and reports token usage explains ~80% of performance variance — so heterogeneous, budget-disciplined fan-out is the dominant lever, not a nicety. Caveat: static budgets are now behind SOTA (see recommendation on adaptive allocation)."
+        },
+        {
+          "plan_ref": "5.1",
+          "plan_claim": "Harvest-then-commit: subagents never write per-agent; results are harvested and committed centrally to the belief-state.",
+          "verdict": "CONFIRM",
+          "why": "Best-supported choice in the whole design. Anthropic's subagents return findings to the lead which synthesizes (writes deferred to a separate CitationAgent); Cognition's core failure mode is exactly conflicting parallel writes producing incompatible results. Persona's write-free swarm + single commit point is the precise mitigation both the pro- and anti-multi-agent camps prescribe."
+        },
+        {
+          "plan_ref": "5.1",
+          "plan_claim": "The swarm/self split — disposable parallel read-only swarm vs a single persistent reasoning-and-committing self.",
+          "verdict": "CONFIRM",
+          "why": "The literature's sharpest line is 'parallelize the reading, centralize the deciding.' Tran & Kiela (Data Processing Inequality: handoffs only lose information) and 'Illusion of Multi-Agent Advantage' (redundancy/functional collapse, ~10x cost for negligible gain) both say sequential reasoning belongs in one strong agent. Persona keeps reasoning in the self and fan-out in the swarm — on the correct side of both findings."
+        },
+        {
+          "plan_ref": "5.2",
+          "plan_claim": "Hypothesizer/tester/cross-checker run as fanned-out swarm agents (the strongest model, but still multiple bounded agents).",
+          "verdict": "CHALLENGE",
+          "why": "If these become an ensemble/debate over the same reasoning problem, current evidence says that loses under matched compute: single-agent >= multi-agent on multi-hop reasoning (Tran & Kiela 2604.02460), and debate ~= self-consistency at best. Keep hypothesis-generation and testing as ONE strong agent with self-consistency + an explicit verification gate; reserve fan-out for the read/retrieve/dataset-scout stages only. Do not route synthesis through inter-agent handoffs."
+        },
+        {
+          "plan_ref": "5.2",
+          "plan_claim": "Backpressure narrows fan-out under correlated disagreement.",
+          "verdict": "UPDATE",
+          "why": "The adaptive-control instinct is right and current (value-of-information / uncertainty-gated allocation is SOTA — AgentTTS, Anytime Verified Agents), but the trigger is under-specified in a dangerous way: readers sharing one cheap base model have CORRELATED errors, so their agreement is not independent confirmation and 'more rounds add noise' (arXiv:2603.16244, 2606.10296). Weight evidence by source/provenance independence and model/prompt diversity, not by agent count; make backpressure key on calibrated uncertainty and value-of-information, and treat same-model consensus as weak evidence (this dovetails with Persona's existing anchoring/poisoning-resistance result)."
+        },
+        {
+          "plan_ref": "5.1",
+          "plan_claim": "Bounded single-job agents implicitly avoid the multi-agent failure modes.",
+          "verdict": "UPDATE",
+          "why": "MAST (arXiv:2503.13657) shows ~21% of real multi-agent failures are verification gaps and ~42% are specification/role ambiguity even in bounded systems. 'Single-job' helps specification but does not supply verification. Make the cross-checker/tester a hard gate on the harvest boundary (fail-loud, fail-early per CLAUDE.md §4), not an optional reviewer, and pin each subagent's contract tightly to fight role drift."
+        }
+      ],
+      "challenges": [
+        "The plan's implicit premise that 'more agents help' is only supported for breadth-first READING; for reasoning/synthesis the 2026 evidence (Tran & Kiela 2604.02460; Illusion of Multi-Agent Advantage 2606.13003) says a single strong agent matches or beats multi-agent under equal compute. Any fan-out applied to hypothesizing/testing is stale.",
+        "Backpressure 'under correlated disagreement' assumes inter-agent (dis)agreement is informative. If readers share one base model their errors are correlated, so consensus gives FALSE confidence and disagreement is the more useful signal — the opposite of narrowing on disagreement. This is a live false-confidence risk for the belief-state.",
+        "5.1/5.2 as described omit the production essentials every current always-on system now treats as mandatory: durable checkpointing/resume of the orchestrator, agent-decision tracing/observability, retry-and-adapt on tool failure, and non-disruptive (rainbow) code updates — critical for a 'persistent, always-on' researcher where errors compound over long runs.",
+        "Static budgeted fan-out is behind the frontier: 2025-2026 SOTA allocates fan-out dynamically by uncertainty / value-of-information within a budget (AgentTTS, Budget-Aware Tool-Use, Anytime Verified Agents), which also gives a principled backpressure controller the plan currently hand-specifies.",
+        "Guardrails / boundary validation as a first-class primitive (OpenAI Agents SDK) and a hard verification gate (MAST: 21% of failures are verification gaps) are not explicit in the swarm spec; 'single-job' agents reduce spec ambiguity but do not add verification.",
+        "Economic guard is under-stated: multi-agent runs ~15x chat tokens (Anthropic), so fan-out must be gated on task value. Persona's contradiction->hypothesis flag is a natural value gate — but the plan should make 'only fan out when the flagged contradiction justifies 15x cost' an explicit rule, not an assumption."
+      ],
+      "recommendations": [
+        "Keep the swarm/self split and harvest-then-commit exactly as designed — these are the two best-evidenced choices in the plan. Confine fan-out strictly to reading/extraction/dataset-scouting (the Anthropic-proven, Cognition-endorsed niche) and keep subagents write-free with a single central commit.",
+        "Make hypothesizer + tester a SINGLE strong-model agent with self-consistency (sample-and-vote) plus an explicit verification pass, not a debate/ensemble. Under matched compute this matches or beats multi-agent reasoning and avoids handoff information loss (Data Processing Inequality).",
+        "Replace static budgeted fan-out with adaptive, uncertainty/value-of-information-gated allocation (AgentTTS / Anytime-Verified-Agents style): spawn more readers only where marginal reliability gain is high, early-exit verification cascades elsewhere. Anthropic's '~80% of variance is token usage' makes this the highest-leverage optimization.",
+        "Redesign backpressure to key on calibrated uncertainty and SOURCE independence, not raw agent (dis)agreement: decorrelate readers via model/prompt diversity, weight harvested evidence by provenance independence, and treat same-base-model consensus as weak evidence — directly reusing Persona's anchoring/poisoning-resistance machinery to resist correlated-error false confidence.",
+        "Add the production layer current always-on systems require: durable checkpoint/resume for the orchestrator (LangGraph-style), decision-trace observability of the swarm, retry-and-adapt on tool failure, and boundary guardrails (OpenAI Agents SDK) validating each subagent's output before harvest — with the cross-checker as a hard fail-loud gate (MAST verification-gap fix).",
+        "Gate fan-out on task value explicitly (multi-agent ~= 15x chat tokens): only escalate to a wide read-swarm when a flagged contradiction clears a value threshold; for routine confirmation prefer a single strong agent over the swarm. Cite Anthropic's cost numbers in the dispatcher's budget comment.",
+        "Tighten each subagent's contract to a single well-formed question with a fixed output schema to fight MAST's dominant failure (spec/role ambiguity, ~42%); a subagent that starts making commit-level decisions is the exact 'subordinate makes executive decision' failure mode to design out."
+      ]
+    },
+    {
+      "domain": "Structured biomedical claim/relation extraction & LLM knowledge-graph construction — specifically the feasibility of extracting INFERENTIAL-DEPENDENCY edges (presupposes / derives-from / generalizes / operationalizes) between scientific claims at precision usable for a load-bearing ranking (Persona BUILD_PLAN 3.2, test E6).",
+      "key_works": [
+        {
+          "name": "KARMA: Multi-Agent LLMs for Automated KG Enrichment",
+          "year": "2025",
+          "one_line": "9-agent pipeline (entity/relation/schema/conflict) over 1,200 PubMed articles; 83.1% LLM-verified correctness (note: LLM-verified, not human), reduces conflict edges 18.6%. Extracts standard entity-relation triples, NOT inter-claim dependency.",
+          "venue_or_url": "NeurIPS 2025 spotlight; arXiv:2502.06472",
+          "confidence": "high"
+        },
+        {
+          "name": "MedKGent: LLM Agent for Temporally-Evolving Medical KG",
+          "year": "2025",
+          "one_line": "Qwen2.5-32B agents build a day-by-day evolving KG from 10M PubMed abstracts (156k entities, 2.97M triples) at ~90% accuracy (2 LLMs + 3 experts); confidence-scored triples but only subject-predicate-object relations.",
+          "venue_or_url": "arXiv:2508.12393",
+          "confidence": "high"
+        },
+        {
+          "name": "iKraph: comprehensive high-quality biomedical KG",
+          "year": "2025",
+          "one_line": "LitCoin-2022-winning IE pipeline over all PubMed + 40 databases; matches human-expert annotation on entity/relation extraction and does probabilistic semantic reasoning — but relations are biomedical facts, not claim-dependency.",
+          "venue_or_url": "Nature Machine Intelligence 2025; s42256-025-01014-w",
+          "confidence": "high"
+        },
+        {
+          "name": "AutoBioKG: context-aware open-domain biomedical KG for scientific inference",
+          "year": "2026",
+          "one_line": "Nearest competitor in framing ('scientific inference'): introduces 'composite triples' encoding contextual conditions/attributes via a self-evolution OpenIE model; still entity-relation edges with context, not presupposes/derives-from between claims.",
+          "venue_or_url": "bioRxiv 2026.01.14.699420",
+          "confidence": "medium"
+        },
+        {
+          "name": "PaperQA2 (Language agents achieve superhuman synthesis)",
+          "year": "2024",
+          "one_line": "Best-in-class agentic literature system; on contradiction detection finds 2.34 contradictions/paper but only ~70% are validated by human experts — a real ceiling for even the EASIER support/contradict edge Persona already relies on.",
+          "venue_or_url": "Future House; arXiv:2409.13740",
+          "confidence": "high"
+        },
+        {
+          "name": "TheoremGraph: Bridging Formal and Informal Mathematics",
+          "year": "2026",
+          "one_line": "The only large-scale 'derives-from'-style inter-statement dependency graph found: 18.3M directed dependency edges over 11.7M arXiv theorems — but in FORMAL math (proofs explicitly cite lemmas) and shipped as extractor-tagged CANDIDATE edges to 'trade coverage for precision', not gold-precision.",
+          "venue_or_url": "arXiv:2606.25363",
+          "confidence": "medium"
+        },
+        {
+          "name": "SciClaim (Extracting Fine-Grained KGs of Scientific Claims)",
+          "year": "2021",
+          "one_line": "Fine-grained claim KG over SBS/PubMed/CORD-19 — but strictly INTRA-claim structure (variables, correlations, associations, qualifiers); no inter-claim inferential dependency.",
+          "venue_or_url": "EMNLP 2021; github.com/siftech/SciClaim",
+          "confidence": "high"
+        },
+        {
+          "name": "SciCite / ACL-ARC citation-intent (incl. 2025 LLM re-eval)",
+          "year": "2019/2025",
+          "one_line": "Closest natural-language analog to derives-from/operationalizes: ACL-ARC's Extends/Uses/Motivation labels. SciCite 3-way tops ~88.9% F1 (XLNet); ACL-ARC 6-way is markedly lower; 2025 open-LLM study (arXiv:2502.14561) gains only +8%/+4.3% F1 by fine-tuning.",
+          "venue_or_url": "SciCite (Cohan 2019, NAACL); ACL-ARC (Jurgens 2018); arXiv:2502.14561",
+          "confidence": "high"
+        },
+        {
+          "name": "LLMs in Argument Mining: A Survey",
+          "year": "2025",
+          "one_line": "States inter-claim relations beyond support/attack are 'firmly an open problem' with no canonical schema and ad-hoc label interoperability; LLMs specifically fail on claims implied through PRESUPPOSITION/metaphor/framing — i.e., exactly Persona's target labels.",
+          "venue_or_url": "arXiv:2506.16383",
+          "confidence": "high"
+        },
+        {
+          "name": "Zero-shot biomedical RE with GPT models (BioRED/BC8)",
+          "year": "2024-2025",
+          "one_line": "On well-defined biomedical relations with gold data, GPT-4-class models reach ~0.88-0.9 PRECISION but only ~0.6 recall; o1/GPT-OSS improve F1. Sets a realistic upper bound that fuzzier inferential edges will fall below.",
+          "venue_or_url": "arXiv:2504.04083; 'Study of Biomedical RE Using GPT Models' PMID 38827097",
+          "confidence": "medium"
+        },
+        {
+          "name": "LLM-empowered KG construction survey (fuzzy-relation IAA)",
+          "year": "2025",
+          "one_line": "Documents that fuzzy semantic relations yield LOW inter-annotator agreement ('high expressiveness, partial correctness') and that LLMs commit 'causal hallucination' — generating spurious dependency links; both threaten a gold set for presupposes/derives-from.",
+          "venue_or_url": "arXiv:2510.20345",
+          "confidence": "medium"
+        }
+      ],
+      "verdicts": [
+        {
+          "plan_ref": "3.2 / E6",
+          "plan_claim": "LLM agents extract inferential-dependency edges (presupposes, derives-from, generalizes, operationalizes) between claims with enough PER-EDGE precision to be load-bearing.",
+          "verdict": "CHALLENGE",
+          "why": "No biomedical (or general scientific-prose) gold dataset or method exists for these four labels — genuinely unbuilt, which is the differentiator but also means the precision bar is untested. The closest large-scale 'derives-from' graph (TheoremGraph, arXiv:2606.25363) only works in FORMAL math where proofs explicitly cite lemmas, and even there ships candidate edges with a coverage/precision knob rather than gold precision. Precision ceilings are unforgiving: well-defined biomedical RE tops out ~0.88-0.9 P at ~0.6 R with gold data; PaperQA2's contradiction edge (easier than inference) is only ~70% expert-validated; argument-mining survey (arXiv:2506.16383) calls inter-claim dependency beyond support/attack 'firmly open' and names presupposition as an LLM failure mode. Expect per-edge precision meaningfully below 0.7.",
+          "citation": "arXiv:2606.25363; arXiv:2409.13740; arXiv:2506.16383; arXiv:2504.04083"
+        },
+        {
+          "plan_ref": "3.2 / E6",
+          "plan_claim": "A load-bearing RANKING of claims correlates with expert judgment (the actual acceptance metric).",
+          "verdict": "UPDATE",
+          "why": "This framing is survivable and is the right one to make explicit and primary. A noisy edge set can still yield a useful ranking (rank correlation with expert-nominated foundational claims) even when individual edges are wrong — the TheoremGraph 'trade coverage for precision' pattern and PageRank-over-noisy-citations precedent support this. But 'correlates with expert judgment' is itself at risk from LOW inter-annotator agreement on fuzzy relations (arXiv:2510.20345): experts may not agree on derives-from vs generalizes, capping the achievable correlation. Fix the metric to rank correlation (Spearman/Kendall) against a small consensus-annotated dev set, and report IAA on that set first — if human IAA is low, the target itself is ill-posed and must be renegotiated before E6 runs.",
+          "citation": "arXiv:2606.25363; arXiv:2510.20345"
+        },
+        {
+          "plan_ref": "5.x / swarm + membrane (support/contradict layer)",
+          "plan_claim": "Swarm reads at scale; membrane admits support/contradict edges into the belief-state.",
+          "verdict": "CONFIRM",
+          "why": "This layer is SOTA-competitive and well-supported. KARMA (NeurIPS 2025), MedKGent (~90% acc), iKraph (Nature Mach. Intell. 2025), and PaperQA2 all validate multi-agent LLM extraction + conflict/contradiction handling at PubMed scale. Persona's swarm-reads-membrane-believes architecture is on solid empirical ground; the risk is concentrated entirely in the E6 inferential-dependency layer, not here.",
+          "citation": "arXiv:2502.06472; arXiv:2508.12393; s42256-025-01014-w; arXiv:2409.13740"
+        },
+        {
+          "plan_ref": "3.2 / E6 label design",
+          "plan_claim": "Invent four bespoke relation labels (presupposes/derives-from/generalizes/operationalizes) and extract them blind.",
+          "verdict": "CHALLENGE",
+          "why": "Three of the four map onto label sets that ALREADY have datasets and precision baselines: 'operationalizes'/'derives-from' ≈ citation-intent Uses/Extends (ACL-ARC, ~70-80% F1 6-way; SciCite 3-way ~88.9%), 'presupposes' ≈ concept-prerequisite-relation extraction (established in education/IE). Defining the labels blind forgoes these anchors and worsens the IAA problem. Borrow their operational definitions and annotation guidelines rather than reinventing.",
+          "citation": "SciCite (Cohan 2019); ACL-ARC (Jurgens 2018); arXiv:2502.14561"
+        }
+      ],
+      "challenges": [
+        "E6 assumes inferential-dependency edges are extractable at load-bearing precision, but NO biomedical (or scientific-prose) dataset/method for presupposes/derives-from/generalizes/operationalizes exists — it is genuinely unbuilt, so the precision claim is entirely unvalidated rather than beaten.",
+        "The plan implicitly treats these edges like the support/contradict edges the membrane already handles, but the field's best number for even the easier contradiction edge is only ~70% expert-validated (PaperQA2); inferential edges are strictly harder.",
+        "'Correlates with expert judgment' presumes experts agree on these labels, but fuzzy semantic relations show LOW inter-annotator agreement (arXiv:2510.20345); the acceptance metric may be measuring against an unreliable gold standard, and its ceiling could be well under 1.0 for reasons unrelated to the model.",
+        "The only large-scale precedent for 'derives-from' edges (TheoremGraph, 18.3M edges) succeeds specifically because FORMAL mathematics makes dependencies explicit (proofs cite lemmas); biomedical prose has no equivalent explicit structure, so the analogy over-promises.",
+        "LLMs are documented to commit 'causal hallucination' — fabricating plausible-but-ungrounded dependency links — which is the precise failure mode most damaging to a belief-state that treats these edges as load-bearing.",
+        "The argument-mining literature explicitly flags PRESUPPOSITION as a case current LLMs handle worst (they read implied claims literally), so the hardest of Persona's four labels is the one the field says is least tractable."
+      ],
+      "recommendations": [
+        "Reframe E6's acceptance criterion from per-edge precision to RANK correlation: does the top-k of 'load-bearing' claims (by dependency in-degree / PageRank over the edge graph) match experts' nominated foundational claims via Spearman/Kendall? A ranking tolerates noisy edges; this is both more defensible and closer to what the plan already says it wants.",
+        "Before running E6, build a small (50-150 claim-pair) expert-annotated dev set and REPORT inter-annotator agreement on the four labels FIRST. If IAA (Krippendorff's alpha) is low, the target is ill-posed — renegotiate the label set before spending model budget. This is the discriminating small experiment CLAUDE.md §2/§6 demands.",
+        "Anchor the four labels to existing schemas instead of inventing them blind: map derives-from/operationalizes to citation-intent Uses/Extends (ACL-ARC, SciCite) and presupposes to concept-prerequisite-relation extraction; borrow their annotation guidelines and use their reported F1 (~70-89%) as the realistic ceiling, not an aspiration.",
+        "Adopt TheoremGraph's engineering pattern: emit CANDIDATE edges tagged with the extractor and a calibrated confidence, exposing a coverage/precision threshold — do NOT write these into the belief-state as facts. This aligns with Persona's own INFERRED provenance type and its human-anchoring loop (upgrade to HUMAN_CONFIRMED on resolver sign-off).",
+        "Set expectations quantitatively in the plan: budget for per-edge precision in the 0.5-0.7 band (below the 0.88-0.9 that well-defined biomedical RE achieves at ~0.6 recall), and make the demo's 'money shot' the RANKING + human confirmation loop, not raw edge precision.",
+        "Keep the differentiator but rebrand the risk honestly: this is a genuinely novel capability (true 'no one else has the acting loop over inferred dependency' claim), which per CLAUDE.md §3 must be falsification-tested before celebration — the IAA + rank-correlation experiment IS that falsification test, and should be run in /experiments before any UI is built on top of these edges.",
+        "Consider a hybrid signal to de-risk: combine LLM-proposed inferential edges with citation-graph structure (a claim in paper B that cites paper A for a method is weak evidence of operationalizes/derives-from), so the ranking has a non-LLM backbone that survives even if edge precision is poor — cross-check against Scientific Contribution Graph / miscitation-detection work (arXiv:2605.15011, arXiv:2603.12290) for prior art."
+      ]
+    },
+    {
+      "domain": "Contradiction detection & automated claim verification in scientific/biomedical literature (contradiction as an autonomous-loop trigger; convergence/independent-agreement as a belief gate)",
+      "key_works": [
+        {
+          "name": "PaperQA2 / ContraCrow — Skarlinski et al., 'Language agents achieve superhuman synthesis of scientific knowledge'",
+          "year": "2024",
+          "one_line": "Agentic RAG over full-text biology; ContraCrow flags 2.34±1.99 contradictions/paper of which only ~70% are expert-validated (i.e. ~30% real-world false-positive), 88% precision / 7% FPR / 0.842 AUC on its curated ContraDetect benchmark, but human experts agree with EACH OTHER only 75.5%±13.4% — a hard ceiling on any contradiction trigger.",
+          "venue_or_url": "arXiv:2409.13740",
+          "confidence": "high"
+        },
+        {
+          "name": "BioDivergence: Benchmark for Hidden Contextual Contradictions in Biomedical Abstracts — Hossain, Jennifer, Bushra, Yousefi",
+          "year": "2026",
+          "one_line": "Argues most apparent biomedical contradictions are context-conditioned (cohort/geography/assay/subtype) with both claims locally valid; 11,865 claim pairs, 6-class conflict taxonomy + 13-axis divergence ontology; Mistral-7B scores only 0.55 acc / 0.39 contextual-F1 at separating true contradiction from divergence.",
+          "venue_or_url": "arXiv:2606.11208",
+          "confidence": "high"
+        },
+        {
+          "name": "Contradictions in Context: Challenges for RAG in Healthcare — Javadi et al.",
+          "year": "2026",
+          "one_line": "First systematic study of contradictions in medical RAG; PubMedBERT-MNLI + SPECTER NLI pipeline; ~18% ROUGE-1 answer-quality decline under contradictory evidence; explicitly warns sentence-level NLI misses document-level contradictions and that detection/resolution is unsolved.",
+          "venue_or_url": "arXiv:2511.06668",
+          "confidence": "high"
+        },
+        {
+          "name": "SemEval-2024 Task 2 (NLI4CT): Safe Biomedical NLI for Clinical Trials — Jullien et al.",
+          "year": "2024",
+          "one_line": "Biomedical entailment/contradiction over breast-cancer trial reports; best system F1 0.80 but consistency only 0.73 under semantic-preserving perturbations (NLI4CT-P) — biomedical NLI labels flip under paraphrase, so a contradiction trigger built on it fires inconsistently.",
+          "venue_or_url": "arXiv:2404.04963 (SemEval/ACL 2024)",
+          "confidence": "high"
+        },
+        {
+          "name": "Greenberg, 'How citation distortions create unfounded authority: analysis of a citation network'",
+          "year": "2009",
+          "one_line": "Seminal: apparent consensus in biomedical literature is frequently manufactured by citation bias, amplification, and invention — 'many independent papers agree' is often propagation of a single unsupported claim, not independent replication. Directly undercuts a convergence-by-agreement gate.",
+          "venue_or_url": "BMJ 2009;339:b2680 (PMC2714656)",
+          "confidence": "high"
+        },
+        {
+          "name": "Automatic Identification of Citation Distortions in Biomedical Literature — Sarol, Schneider et al.",
+          "year": "2025",
+          "one_line": "Recent operationalization of Greenberg-style distortion detection; shows citation-stance 'agreement' signals are contaminated by echo/amplification, so counting agreeing citations overstates independence.",
+          "venue_or_url": "Proc. ASIS&T 2025, doi:10.1002/pra2.1281",
+          "confidence": "medium"
+        },
+        {
+          "name": "scite Smart Citations — Nicholson et al. (supporting/mentioning/contrasting) + 2023 accuracy audit",
+          "year": "2021",
+          "one_line": "Deep-learning citation-stance classifier (the nearest deployed analog to a convergence gate); 2021 paper reports up to ~85% precision on 'contrasting', but the 2023 external audit (Hypothesis journal) finds low real-world recall — contrasting/supporting citations are routinely mislabeled 'mentioning', F often 0.0–0.58.",
+          "venue_or_url": "Quantitative Science Studies 2021; audit in Hypothesis 2023",
+          "confidence": "high"
+        },
+        {
+          "name": "SciFact + MultiVerS — Wadden et al.",
+          "year": "2022",
+          "one_line": "Canonical SUPPORT/REFUTE/NEI scientific claim-verification benchmark and long-standing SOTA baseline; the REFUTE (contradiction) class is the sparsest and hardest, so headline accuracy overstates contradiction-specific reliability.",
+          "venue_or_url": "NAACL 2022 / allenai-scifact, dwadden/multivers",
+          "confidence": "high"
+        },
+        {
+          "name": "HealthContradict: Evaluating Biomedical Knowledge Conflicts in Language Models",
+          "year": "2025",
+          "one_line": "Nature npj Digital Medicine benchmark showing LLMs handle biomedical knowledge conflicts inconsistently; corroborates that 'is this a contradiction?' is not a solved, high-precision primitive.",
+          "venue_or_url": "npj Digital Medicine 2025 (s41746-025-02336-0); arXiv:2512.02299",
+          "confidence": "medium"
+        },
+        {
+          "name": "Alamri & Stevenson — corpus of potentially contradictory cardiovascular research claims",
+          "year": "2016",
+          "one_line": "Seminal older contradiction corpus (259 claim sentences from 24 systematic reviews) that later NLI/LLM work rests on; enumerates the linguistic triggers (negation, antonyms, numerical, factivity) that still confound modern detectors.",
+          "venue_or_url": "J. Biomedical Semantics 2016, 7:36",
+          "confidence": "high"
+        },
+        {
+          "name": "Rosemblat et al. — Characterization of Apparent Contradictions Using Context Analysis",
+          "year": "2019",
+          "one_line": "Seminal statement that a large fraction of literature 'contradictions' are apparent (context-driven) not real — the intellectual root BioDivergence formalizes.",
+          "venue_or_url": "PMC7001095 (J. Biomedical Informatics)",
+          "confidence": "high"
+        }
+      ],
+      "verdicts": [
+        {
+          "plan_ref": "2.5",
+          "plan_claim": "A detected contradiction between well-powered studies is a reliable enough trigger to autonomously launch the acting loop (hypothesis → dataset → reanalysis) without a human in the initiating position.",
+          "verdict": "CHALLENGE",
+          "why": "The best deployed system (ContraCrow/PaperQA2) has only ~70% of its flagged contradictions validated by experts in the wild (~30% false-positive), and human experts agree with each other only 75.5%±13.4% — so ground truth itself tops out near 75%. Autonomously spending reanalysis compute on a signal that is wrong ~1 in 3 times, with no super-75% oracle to check against, is the failure mode CLAUDE.md §1 warns about. Keep detection as a candidate-surfacing step feeding a gate, not as the autonomous ignition.",
+          "citation": "arXiv:2409.13740 (ContraCrow: 70% validated, 88% precision/7% FPR on benchmark, 75.5% inter-expert agreement)"
+        },
+        {
+          "plan_ref": "1.3",
+          "plan_claim": "The membrane can treat 'contradiction' as a well-defined binary admission signal for flagging disagreement between findings.",
+          "verdict": "CHALLENGE",
+          "why": "BioDivergence shows most apparent biomedical contradictions are context-conditioned (cohort, dose, assay, subtype, geography) with both claims locally valid, and LLMs separate true-refutation from context-divergence at only ~0.55 accuracy / 0.39 contextual-F1. A binary contradiction gate will over-fire on divergence. NLI4CT consistency of 0.73 under paraphrase adds label instability. The membrane needs a typed output (true-refutation vs context-divergence vs no-evidence), not a boolean.",
+          "citation": "arXiv:2606.11208 (BioDivergence, Mistral-7B 0.55 acc/0.39 F1); arXiv:2404.04963 (NLI4CT consistency 0.73)"
+        },
+        {
+          "plan_ref": "1.3",
+          "plan_claim": "Convergence = independent labs agree, so agreement across the literature is a sound membrane gate for admitting a belief.",
+          "verdict": "CHALLENGE",
+          "why": "Greenberg's citation-network analysis and 2025 follow-ups show apparent independent agreement is routinely manufactured by citation bias, amplification, and invention — counting agreeing statements measures propagation, not independence. scite (the deployed stance analog) has low recall on contrasting/supporting labels, so a convergence gate built on citation stance inherits that error. Redefine convergence as evidential independence (distinct datasets/cohorts/methods), and screen for citation echo before crediting agreement.",
+          "citation": "BMJ 2009 b2680 (Greenberg); ASIS&T 2025 doi:10.1002/pra2.1281 (Sarol/Schneider); scite audit in Hypothesis 2023"
+        },
+        {
+          "plan_ref": "1.3",
+          "plan_claim": "Off-the-shelf contradiction/claim-verification tooling can distinguish disagreement between WELL-POWERED studies specifically.",
+          "verdict": "UPDATE",
+          "why": "No current system (scite, ContraCrow, MultiVerS/SciFact, NLI4CT) conditions on statistical power — they operate on claim/abstract text and cannot tell a well-powered refutation from underpowered noise. The plan's own 'well-powered' qualifier is right but unmet by any tool; add an explicit study-quality/power prefilter (sample size, design, CI width) upstream of the gate, which is exactly what meta-analysis contributes and what BioDivergence's 'dominant confounder' output only gestures at.",
+          "citation": "arXiv:2409.13740; arXiv:2606.11208; SciFact/MultiVerS NAACL 2022"
+        },
+        {
+          "plan_ref": "2.5",
+          "plan_claim": "Contradiction detection is mature enough to be a useful engine at all for the self-test loop.",
+          "verdict": "CONFIRM",
+          "why": "As a high-recall SURFACING mechanism it is genuinely good and improving fast: ContraCrow is superhuman at retrieval, hits 88% precision / 0.842 AUC on curated benchmarks, and 2024-2026 saw a wave of stronger systems (SciClaims zero-shot beating MultiVerS, SciVer multimodal). The concept is sound; the correction is architectural (gate + typing + human resolver), not abandonment.",
+          "citation": "arXiv:2409.13740; arXiv:2503.18526 (SciClaims); arXiv:2506.15569 (SciVer)"
+        }
+      ],
+      "challenges": [
+        "Plan assumes contradiction detection is precise enough to autonomously trigger an acting loop; the SOTA deployed system (ContraCrow) shows ~30% real-world false-positive (only 70% expert-validated) and a ~75% human-agreement ceiling above which no oracle exists.",
+        "Plan treats 'contradiction' as a binary well-defined signal; BioDivergence (2026) shows a 6-class taxonomy where most apparent contradictions are context-conditioned divergence with both claims locally valid, and LLMs distinguish these at only ~0.55 accuracy.",
+        "Plan's 'convergence = independent labs agree' gate assumes agreement implies independent corroboration; Greenberg's citation-distortion work (and 2025 automated follow-ups) show literature agreement is frequently propagation/echo of one unsupported claim, not independence.",
+        "Plan assumes NLI/stance labels are stable enough to gate on; SemEval-2024 NLI4CT-P shows biomedical NLI labels flip under semantic-preserving perturbation (best consistency only 0.73).",
+        "Plan implies systems can target disagreement between WELL-POWERED studies; no current tool reasons about statistical power — they classify text, not evidence strength, so 'well-powered vs well-powered' is not something scite/ContraCrow/MultiVerS enforce.",
+        "Plan leans on citation-stance-style signals (the scite paradigm) for convergence; scite's own external audits report low recall on contrasting/supporting labels (contrasting often mislabeled 'mentioning'), so the convergence signal is noisy at the source."
+      ],
+      "recommendations": [
+        "Gate the acting loop on a HIGH-PRECISION operating point (e.g. ContraCrow-style Likert>=8 giving ~88% precision) AND require the flagged pair to survive a BioDivergence-style context-divergence classifier before spending any reanalysis compute — two independent filters, not one boolean.",
+        "Emit the membrane's contradiction as a TYPED object (true-refutation / context-conditioned-divergence / no-evidence-either-side) so the provenance-typed belief-state records WHY, matching the plan's READ/INFERRED/TESTED discipline; reuse BioDivergence's 'conflict type + dominant confounder + reconciliation' schema rather than hand-rolling one.",
+        "Redefine 'convergence' operationally as EVIDENTIAL INDEPENDENCE (distinct cohorts/datasets/labs/methods), not a count of agreeing citations or statements; add an explicit citation-distortion / echo detector (Greenberg/Sarol paradigm) so amplified single-source claims cannot pass the convergence gate.",
+        "Add a study-quality/power PREFILTER upstream of the contradiction gate (sample size, design, effect-size CI width) so only well-powered-vs-well-powered disagreement ignites the loop — the plan already intends this, but must build it because no off-the-shelf detector provides it.",
+        "Keep the human-as-resolver on flagged contradictions as NON-optional (the plan already routes here): with a ~75% inter-expert ceiling and ~30% wild FP, autonomous acceptance is unjustifiable; treat detection strictly as triage into the human handoff inbox.",
+        "Reuse ContraDetect (from arXiv:2409.13740) and BioDivergence (arXiv:2606.11208) as calibration/test oracles for the membrane — report precision + FPR at the chosen operating threshold with 95% CIs over >=20 seeds per CLAUDE.md §2, so the gate's reliability is a defended number, not an assumption."
+      ]
+    },
+    {
+      "domain": "LLM confidence calibration & uncertainty quantification (for Persona's per-belief probability, membrane gate, and human-escalation trigger)",
+      "key_works": [
+        {
+          "name": "Detecting hallucinations in large language models using semantic entropy (Farquhar, Kossen, Kuhn, Gal)",
+          "year": "2024",
+          "one_line": "Semantic entropy — cluster sampled generations by meaning (NLI) then take entropy of the cluster distribution — is a strong unsupervised signal for factual reliability; the field's reference point for sampling-based UQ.",
+          "venue_or_url": "Nature vol 630, DOI 10.1038/s41586-024-07421-0",
+          "confidence": "high"
+        },
+        {
+          "name": "Semantic Uncertainty: Linguistic Invariances for Uncertainty Estimation in NLG (Kuhn, Gal, Farquhar)",
+          "year": "2023",
+          "one_line": "Seminal paper that introduced semantic entropy via bidirectional-entailment clustering; the older work the Nature 2024 result rests on.",
+          "venue_or_url": "ICLR 2023, arXiv:2302.09664",
+          "confidence": "high"
+        },
+        {
+          "name": "Semantic Entropy Probes (Kossen et al.)",
+          "year": "2024",
+          "one_line": "Linear probe on hidden states approximates semantic entropy from a SINGLE generation — removes the 5-10x sampling cost, the main practical objection to SE.",
+          "venue_or_url": "arXiv:2406.15927",
+          "confidence": "high"
+        },
+        {
+          "name": "Benchmarking UQ Methods for LLMs with LM-Polygraph (Vashurin et al.)",
+          "year": "2025",
+          "one_line": "Unified open-source benchmark/toolkit over a dozen UQ methods across 11 tasks; for selective QA the best methods were MSP, HUQ-MD, SAR, and lexical similarity — the empirical reference for choosing an estimator.",
+          "venue_or_url": "TACL vol 13, pp.220-248, arXiv:2406.15627",
+          "confidence": "high"
+        },
+        {
+          "name": "Uncertainty Quantification for Language Models: Black-Box, White-Box, LLM-Judge, and Ensemble Scorers (UQLM) (Bouchard & Chauhan)",
+          "year": "2025",
+          "one_line": "Benchmarks and ships a toolkit (UQLM) standardizing UQ scores to 0-1; finds a tuned ENSEMBLE of scorers beats any single method for hallucination detection.",
+          "venue_or_url": "TMLR 2025, arXiv:2504.19254",
+          "confidence": "high"
+        },
+        {
+          "name": "AbstentionBench: Reasoning LLMs Fail on Unanswerable Questions (Kirichenko, Ibrahim, Chaudhuri, Bell — Meta/FAIR)",
+          "year": "2025",
+          "one_line": "Holistic abstention benchmark (20 datasets): abstention/knowing-when-to-defer is unsolved, scaling barely helps, and reasoning fine-tuning DEGRADES it — direct evidence against assuming a model 'knows when it doesn't know'.",
+          "venue_or_url": "arXiv:2506.09038",
+          "confidence": "high"
+        },
+        {
+          "name": "SConU: Selective Conformal Uncertainty in Large Language Models",
+          "year": "2025",
+          "one_line": "Conformal p-values detect when a sample leaves the calibration set's uncertainty distribution, giving selective-prediction with a manageable, distribution-free risk level — a principled way to set a gate/abstention threshold.",
+          "venue_or_url": "ACL 2025 (Long), arXiv:2504.14154",
+          "confidence": "high"
+        },
+        {
+          "name": "Mind the Gap: Benchmarking LLM Uncertainty & Calibration with Specialty-Aware Clinical QA (Testoni & Calixto)",
+          "year": "2026",
+          "one_line": "On clinical QA, uncertainty reliability is not monolithic — calibration/discrimination shift by specialty and question type; general vs biomedical vs reasoning models don't reliably differ. Uses conformal prediction as a complementary set-based approach.",
+          "venue_or_url": "EACL 2026 (Main), arXiv:2506.10769",
+          "confidence": "high"
+        },
+        {
+          "name": "Language Models (Mostly) Know What They Know (Kadavath et al. — Anthropic)",
+          "year": "2022",
+          "one_line": "Introduced P(True) self-evaluation and showed models have some access to their own correctness; the seminal black-box self-consistency/self-eval signal.",
+          "venue_or_url": "arXiv:2207.05221",
+          "confidence": "high"
+        },
+        {
+          "name": "Just Ask for Calibration: Eliciting Calibrated Confidence from LLMs Fine-Tuned with Human Feedback (Tian et al.)",
+          "year": "2023",
+          "one_line": "For RLHF'd models, verbalized confidence is BETTER calibrated than conditional (logit) probabilities — but still overconfident; foundational for verbalized-confidence elicitation.",
+          "venue_or_url": "EMNLP 2023, arXiv:2305.14975",
+          "confidence": "high"
+        },
+        {
+          "name": "Teaching Models to Express Their Uncertainty in Words (Lin, Hilton, Evans)",
+          "year": "2022",
+          "one_line": "First to show models can emit a 'verbalized probability' that correlates with empirical accuracy; origin of verbalized-confidence line.",
+          "venue_or_url": "TMLR 2022, arXiv:2205.14334",
+          "confidence": "high"
+        },
+        {
+          "name": "On Calibration of Modern Neural Networks (Guo et al.)",
+          "year": "2017",
+          "one_line": "Temperature scaling — still the simplest, most effective post-hoc calibrator and the baseline every LLM-calibration paper compares to.",
+          "venue_or_url": "ICML 2017, arXiv:1706.04599",
+          "confidence": "high"
+        },
+        {
+          "name": "Reasoning about Uncertainty: Do Reasoning Models Know When They Don't Know?",
+          "year": "2025",
+          "one_line": "Reasoning models are overconfident and get MORE overconfident with deeper reasoning; introspection helps some (o3-mini, R1) but not uniformly (Claude 3.7 worsens). Accuracy gains do not imply calibration gains.",
+          "venue_or_url": "arXiv:2506.18183",
+          "confidence": "medium"
+        },
+        {
+          "name": "Rewarding Doubt: An RL Approach to Calibrated Confidence Expression of LLMs",
+          "year": "2025",
+          "one_line": "Trains verbalized confidence to be calibrated via RL with a proper-scoring-rule reward — a route to fixing RLHF overconfidence if verbalized confidence must be used.",
+          "venue_or_url": "arXiv:2503.02623",
+          "confidence": "medium"
+        },
+        {
+          "name": "COIN: Uncertainty-Guarding Selective QA for Foundation Models with Provable Risk Guarantees",
+          "year": "2025",
+          "one_line": "Conformal-style framework for selective QA with statistical error-rate guarantees on admitted answers — another concrete way to instantiate a risk-controlled gate.",
+          "venue_or_url": "arXiv:2506.20178",
+          "confidence": "medium"
+        }
+      ],
+      "verdicts": [
+        {
+          "plan_ref": "5.3",
+          "plan_claim": "Every belief carries a calibrated probability.",
+          "verdict": "UPDATE",
+          "why": "Achievable but NOT free and NOT by asking the model for a number. RLHF-tuned models are systematically overconfident (reported ECE ~0.2-0.4 on knowledge tasks; GPT-4 report: RLHF degrades the well-calibrated pretrained model). Calibration is domain- and distribution-shift-dependent (Mind the Gap: clinical calibration varies by specialty). So a per-belief calibrated probability requires (a) a chosen UQ estimator, (b) a held-out per-domain calibration set, and (c) drift monitoring/recalibration — a standing engineering commitment, not a model property. Mark 5.3 as [hypothesis], not [E], until validated on your own biomedical QA.",
+          "citation": "Tian et al. EMNLP 2023 (2305.14975); Testoni & Calixto EACL 2026 (2506.10769); Guo et al. ICML 2017"
+        },
+        {
+          "plan_ref": "1.3",
+          "plan_claim": "Calibration as a membrane gate (admit/reject candidate beliefs on a confidence threshold).",
+          "verdict": "CONFIRM",
+          "why": "Gating admission on an uncertainty signal IS selective prediction and is well-supported — but use the right signal and set the threshold with a guarantee. Best-validated black-box gate signals are sampling/consistency-based: semantic entropy (Nature 2024) or cheap proxies SAR / lexical similarity / SE-probes (LM-Polygraph 2025 found MSP/HUQ-MD/SAR/LexSim best for selective QA). Set the cutoff via conformal/selective-prediction (SConU ACL 2025, COIN 2025) to hit a target error rate rather than a hand-picked probability. A tuned ensemble of scorers (UQLM, TMLR 2025) beats any single method.",
+          "citation": "Farquhar et al. Nature 2024; Vashurin et al. TACL 2025 (LM-Polygraph); SConU ACL 2025 (2504.14154); Bouchard & Chauhan TMLR 2025 (2504.19254)"
+        },
+        {
+          "plan_ref": "3.7",
+          "plan_claim": "Escalate to humans exactly on the uncertain / high-stakes calls.",
+          "verdict": "CHALLENGE",
+          "why": "The word 'exactly' overstates current capability. AbstentionBench (Meta 2025) shows knowing-when-to-defer is empirically UNSOLVED and reasoning fine-tuning makes it worse; reasoning models get more overconfident with deeper reasoning (2506.18183). So do NOT drive escalation from verbalized confidence — it is the least reliable signal post-RLHF. Escalation should combine a sampling-based UQ score (semantic entropy / self-consistency / P(true) — combining P(true)+consistency beats either) thresholded via conformal selective-prediction for a provable abstention error rate, AND a stakes/cost term (this is decision-theoretic, not pure uncertainty). Thresholds must be per-domain (clinical calibration is specialty-dependent) and audited, not assumed correct.",
+          "citation": "Kirichenko et al. 2025 AbstentionBench (2506.09038); Kadavath et al. 2022 (2207.05221); Testoni & Calixto EACL 2026"
+        }
+      ],
+      "challenges": [
+        "'Every belief carries a calibrated probability' (5.3) understates cost: calibration is not a one-shot model call — it needs a held-out per-domain calibration set, an explicit estimator, and drift monitoring. Calibration does not transfer across biomedical subfields (clinical calibration is specialty-dependent, Mind the Gap EACL 2026), so a single global threshold will be miscalibrated on some fields.",
+        "The cheapest per-belief signal — asking the model 'how confident are you 0-1?' (verbalized confidence) — is the LEAST reliable. RLHF-tuned models are systematically overconfident (reward models favor confident text; verbalized scores cluster at 80-100% even when wrong). If the plan implicitly assumes verbalized confidence, that assumption is unsafe.",
+        "Semantic entropy is aleatoric-only (it goes to zero when all samples agree, even if confidently wrong — it misses epistemic/model-ignorance uncertainty), its clustering is fragile for long-form / nuanced text, and vanilla SE costs 5-10x compute. For Persona's synthesized reviews (long-form) whole-answer SE will degrade; decompose to atomic claims instead.",
+        "Deferral/abstention is an open problem, not a solved primitive: AbstentionBench (Meta 2025) shows frontier and reasoning models fail at it and reasoning fine-tuning degrades it further. 'Escalate exactly when uncertain' (3.7) assumes reliability the field does not yet have — build in human spot-checks and treat the escalation threshold as tunable + audited.",
+        "Reasoning models (the kind Persona may lean on) do not fix this: they get MORE overconfident with longer reasoning and accuracy gains do not imply calibration gains. Don't assume a stronger reasoner 'knows when it doesn't know.'"
+      ],
+      "recommendations": [
+        "For BOTH the membrane gate (1.3) and the escalation trigger (3.7), drive the decision from a sampling/consistency-based uncertainty score — semantic entropy or a cheap proxy (SAR, lexical similarity, or SE-probes for near-zero overhead) — NOT raw verbalized confidence. Use LM-Polygraph (TACL 2025) as the toolkit to empirically pick the estimator on your own task before committing.",
+        "Set gate and escalation thresholds via conformal / selective prediction (SConU, ACL 2025; COIN, 2025) so the admit-rate / escalation-rate targets a provable, distribution-free error or coverage level. This is the principled operationalization of 'escalate exactly on the uncertain calls' — a calibrated risk knob, not a hand-picked probability cutoff.",
+        "Decompose long syntheses into atomic claims and estimate uncertainty PER claim. This matches Persona's per-belief provenance model, sidesteps semantic entropy's long-form clustering fragility, and lets each belief carry its own calibrated number as 5.3 intends.",
+        "Combine complementary signals when compute allows: self-consistency + P(true) (Kadavath 2022) beats either alone, and recent work shows even ~2 samples give a strong estimate. Use a tuned ensemble of black-box + LLM-judge scorers (UQLM, TMLR 2025) — it beat single methods for hallucination detection.",
+        "If verbalized confidence is used at all, keep it only as a recalibrated auxiliary signal: temperature-scale / Platt-scale it on held-out biomedical QA, or fine-tune it (RL 'Rewarding Doubt', 2025) — never trust the raw number from an RLHF'd model.",
+        "Make escalation decision-theoretic: threshold on uncertainty x stakes/cost, so high-stakes biomedical claims escalate at a lower uncertainty bar. Maintain a per-domain held-out calibration set, validate specifically on biomedical QA (MedQA/PubMedQA/clinical) because calibration is specialty-dependent, and monitor for calibration drift over the always-on lifetime. This directly fits the experiment-first CLAUDE.md ethos — run the LM-Polygraph suite as an /experiments study before marking 5.3/1.3/3.7 as [E]."
+      ]
+    },
+    {
+      "domain": "Science-of-science: argument/replication dynamics, retraction & collapse forecasting, and value-of-information research prioritization (evaluating Persona BUILD_PLAN instruments E5 §3.1 trajectory-beats-static collapse prediction, and E7 §3.4 VoI÷cost experiment ranking vs citation baseline judged by experts).",
+      "key_works": [
+        {
+          "name": "Danchev, Rzhetsky & Evans — 'Centralized scientific communities are less likely to generate replicable results'",
+          "year": "2019",
+          "one_line": "51,000 drug–gene interaction claims: decentralized/independent communities yield ~45% higher predicted replication probability than centralized ones — direct empirical basis for Persona's 'independence-drift' feature.",
+          "venue_or_url": "eLife (elifesciences.org/articles/43094)",
+          "confidence": "high"
+        },
+        {
+          "name": "Belikov, Rzhetsky & Evans — 'Prediction of robust scientific facts from literature'",
+          "year": "2022",
+          "one_line": "Bayesian calculus predicts which gene-interaction claims are robust/replicable from research-community structure + prior knowledge — the closest prior art to E5's collapse-prediction, in Persona's biomedical domain.",
+          "venue_or_url": "Nature Machine Intelligence (s42256-022-00474-8)",
+          "confidence": "high"
+        },
+        {
+          "name": "Yang, Youyou & Uzzi — 'Estimating the deep replicability of scientific findings using human and artificial intelligence'",
+          "year": "2020",
+          "one_line": "Text-only ML model predicts replication of psychology studies at ~0.68–0.72 AUC from narrative text alone — the STATIC baseline E5 must beat.",
+          "venue_or_url": "PNAS (pnas.2307596120 / 1909046117 line)",
+          "confidence": "high"
+        },
+        {
+          "name": "Youyou, Yang & Uzzi — 'A discipline-wide investigation of the replicability of Psychology papers over the past two decades' + three critical replies",
+          "year": "2023",
+          "one_line": "Text-ML replication scores across 14,000 papers; three published critiques (Crockett et al.; Mottelson & Kontogiorgos; 'Replicating replicability modeling') argue the model learns writing/language STYLE, not causal replicability — the static baseline is itself contested for learning confounds.",
+          "venue_or_url": "PNAS (2208863120; replies 2308195120, 2309496120)",
+          "confidence": "high"
+        },
+        {
+          "name": "'Failing to replicate predicts citation declines in psychology'",
+          "year": "2023",
+          "one_line": "Citations to failed-replication papers fall ~14% over 14 years AFTER the replication publishes; authors explicitly state they cannot assess pre-replication citation dynamics as predictors — evidence that citation trajectory is LAGGING, not leading.",
+          "venue_or_url": "PNAS (2304862120)",
+          "confidence": "high"
+        },
+        {
+          "name": "COS / DARPA SCORE 'Predicting Replicability Challenge' Rounds 1–2",
+          "year": "2023-2024",
+          "one_line": "Round 1: NO team beat a trivial constant-0.5 baseline (Brier 0.25); Round 2: all 15 teams beat it but discrimination was weak (replicated claims centered ~0.6 vs ~0.5). Ceiling on any single-model collapse predictor is modest.",
+          "venue_or_url": "cos.io/blog/predicting-replicability-challenge-round-2-results",
+          "confidence": "high"
+        },
+        {
+          "name": "Predicting the replicability of social & behavioural science claims in COVID-19 preprints",
+          "year": "2024",
+          "one_line": "Recent on-topic replication-forecasting study (markets + models) on preprints — evidence that prospective replication prediction remains an active, only-partly-solved problem.",
+          "venue_or_url": "Nature Human Behaviour (s41562-024-01961-1)",
+          "confidence": "medium"
+        },
+        {
+          "name": "'Predicting retracted research: a dataset and machine learning approaches'",
+          "year": "2025",
+          "one_line": "ML retraction predictor where publication YEAR is the dominant feature and 'eclipses other predictive signals' — warns that temporal features often capture base-rate/era confounds rather than genuine collapse dynamics.",
+          "venue_or_url": "Research Integrity and Peer Review (s41073-025-00168-w)",
+          "confidence": "high"
+        },
+        {
+          "name": "'Bibliometric feature identification and analysis of retracted papers in biomedicine: an interpretable ML perspective'",
+          "year": "2025",
+          "one_line": "XGBoost reaches ~87% accuracy predicting retraction in biomedicine; feature importances shift over time — but retraction is misconduct-dominated, a different phenomenon from replication failure/abandonment.",
+          "venue_or_url": "Information Processing & Management (S0306457325001177)",
+          "confidence": "high"
+        },
+        {
+          "name": "'Can social media provide early warning of retraction?'",
+          "year": "2024",
+          "one_line": "8.3% of later-retracted articles had a critical tweet BEFORE retraction vs 1.5% of controls — a genuine dynamic early-warning signal, but low base rate and social (not citation) in nature.",
+          "venue_or_url": "arXiv:2403.16851",
+          "confidence": "high"
+        },
+        {
+          "name": "Petersen et al. / QSS — 'The disruption (CD) index is biased by citation inflation'",
+          "year": "2024",
+          "one_line": "Park et al. (Nature 2023) 'declining disruption' is largely an artifact of reference-list growth / citation inflation; CD index is unreliable cross-time — cautions against using disruption or raw temporal citation counts as trajectory features.",
+          "venue_or_url": "Quantitative Science Studies (arXiv:2406.15311)",
+          "confidence": "high"
+        },
+        {
+          "name": "Minikel et al. — 'Refining the impact of genetic evidence on clinical success'",
+          "year": "2024",
+          "one_line": "Drug mechanisms with genetic support have 2.6x higher clinical success; this Open Targets–based prior is the REAL 'baseline to beat' in biomedical experiment prioritization — a strong static score, not a weak citation count.",
+          "venue_or_url": "Nature (s41586-024-07316-0)",
+          "confidence": "high"
+        },
+        {
+          "name": "Huang, Jin, Li, Candès, Leskovec — POPPER: 'Automated Hypothesis Validation with Agentic Sequential Falsifications'",
+          "year": "2025",
+          "one_line": "LLM agents design falsification experiments with e-value sequential testing and Type-I control; ~10x faster than humans — the acting/falsification loop adjacent to E7, but validates hypotheses, does not rank experiments by VoI÷cost.",
+          "venue_or_url": "ICML 2025 (arXiv:2502.09858)",
+          "confidence": "high"
+        },
+        {
+          "name": "Gandhi, Li et al. — BoxingGym: 'Benchmarking Progress in Automated Experimental Design and Model Discovery'",
+          "year": "2025",
+          "one_line": "Benchmarks LLM agents on expected-information-gain-optimal experiment selection across 10 environments; finds LLMs are mediocre at EIG-optimal design — evidence that LLM-estimated VoI (E7's engine) is noisy and must be validated, not assumed.",
+          "venue_or_url": "ICLR 2025 (arXiv:2501.01540)",
+          "confidence": "high"
+        },
+        {
+          "name": "MOOSE-Chem3: 'Experiment-Guided Hypothesis Ranking via Simulated Experimental Feedback'",
+          "year": "2025",
+          "one_line": "Ranks chemistry hypotheses using simulated experimental feedback and reports comparisons to citation/naive baselines — nearest prior art to E7's ranking-vs-baseline, but simulated feedback, chemistry toy setting, no formal VoI÷cost.",
+          "venue_or_url": "arXiv:2505.17873",
+          "confidence": "medium"
+        },
+        {
+          "name": "Google DeepMind 'Towards an AI co-scientist'",
+          "year": "2025",
+          "one_line": "Multi-agent system ranks hypotheses via Elo tournaments; on 11 goals experts preferred its outputs for novelty/impact — validates AI ranking vs experts, but Elo debate ≠ VoI÷cost and expert set is tiny.",
+          "venue_or_url": "arXiv:2502.18864 (Nature 2026)",
+          "confidence": "high"
+        },
+        {
+          "name": "Value-of-Information analysis in health economics (EVPI / EVPPI / EVSI)",
+          "year": "2004-2015",
+          "one_line": "Decades-old, validated framework (Claxton, Sculpher, Ades) for ranking which research to fund by expected value of reducing decision uncertainty vs its cost — the seminal, rigorous basis E7 rests on; Persona's novelty is applying it at literature scale, not the VoI math itself.",
+          "venue_or_url": "PharmacoEconomics 2015 (s40273-014-0219-x); York HEC glossary",
+          "confidence": "high"
+        },
+        {
+          "name": "BED-LLM: 'Intelligent Information Gathering with LLMs and Bayesian Experimental Design'",
+          "year": "2025",
+          "one_line": "LLM chooses queries maximizing expected information gain from its own predictive distribution — a concrete, recent template for computing E7-style VoI with an LLM.",
+          "venue_or_url": "arXiv:2508.21184",
+          "confidence": "medium"
+        }
+      ],
+      "verdicts": [
+        {
+          "plan_ref": "3.1",
+          "plan_claim": "Trajectory features (evidence velocity/acceleration/independence-drift) predict eventual collapse (retraction/failed-replication/abandonment) BETTER than static scores.",
+          "verdict": "UPDATE",
+          "why": "No published work does the head-to-head 'dynamic trajectory beats static' for collapse — it is genuinely untested, so the instrument is defensible as novel but must earn its claim in Persona's own ≥20-seed experiment, not assert it. The premise is only half-supported: the INDEPENDENCE component is strongly confirmed (Danchev/Rzhetsky/Evans eLife 2019: decentralized communities +45% replication; Belikov et al. NMI 2022 predicts robust gene-interaction facts from community structure), but the CITATION-velocity component is contradicted as a leading indicator — PNAS 2023 shows citations only decline ~14% AFTER a failed replication and cannot be assessed pre-replication. Static text models already reach ~0.68–0.72 AUC (Uzzi PNAS 2020), so the bar is real."
+        },
+        {
+          "plan_ref": "3.1",
+          "plan_claim": "'Collapse' can be treated as one predictable label spanning retraction, failed replication, and abandonment.",
+          "verdict": "CHALLENGE",
+          "why": "These are mechanistically different and have different SOTA predictors: retraction is misconduct-dominated and ~87% predictable from bibliometric/author features (IPM 2025), replication failure is statistical/text-predictable but contested as style-learning (Uzzi critiques PNAS 2023), abandonment is citation decay. A single 'collapse' model risks learning only the dominant sub-signal (misconduct, or publication-year base rate — which 'eclipses other features' per Res. Integrity 2025). Recommend separate heads or explicit stratification."
+        },
+        {
+          "plan_ref": "3.1",
+          "plan_claim": "Temporal citation dynamics (velocity/acceleration, disruption-style) are trustworthy trajectory features.",
+          "verdict": "CHALLENGE",
+          "why": "Raw temporal citation metrics are confounded by citation inflation and reference-list growth (QSS 2024 / arXiv:2406.15311 dismantles the CD/disruption index cross-time), and retraction ML shows publication-year base rate dominates. Velocity/acceleration features must be inflation-normalized and era-controlled or they will encode artifacts, exactly the 'flattering-but-wrong' trap CLAUDE.md §1 warns about."
+        },
+        {
+          "plan_ref": "3.4",
+          "plan_claim": "A VoI÷cost ranking of experiments beats a citation baseline against expert judgment.",
+          "verdict": "CONFIRM",
+          "why": "This specific composite instrument appears to be an open GAP — not disproven, not solved — which is good for Persona's contribution claim. The pieces exist and validate the approach (health-econ EVPI/EVSI is a rigorous seminal base; BoxingGym/BED-LLM compute LLM EIG; MOOSE-Chem3 ranks experiments vs citation/naive baselines; AI co-scientist Elo ranking beat experts on 11 goals), but no one has published 'VoI÷cost beats citation baseline, judged by domain experts' at literature scale in biomedicine. Persona can plausibly be first."
+        },
+        {
+          "plan_ref": "3.4",
+          "plan_claim": "A citation-count baseline is the right comparator for the VoI ranker.",
+          "verdict": "UPDATE",
+          "why": "In biomedicine the honest baseline to beat is not raw citations (weak) but the Open Targets genetic-evidence prior — Minikel et al. Nature 2024 shows genetic support gives 2.6x clinical success, a strong static prioritizer already in production. Beating raw citations is easy and unconvincing to a skeptical reviewer; beating (or complementing) the genetic-evidence prior is the real test. Also budget for VoI noise: BoxingGym shows LLMs are mediocre at EIG-optimal design, so calibrate/validate the VoI estimate itself."
+        }
+      ],
+      "challenges": [
+        "E5's leading-indicator premise is partially contradicted: PNAS 2023 ('Failing to replicate predicts citation declines') shows the scientific community down-weights failed findings only AFTER replication and slowly (14% over 14 years), so citation-velocity is a lagging response, not a predictive signal — the community 'doesn't correct in time' finding is well established.",
+        "No paper in the last ~18 months demonstrates 'dynamic/trajectory features beat static features' for replication/retraction/abandonment prediction — E5's central comparative claim is unproven in the literature, i.e. an untested hypothesis, not settled prior art to lean on.",
+        "The static baseline E5 wants to beat (text-ML replication, ~0.68–0.72 AUC, Uzzi PNAS 2020) is itself under fire (three PNAS critiques 2023) for learning writing STYLE rather than causal replicability — the same confound will contaminate trajectory features unless controlled.",
+        "Temporal citation features are confounded: the disruption/CD index is biased by citation inflation (QSS 2024), and retraction ML shows publication-year base rate dominates and 'eclipses other features' — naive velocity/acceleration will encode era artifacts.",
+        "'Collapse' conflates retraction (misconduct-driven, ~87% predictable from bibliometrics), replication failure (statistical), and abandonment (decay) — different phenomena with different predictors; a single label invites a model that just learns the dominant sub-signal.",
+        "E7's VoI engine is trustworthy in theory (EVPI/EVSI) but noisy in practice with LLMs: BoxingGym (ICLR 2025) finds LLM agents are mediocre at expected-information-gain-optimal experiment design — the VoI estimate is a load-bearing weak point that must be calibrated, not assumed.",
+        "DARPA SCORE sets a sobering ceiling: single models barely beat trivial baselines (Round 1 none did), and hybrid human-AI ensembles are the practical SOTA — a pure-ML collapse predictor should expect modest discrimination."
+      ],
+      "recommendations": [
+        "Keep E5 but reframe it: the strongest, evidence-backed collapse feature is EVIDENCE INDEPENDENCE, not citation velocity. Lead with community-decentralization / independent-replication-team features (Danchev/Rzhetsky/Evans eLife 2019; Belikov et al. NMI 2022), which are validated in Persona's exact biomedical domain, and treat velocity/acceleration as secondary, inflation-normalized signals.",
+        "Make E5's experiment an explicit head-to-head: static (Uzzi-style text + Open Targets score) vs static+trajectory, ≥20 seeds, reporting AUC/Brier with 95% CI and a calibration curve — because 'dynamic beats static' is currently unproven, this experiment is a genuine contribution, but only if the static baseline is strong (not a straw man).",
+        "Split 'collapse' into typed heads (retraction / replication-failure / abandonment) or at minimum stratify and report per-type; validate against Retraction Watch (retraction), the DARPA SCORE / replication-market ground truth (replication), and citation-decay (abandonment) separately.",
+        "Control the temporal confounds up front: inflation-normalize all citation counts, era-fixed-effect the publication year, and drop or de-bias the disruption index — otherwise E5 will reproduce the QSS-2024 artifact and the pub-year-dominates failure mode.",
+        "For E7, replace the citation-count baseline with the Open Targets genetic-evidence prior (Minikel 2024, 2.6x success) as the comparator; beating raw citations is unconvincing, beating/augmenting the genetic prior is the real, reviewer-proof test.",
+        "For E7, borrow BED-LLM's EIG formulation and validate the VoI estimate itself (BoxingGym-style) before trusting the ranking; report VoI÷cost ranking vs the genetic-prior baseline with expert-preference agreement (Kendall tau / top-k precision), echoing the AI co-scientist Elo-vs-expert protocol but with a decision-theoretic score.",
+        "Position both instruments honestly against named prior art: E7's VoI math is decades-old health-economics EVPI/EVSI (cite it, claim only the literature-scale application + the acting loop); E5's independence signal is Evans-lab prior art (cite it, claim the trajectory/drift dynamics as the new piece). This directly serves the paper's competitor-honesty mandate."
+      ]
+    }
+  ],
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Research"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Challenge"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "scout:memory",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a8e16e302514c12bd",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783498023381,
+      "queuedAt": 1783498023353,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Persistent-agent memory & continual learning for LLM agents",
+      "promptPreview": "You are a read-only research scout. Today is July 2026. Use ONLY WebSearch/WebFetch. Do NOT write any files, do NOT run code. Focus on work from ~2024-H2 through 2026 (last ~18 months) but name the seminal older work each rests on. Be ADVERSARIAL: actively hunt for recent results that CHALLENGE or make stale the plan's choice, not just confirm it. Rate every citation's confidence honestly (high on…",
+      "lastProgressAt": 1783498276400,
+      "tokens": 77354,
+      "toolCalls": 16,
+      "durationMs": 253019,
+      "resultPreview": "{\"domain\":\"Persistent-agent memory & continual learning for LLM agents\",\"key_works\":[{\"name\":\"Letta / MemGPT — memory blocks (core memory) + AgentFile (.af)\",\"year\":\"2023-2025\",\"one_line\":\"Productizes exactly the plan's 'living-docs' bet: small, human-readable, agent-editable text 'memory blocks' pinned to context, plus a large out-of-context archival/recall store retrieved via tool calls; .af ser…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "scout:orchestration",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a8d0d113ccab9b67b",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783498023384,
+      "queuedAt": 1783498023353,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Multi-agent LLM orchestration & swarms (orchestrator-worker…",
+      "promptPreview": "You are a read-only research scout. Today is July 2026. Use ONLY WebSearch/WebFetch. Do NOT write any files, do NOT run code. Focus on work from ~2024-H2 through 2026 (last ~18 months) but name the seminal older work each rests on. Be ADVERSARIAL: actively hunt for recent results that CHALLENGE or make stale the plan's choice, not just confirm it. Rate every citation's confidence honestly (high on…",
+      "lastProgressAt": 1783498271751,
+      "tokens": 74115,
+      "toolCalls": 14,
+      "durationMs": 248366,
+      "resultPreview": "{\"domain\":\"Multi-agent LLM orchestration & swarms (orchestrator-worker fan-out, budgeted heterogeneous agents, harvest-then-commit aggregation, adaptive backpressure) — as applied to reading-at-scale over biomedical literature.\",\"key_works\":[{\"name\":\"Anthropic — How we built our multi-agent research system\",\"year\":\"2025\",\"one_line\":\"Production orchestrator-worker: Opus-4 lead + Sonnet-4 subagents …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "scout:extraction",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "ac016cbe71c9d850e",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783498023386,
+      "queuedAt": 1783498023353,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Structured biomedical claim/relation extraction & LLM knowl…",
+      "promptPreview": "You are a read-only research scout. Today is July 2026. Use ONLY WebSearch/WebFetch. Do NOT write any files, do NOT run code. Focus on work from ~2024-H2 through 2026 (last ~18 months) but name the seminal older work each rests on. Be ADVERSARIAL: actively hunt for recent results that CHALLENGE or make stale the plan's choice, not just confirm it. Rate every citation's confidence honestly (high on…",
+      "lastProgressAt": 1783498290956,
+      "tokens": 80987,
+      "toolCalls": 19,
+      "durationMs": 267570,
+      "resultPreview": "{\"domain\":\"Structured biomedical claim/relation extraction & LLM knowledge-graph construction — specifically the feasibility of extracting INFERENTIAL-DEPENDENCY edges (presupposes / derives-from / generalizes / operationalizes) between scientific claims at precision usable for a load-bearing ranking (Persona BUILD_PLAN 3.2, test E6).\",\"key_works\":[{\"name\":\"KARMA: Multi-Agent LLMs for Automated KG…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "scout:contradiction",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "af1175b5b69a0faff",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783498023386,
+      "queuedAt": 1783498023353,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Contradiction detection & automated claim verification in s…",
+      "promptPreview": "You are a read-only research scout. Today is July 2026. Use ONLY WebSearch/WebFetch. Do NOT write any files, do NOT run code. Focus on work from ~2024-H2 through 2026 (last ~18 months) but name the seminal older work each rests on. Be ADVERSARIAL: actively hunt for recent results that CHALLENGE or make stale the plan's choice, not just confirm it. Rate every citation's confidence honestly (high on…",
+      "lastProgressAt": 1783498281844,
+      "tokens": 74594,
+      "toolCalls": 14,
+      "durationMs": 258457,
+      "resultPreview": "{\"domain\":\"Contradiction detection & automated claim verification in scientific/biomedical literature (contradiction as an autonomous-loop trigger; convergence/independent-agreement as a belief gate)\",\"key_works\":[{\"name\":\"PaperQA2 / ContraCrow — Skarlinski et al., 'Language agents achieve superhuman synthesis of scientific knowledge'\",\"year\":\"2024\",\"one_line\":\"Agentic RAG over full-text biology; …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "scout:calibration",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a8c309248ed19d79b",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783498023388,
+      "queuedAt": 1783498023353,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "LLM confidence calibration & uncertainty quantification (fo…",
+      "promptPreview": "You are a read-only research scout. Today is July 2026. Use ONLY WebSearch/WebFetch. Do NOT write any files, do NOT run code. Focus on work from ~2024-H2 through 2026 (last ~18 months) but name the seminal older work each rests on. Be ADVERSARIAL: actively hunt for recent results that CHALLENGE or make stale the plan's choice, not just confirm it. Rate every citation's confidence honestly (high on…",
+      "lastProgressAt": 1783498313427,
+      "tokens": 75795,
+      "toolCalls": 16,
+      "durationMs": 290039,
+      "resultPreview": "{\"domain\":\"LLM confidence calibration & uncertainty quantification (for Persona's per-belief probability, membrane gate, and human-escalation trigger)\",\"key_works\":[{\"name\":\"Detecting hallucinations in large language models using semantic entropy (Farquhar, Kossen, Kuhn, Gal)\",\"year\":\"2024\",\"one_line\":\"Semantic entropy — cluster sampled generations by meaning (NLI) then take entropy of the cluster…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "scout:dynamics",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a77678952b088952a",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783498023389,
+      "queuedAt": 1783498023353,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Science-of-science: argument/replication dynamics, retracti…",
+      "promptPreview": "You are a read-only research scout. Today is July 2026. Use ONLY WebSearch/WebFetch. Do NOT write any files, do NOT run code. Focus on work from ~2024-H2 through 2026 (last ~18 months) but name the seminal older work each rests on. Be ADVERSARIAL: actively hunt for recent results that CHALLENGE or make stale the plan's choice, not just confirm it. Rate every citation's confidence honestly (high on…",
+      "lastProgressAt": 1783498401025,
+      "tokens": 90372,
+      "toolCalls": 25,
+      "durationMs": 377635,
+      "resultPreview": "{\"domain\":\"Science-of-science: argument/replication dynamics, retraction & collapse forecasting, and value-of-information research prioritization (evaluating Persona BUILD_PLAN instruments E5 §3.1 trajectory-beats-static collapse prediction, and E7 §3.4 VoI÷cost experiment ranking vs citation baseline judged by experts).\",\"key_works\":[{\"name\":\"Danchev, Rzhetsky & Evans — 'Centralized scientific co…"
+    }
+  ],
+  "totalTokens": 473217,
+  "totalToolCalls": 104
+}

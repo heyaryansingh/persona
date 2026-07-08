@@ -1,0 +1,16 @@
+
+=== E2v2 high-noise (time-avg) | noise=0.35 corrupt_stable=False | 40 worlds ===
+agent             backhalf_acc        stable_acc          victim_acc(corrupted) 
+naive             0.821+/-0.008      0.991+/-0.005      0.992+/-0.007
+membrane          0.795+/-0.012      0.973+/-0.008      0.980+/-0.011
+anchored          0.785+/-0.011      0.971+/-0.007      0.975+/-0.012
+anchored_surprise 0.797+/-0.012      0.956+/-0.011      0.955+/-0.017
+
+=== E_ANCHORv2 corruption burst on stable beliefs | noise=0.3 corrupt_stable=True | 40 worlds ===
+agent             backhalf_acc        stable_acc          victim_acc(corrupted) 
+naive             0.822+/-0.007      0.996+/-0.003      0.988+/-0.008
+membrane          0.796+/-0.009      0.982+/-0.007      0.953+/-0.019
+anchored          0.782+/-0.008      0.981+/-0.006      0.952+/-0.018
+anchored_surprise 0.779+/-0.010      0.964+/-0.009      0.918+/-0.022
+
+Saved -> results/memory_v2_results.json
