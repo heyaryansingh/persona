@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from ..researcher import Researcher
 from ..engine import ExperimentCandidate
@@ -179,6 +180,20 @@ async def stream_notebook():
                 seen = len(lines)
             await asyncio.sleep(1.0)
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+# Serve the built UI at "/" so the app opens at a single URL (fixes GET / -> 404).
+# Mounted LAST so /api/* routes take precedence; the mount catches everything else.
+_DIST = Path(__file__).resolve().parent.parent.parent / "ui" / "dist"
+if _DIST.exists():
+    app.mount("/", StaticFiles(directory=str(_DIST), html=True), name="ui")
+else:
+    @app.get("/")
+    def _root():
+        return {"service": "Persona API",
+                "hint": "UI not built. Run `cd ui && npm run build` to serve it here, "
+                        "or `npm run dev` for the dev server. API is under /api/*.",
+                "openapi": "/docs"}
 
 
 if __name__ == "__main__":
