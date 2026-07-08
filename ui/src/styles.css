@@ -1,0 +1,95 @@
+/* Persona design system (BUILD_PLAN §6): a scientist's bound lab journal crossed with a
+   live systems console. Calm, editorial, legible. Monospace = the researcher's voice;
+   serif = synthesized reviews. TWO load-bearing accents only: --live (activity) and
+   --human (needs-human). Provenance is encoded by border weight, never a third loud color. */
+:root {
+  --paper: #f4f1ea;
+  --paper-2: #eae5da;
+  --card: #fbfaf6;
+  --ink: #23201b;
+  --ink-soft: #6b6459;
+  --rule: #d9d2c4;
+  --live: #1f7a5a;        /* live activity: an agent returning, a belief updating */
+  --human: #b4471f;       /* needs-human: escalation */
+  --anchor: #2b2a66;      /* human-confirmed / tested weight */
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --serif: "Newsreader", Georgia, serif;
+  --shadow: 0 1px 0 var(--rule), 0 8px 24px -18px rgba(35, 32, 27, 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #16150f; --paper-2: #1d1c15; --card: #201e17; --ink: #ece6d8;
+    --ink-soft: #9a9284; --rule: #35322a; --live: #4fd0a0; --human: #e68a5c; --anchor: #a9a7ff;
+  }
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+code, .mono { font-family: var(--mono); }
+.serif { font-family: var(--serif); }
+
+/* shell */
+.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+.nav {
+  border-right: 1px solid var(--rule); background: var(--paper-2);
+  padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
+}
+.brand { font-family: var(--mono); font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+.brand small { display: block; color: var(--ink-soft); font-weight: 400; font-size: 11px; margin-top: 2px; }
+.nav-item {
+  text-align: left; border: none; background: none; color: var(--ink-soft);
+  font-family: var(--mono); font-size: 12.5px; padding: 7px 10px; border-radius: 6px; cursor: pointer;
+}
+.nav-item:hover { background: var(--paper); color: var(--ink); }
+.nav-item.active { background: var(--card); color: var(--ink); box-shadow: inset 2px 0 0 var(--live); }
+.main { overflow-y: auto; padding: 28px 34px; }
+.screen-title { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-soft); margin: 0 0 4px; }
+.screen-lede { font-family: var(--serif); font-size: 22px; margin: 0 0 22px; }
+
+/* cards */
+.card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+.grid { display: grid; gap: 14px; }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.muted { color: var(--ink-soft); }
+.row { display: flex; align-items: center; gap: 8px; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* chips + provenance */
+.chip { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule); background: var(--paper); }
+.chip.live { border-color: var(--live); color: var(--live); }
+.chip.human { border-color: var(--human); color: var(--human); }
+.prov { font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--rule); }
+.prov.READ { opacity: 0.75; }
+.prov.INFERRED { border-style: dashed; }
+.prov.HUMAN_CONFIRMED { border-width: 2px; border-color: var(--anchor); color: var(--anchor); font-weight: 600; }
+.prov.TESTED { border-width: 2px; border-color: var(--live); color: var(--live); font-weight: 600; }
+
+/* confidence bar (honest uncertainty) */
+.pbar { height: 6px; background: var(--paper-2); border-radius: 3px; overflow: hidden; border: 1px solid var(--rule); }
+.pbar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--ink-soft), var(--ink)); }
+
+/* notebook */
+.notebook { font-family: var(--mono); font-size: 12.5px; line-height: 1.7; }
+.notebook .line { padding: 3px 0; border-bottom: 1px dotted var(--rule); }
+.notebook .ts { color: var(--ink-soft); }
+.notebook .warn { color: var(--human); }
+
+/* contradiction type badges */
+.badge { font-family: var(--mono); font-size: 10.5px; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--rule); }
+.badge.true-refutation { color: var(--human); border-color: var(--human); }
+.badge.context-divergence { color: var(--anchor); border-color: var(--anchor); }
+.badge.no-evidence { color: var(--ink-soft); }
+
+button.action { font-family: var(--mono); font-size: 12px; padding: 6px 12px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 6px; cursor: pointer; }
+button.action.ghost { background: none; color: var(--ink); }
+button.action:hover { opacity: 0.88; }
