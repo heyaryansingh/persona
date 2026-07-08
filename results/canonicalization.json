@@ -1,0 +1,7 @@
+{
+  "order_independent": true,
+  "false_merges": [],
+  "precision": 1.0,
+  "recall": 0.891,
+  "f1": 0.942
+}

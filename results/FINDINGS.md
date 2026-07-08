@@ -193,3 +193,22 @@ high-signal lab proxy — cross-batch stable and deterministic. It splits co-jou
 merges a lab's cross-journal echo. Last-name collisions between real labs *under*-count (the
 safe, harder-to-converge direction for an anti-slop membrane). Author-set-overlap and
 citation-graph screens remain a future refinement; senior-author is the load-bearing fix.
+
+---
+
+## v3 T1.2 — canonicalization: deterministic + symbol-safe
+
+v2 clustered entities by MiniLM similarity: order-dependent (broke crash-resume determinism)
+and false-merged distinct symbols (IL-6/IL-1 embed near-identically → fake convergence). v3
+makes canon() a PURE rule-based function (modifier-stripping + plural/hyphen normalization +
+curated synonym map); embeddings are demoted to a guarded opt-in (digit-symbol signature blocks
+il6/il1 merges; deterministic shortest-alphabetical representative).
+
+`experiments/exp_canonicalization.py` (gold grouping of 40 entity strings):
+- order-independent over **25 shuffles**: True
+- distinct-symbol false merges: **0** (IL-6/IL-1, NLRP3/NLRP1, APOE4/APOE2 stay separate)
+- pairwise **precision 1.00, recall 0.89, F1 0.94**
+
+The tradeoff is deliberate and correct-first: perfect precision (never fabricate convergence),
+0.89 recall (rules miss a few rare variants — the safe direction). This supersedes the v2
+threshold=0.72 (unvalidated) with threshold=0.80 gating the *optional* embedding path only.
