@@ -62,7 +62,7 @@ class Researcher:
     # ------------------------------------------------------------- act
     def tick(self, queries: Optional[list[str]] = None, limit: int = 8) -> dict:
         """One inner-loop tick + outer reflection; route contradictions to the inbox."""
-        queries = queries or [" AND ".join(self.seed_interests[:2] + ["alzheimer"])]
+        queries = queries or self._default_queries()
         summary = run_inner_loop(self.me, self.adapter, self.extractor, self.membrane,
                                  queries, limit=limit)
         self._last = summary
@@ -153,11 +153,17 @@ class Researcher:
         return {"statement": statement[:100], "n_relevant": len(hits),
                 "independent_groups": len(groups), "top": hits[:5]}
 
-    async def aread(self, queries=None, limit: int = 12, on_event=None) -> dict:
-        """Async, parallel, REAL swarm read (v2, P2): fan out Claude readers over the docs,
-        streaming live swarm events. Contradictions route to the human inbox."""
+    async def aread(self, queries=None, limit: int = 12, on_event=None, extract_fn=None) -> dict:
+        """Async, parallel swarm read (v2, P2): fan out readers over the docs, streaming live
+        events. Real Claude by default; pass extract_fn for an offline/heuristic read (no key).
+        Contradictions route to the human inbox."""
         from .swarm.orchestrator import AsyncSwarm
-        queries = queries or [" AND ".join(self.seed_interests[:2] + ["alzheimer"])]
+        if extract_fn is None and not config.have_key():      # no key -> degrade to heuristic reader
+            he = HeuristicExtractor(entities=self.seed_interests)
+
+            async def extract_fn(doc):                        # noqa: E731 (offline swarm path)
+                return he.extract(doc)
+        queries = queries or self._default_queries()
         docs = []
         for q in queries:
             docs.extend(self.adapter.search(q, limit=limit))
@@ -165,7 +171,8 @@ class Researcher:
             self.index.add(docs)            # accumulate the corpus (persistent index, T2.2)
         except Exception:
             pass                            # embedder optional — never block a read on it
-        swarm = AsyncSwarm(self.membrane, concurrency=16, budget_usd=config.DAILY_BUDGET_USD)
+        swarm = AsyncSwarm(self.membrane, concurrency=16, budget_usd=config.DAILY_BUDGET_USD,
+                           extract_fn=extract_fn)
         summary = await swarm.read_many(docs, on_event=on_event)
         rep = summary.pop("report")
         self._contradictions = rep.contradictions
@@ -220,6 +227,17 @@ class Researcher:
     def _interests(self) -> list[Interest]:
         seeded = [Interest(n, 1.0, "seed interest") for n in self.seed_interests]
         return seeded + propose_interests(self.me.store, top_k=3)
+
+    def _default_queries(self) -> list[str]:
+        """Agenda-driven query: built from the current top interests (seed + self-spawned), not a
+        hardcoded topic. Falls back to the seeds. (De-hardcodes the Alzheimer's seed — T3.5.)"""
+        names, seen = [], set()
+        for i in self._interests():
+            n = i.name.strip()
+            if n and n.lower() not in seen:
+                seen.add(n.lower()); names.append(n)
+        names = names[:3] or self.seed_interests[:3] or ["biomedicine"]
+        return [" AND ".join(names)]
 
     def notebook(self, n: int = 40) -> list[str]:
         if not self.me.notebook_path.exists():
