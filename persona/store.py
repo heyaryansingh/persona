@@ -218,18 +218,28 @@ class BeliefStore:
         self._db.commit()
         return self.get_claim(claim_id)
 
-    def set_swarm_belief(self, claim_id: str, direction: float, *, step: float = 0.6) -> Claim:
-        """Set a NON-anchored belief's strength as a deterministic function of its accumulated
-        independent evidence: logit = direction * step * (# independent source groups), clipped.
-        Schedule-independent → re-reading/crash-resume converges to the same belief (idempotent).
-        Anchored beliefs are untouched here (swarm can't move an anchor; human/test only)."""
+    def set_swarm_belief(self, claim_id: str, direction: float | None = None, *,
+                         step: float = 0.6) -> Claim:
+        """Set a NON-anchored belief's strength as NET independent evidence:
+            logit = step · ( Σ_up(indep groups)·mean_conf_up  −  Σ_down(indep groups)·mean_conf_down )
+        so CONTRARY independent evidence lowers the belief (net, not winner-take-all), weighted by
+        per-source confidence. Deterministic function of the durable observation log → schedule-
+        independent / crash-resume idempotent. Anchored beliefs are untouched (swarm can't move an
+        anchor). `direction` is ignored (kept for call-site compatibility); the sign comes from net."""
         r = self._row(claim_id)
         if r is None:
             raise KeyError(claim_id)
         if bool(r["anchor"]):
             return self.get_claim(claim_id)      # resist: swarm never moves an anchor
-        n = self.independent_source_count(claim_id)
-        after = max(-LOGIT_CLIP, min(LOGIT_CLIP, direction * step * n))
+        obs = self.observations_for(claim_id)
+        up = [o for o in obs if o["direction"] > 0]
+        down = [o for o in obs if o["direction"] < 0]
+        up_groups = len({o["grp"] for o in up})
+        down_groups = len({o["grp"] for o in down})
+        up_conf = (sum(o["confidence"] for o in up) / len(up)) if up else 0.0
+        down_conf = (sum(o["confidence"] for o in down) / len(down)) if down else 0.0
+        net = up_groups * up_conf - down_groups * down_conf
+        after = max(-LOGIT_CLIP, min(LOGIT_CLIP, step * net))
         now = _now()
         self._db.execute("UPDATE claims SET logit=?, updated_at=? WHERE claim_id=?",
                          (after, now, claim_id))

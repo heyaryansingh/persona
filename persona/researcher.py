@@ -88,6 +88,23 @@ class Researcher:
                 break
         return top.__dict__ if top else {}
 
+    def review_queue(self, threshold: float = 0.25) -> list[dict]:
+        """Decision-theoretic escalation (P7/T0.2): committed beliefs the researcher flags for
+        human review because they are UNCERTAIN × HIGH-STAKES (uncertainty × load-bearing ≥
+        threshold). Uses calibrate.should_escalate — a real production caller of the module."""
+        from .calibrate import should_escalate, uncertainty
+        lb = load_bearing(self.me.store)
+        out = []
+        for c in self.me.store.core_claims():
+            stakes = max(0.05, lb.get(c.claim_id, 0.1))
+            if should_escalate(c.calibrated_p, stakes, threshold):
+                out.append({"claim_id": c.claim_id, "statement": c.statement,
+                            "calibrated_p": round(c.calibrated_p, 3),
+                            "uncertainty": round(uncertainty(c.calibrated_p), 3),
+                            "stakes": round(stakes, 4)})
+        out.sort(key=lambda d: d["uncertainty"] * d["stakes"], reverse=True)
+        return out
+
     def idea_graph(self) -> dict:
         """The idea-evolution graph: temporal network of claims (P5)."""
         from .graph import build_idea_graph

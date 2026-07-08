@@ -28,7 +28,7 @@ EXTRACT_TOOL = {
                     "properties": {
                         "subject": {"type": "string"},
                         "relation": {"type": "string",
-                                     "enum": list(_RELN_DIR.keys())},
+                                     "enum": list(RELATION_SIGN.keys())},
                         "object": {"type": "string"},
                         "population": {"type": "string"},
                         "confidence": {"type": "number"},

@@ -163,17 +163,12 @@ class Membrane:
         return ContradictionEvent(key, stmt, kind, sup_groups, ref_groups, detail)
 
     def _commit(self, key: str, sup: list[Candidate], direction: float) -> None:
-        # idempotency: drop candidates whose document already contributed to this claim,
-        # so re-reading a paper (e.g. after a crash-resume) can't count it twice.
-        fresh = [c for c in sup if not (self.store.get_claim(key) is not None
-                                        and self.store.has_source(key, c.doc_id))]
         if self.store.get_claim(key) is None:
             self.store.add_claim(Claim(key, sup[0].statement, tier="core"))
-            fresh = sup
-        if not fresh:
-            return                      # every supporting doc already counted -> no-op
-        for c in fresh:
-            self.store.add_source(key, c.doc_id, c.group)
-        # belief = deterministic function of accumulated independent evidence (idempotent to
-        # re-reads / crash-resume); the store leaves anchored beliefs untouched.
-        self.store.set_swarm_belief(key, direction)
+        # record each supporting doc once (idempotent; a paper can't count twice)
+        for c in sup:
+            if not self.store.has_source(key, c.doc_id):
+                self.store.add_source(key, c.doc_id, c.group)
+        # belief = NET independent evidence over ALL observations (support AND refute), recomputed
+        # every harvest so newly-arrived CONTRARY evidence lowers it. Idempotent / crash-safe.
+        self.store.set_swarm_belief(key)
