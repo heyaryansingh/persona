@@ -74,7 +74,9 @@ class BeliefStore:
 
     def __init__(self, path: str = ":memory:", resist: float = 0.05):
         self.resist = resist
-        self._db = sqlite3.connect(path)
+        # ponytail: check_same_thread=False lets FastAPI's threadpool workers share the
+        # connection; SQLite serializes access. Add a per-store lock if write concurrency grows.
+        self._db = sqlite3.connect(path, check_same_thread=False)
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA foreign_keys = ON")
         self._init_schema()
