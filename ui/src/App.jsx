@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Component } from "react";
 import Dashboard from "./screens/Dashboard.jsx";
 import Notebook from "./screens/Notebook.jsx";
 import SwarmView from "./screens/SwarmView.jsx";
@@ -20,6 +20,35 @@ const SCREENS = [
   ["handoff", "Human Handoff", HandoffInbox],
   ["artifacts", "Artifacts", Artifacts],
 ];
+
+class ScreenErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="card">
+          <div className="screen-title">Error</div>
+          <div className="screen-lede">This screen hit an error</div>
+          <p className="mono muted" style={{ whiteSpace: "pre-wrap" }}>
+            {String(this.state.error?.message || this.state.error)}
+          </p>
+          <button className="action" onClick={() => location.reload()}>
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [active, setActive] = useState("dashboard");
@@ -46,7 +75,9 @@ export default function App() {
         </div>
       </nav>
       <main className="main">
-        <Screen />
+        <ScreenErrorBoundary resetKey={active}>
+          <Screen />
+        </ScreenErrorBoundary>
       </main>
     </div>
   );

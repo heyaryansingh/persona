@@ -93,3 +93,36 @@ code, .mono { font-family: var(--mono); }
 button.action { font-family: var(--mono); font-size: 12px; padding: 6px 12px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 6px; cursor: pointer; }
 button.action.ghost { background: none; color: var(--ink); }
 button.action:hover { opacity: 0.88; }
+button.action:disabled, .nav-item:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* a11y: visible keyboard focus */
+.nav-item:focus-visible, button.action:focus-visible {
+  outline: 2px solid var(--live); outline-offset: 2px;
+}
+
+/* responsive: never let the body scroll horizontally; wide content scrolls in its own box */
+html, body { overflow-x: hidden; }
+img, svg, video, canvas, table { max-width: 100%; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+  .nav {
+    border-right: none; border-bottom: 1px solid var(--rule);
+    flex-direction: row; align-items: center; gap: 6px;
+    padding: 10px 12px; overflow-x: auto; overflow-y: hidden; white-space: nowrap;
+  }
+  .brand, .nav > div[style*="height"], .nav > .muted { display: none; }
+  .nav-item { flex: 0 0 auto; }
+  .main { padding: 18px 16px; overflow-x: hidden; }
+}
+
+@media (max-width: 820px) {
+  .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
