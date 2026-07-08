@@ -160,8 +160,10 @@ Every phase: build → **run its gating experiment (≥20 seeds / real eval)** �
 
 ---
 
-## 8. Decisions I need from you (before building)
-1. **Scale/budget appetite** — cap Batch reading at ~$5/day (hundreds of abstracts) or ~$15+/day (thousands)? Governs P2/P9 ambition.
-2. **First money-shot** — which to build toward first: (a) real reading + the live Swarm Control Room, (b) the big Idea-Evolution Graph, or (c) the closed loop with *real* reanalysis?
-3. **Corpus scope** — stay on Alzheimer's neuroinflammation, or widen to all-neurodegeneration / let it self-direct across any source from the start?
-4. **LangGraph** — trust the evidence and skip it (my recommendation), or you want it in for the reasoning loop regardless?
+## 8. Decisions — LOCKED with the user
+1. **Budget: ~$15/day** (thousands of abstracts/day). Full-scale ambition. Cap enforced in `config.py`.
+2. **First money-shot: the Live Swarm Control Room.** → resequence: P0 → P1 (real extraction) → P2 (scale swarm) → **bring the Swarm Control Room forward (from P8) as the first big visual**, then continue P3+.
+3. **Corpus: self-directed / any source.** Seed interests but follow curiosity from the start → the ingestion layer must be genuinely source-agnostic (web/dataset/repo adapters beyond the biomedical APIs) and the outer loop must generate its own queries/sources. Bigger P1/P4 scope; ground-truth on the Alzheimer's seed for the demo, but don't fence it.
+4. **LangGraph: decide by the P2 bake-off.** Build both arms (asyncio-ledger vs LangGraph functional API) in the crash-resume experiment; the numbers pick the winner. Default expectation: asyncio wins.
+
+**Immediate execution order:** P0 (pyproject + `.env` loader + `config.py` + a REAL Claude extraction smoke test — prove the key + structured-output extraction works on a real abstract) → P1 (Claude reader behind the `Extractor` Protocol) → P2 (async swarm + bake-off) → **Swarm Control Room** → P3 real membrane (E8) → …
