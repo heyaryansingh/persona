@@ -125,6 +125,15 @@ class Researcher:
         from .graph import build_idea_graph
         return build_idea_graph(self.me.store)
 
+    def graph_as_of(self, ts: str | None = None) -> dict:
+        """Bi-temporal time-travel (T4): the belief-graph as it existed at instant `ts` (defaults
+        to the latest change-point). Powers the time-scrubber with the real past, not an overlay."""
+        from .graph import graph_as_of, change_points
+        pts = change_points(self.me.store)
+        if not pts:
+            return {"as_of": None, "n_nodes": 0, "nodes": [], "edges": [], "change_points": []}
+        return {**graph_as_of(self.me.store, ts or pts[-1]), "change_points": pts}
+
     @property
     def index(self):
         """Lazily-built PERSISTENT vector index — the corpus accumulates across ticks/restarts

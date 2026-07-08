@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
+import GraphCanvas from "./GraphCanvas";
+
+const CANVAS_THRESHOLD = 400;   // above this, use the WebGL-style canvas renderer (Cytoscape freezes)
 
 const cssVar = (n, fb) => {
   try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb; }
@@ -29,8 +32,10 @@ export default function IdeaGraph() {
   const stamps = data ? Array.from(new Set((data.timeline || []).map((e) => e.ts).filter(Boolean))).sort() : [];
   const cutoff = tIdx == null ? null : stamps[Math.min(tIdx, stamps.length - 1)];
 
+  const bigGraph = (data?.nodes?.length || 0) > CANVAS_THRESHOLD;
+
   useEffect(() => {
-    if (!data || !box.current) return;
+    if (!data || !box.current || bigGraph) return;   // large graphs use GraphCanvas, not Cytoscape
     const prov = PROV_COLOR();
     const nodes = (data.nodes || []).map((n) => ({ data: { ...n, label: (n.entities || []).slice(0, 2).join(" · ") || n.statement.slice(0, 22) } }));
     const edges = (data.edges || []).map((e, i) => ({ data: { id: `e${i}`, source: e.source, target: e.target, kind: e.kind, w: e.weight || 1 } }))
@@ -61,7 +66,7 @@ export default function IdeaGraph() {
     cy.on("tap", (evt) => { if (evt.target === cy) setSel(null); });
     cyRef.current = cy;
     return () => cy.destroy();
-  }, [data]);
+  }, [data, bigGraph]);
 
   // time scrubber: dim nodes born after the cutoff
   useEffect(() => {
@@ -90,7 +95,17 @@ export default function IdeaGraph() {
       ) : (
         <div className="grid" style={{ gridTemplateColumns: sel ? "1fr 300px" : "1fr", gap: 14 }}>
           <div className="card" style={{ padding: 0, position: "relative" }}>
-            <div ref={box} style={{ width: "100%", height: 560 }} />
+            {bigGraph ? (
+              <GraphCanvas nodes={data.nodes} edges={data.edges} cutoff={cutoff}
+                           onSelect={setSel} height={560} />
+            ) : (
+              <div ref={box} style={{ width: "100%", height: 560 }} />
+            )}
+            {bigGraph && (
+              <div className="mono muted" style={{ position: "absolute", right: 12, top: 10, fontSize: 10 }}>
+                {data.nodes.length} nodes · canvas renderer · drag to pan, scroll to zoom
+              </div>
+            )}
             <div className="row mono" style={{ position: "absolute", left: 12, bottom: 10, gap: 12, fontSize: 10.5, flexWrap: "wrap" }}>
               <span className="muted">provenance:</span>
               <span style={{ color: cssVar("--ink-soft") }}>● READ</span>

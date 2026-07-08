@@ -189,6 +189,12 @@ def idea_graph():
     return svc().r.idea_graph()
 
 
+@app.get("/api/graph-at")
+def graph_at(ts: str | None = None):
+    """Bi-temporal view: the belief-graph as it existed at `ts` (default: latest change-point)."""
+    return svc().r.graph_as_of(ts)
+
+
 @app.get("/api/experiments")
 def experiments():
     r = svc().r

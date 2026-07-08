@@ -7,6 +7,12 @@
       "runtimeArgs": ["--prefix", "ui", "run", "dev"],
       "autoPort": true,
       "port": 5173
+    },
+    {
+      "name": "persona-offline",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["scripts/serve_offline.py"],
+      "port": 8137
     }
   ]
 }
