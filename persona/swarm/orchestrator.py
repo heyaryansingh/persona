@@ -88,11 +88,22 @@ class AsyncSwarm:
         self.backoff = 0.0
         self.errors = 0
         self._client = None
+        self._on_event = None
+
+    def _emit(self, ev: dict) -> None:
+        if self._on_event:
+            try:
+                self._on_event(ev)
+            except Exception:
+                pass
 
     async def _read_one(self, doc) -> tuple:
         async with self._sem:
             if self.extract_fn is not None:                # deterministic/offline path
-                return (doc.doc_id, await self.extract_fn(doc))
+                cands = await self.extract_fn(doc)
+                self._emit({"type": "read", "doc_id": doc.doc_id, "ok": True,
+                            "n_claims": len(cands), "group": doc.group})
+                return (doc.doc_id, cands)
             if self.spent >= self.budget:
                 return (doc.doc_id, None)                  # budget exhausted -> resume later
             if self.backoff:
@@ -107,6 +118,7 @@ class AsyncSwarm:
             except Exception:
                 self.backoff = min(30.0, self.backoff + 2.0)    # throttle/error -> back off
                 self.errors += 1
+                self._emit({"type": "read", "doc_id": doc.doc_id, "ok": False, "group": doc.group})
                 return (doc.doc_id, None)                        # not marked done -> retried next run
             u = resp.usage
             self.spent += config.est_cost_usd(self.model, u.input_tokens, u.output_tokens)
@@ -114,30 +126,42 @@ class AsyncSwarm:
             for b in resp.content:
                 if b.type == "tool_use":
                     raw = b.input.get("claims", []) or []
-            return (doc.doc_id, candidates_from_claims(doc, raw))
+            cands = candidates_from_claims(doc, raw)
+            self._emit({"type": "read", "doc_id": doc.doc_id, "ok": True,
+                        "n_claims": len(cands), "group": doc.group,
+                        "title": (doc.title or "")[:70]})
+            return (doc.doc_id, cands)
 
-    async def read_many(self, docs, *, on_progress=None) -> dict:
-        """Fan out reads over docs (skipping ledger-done); commit sequentially; mark done."""
+    async def read_many(self, docs, *, on_event=None) -> dict:
+        """Fan out reads over docs (skipping ledger-done); commit sequentially; mark done.
+        on_event(dict) streams live swarm events (spawn/read/admit/reject/flag) for the UI."""
+        self._on_event = on_event
         if self.extract_fn is None:
             from anthropic import AsyncAnthropic
             self._client = AsyncAnthropic(api_key=config.ANTHROPIC_API_KEY)
         todo = [d for d in docs if not self.ledger.is_done(d.doc_id)]
+        for d in todo:
+            self._emit({"type": "spawn", "doc_id": d.doc_id, "group": d.group,
+                        "title": (d.title or "")[:70]})
         try:
             results = await asyncio.gather(*[self._read_one(d) for d in todo])
         finally:
             if self._client is not None:
                 await self._client.close()
         read = 0
-        docmap = {d.doc_id: d for d in todo}
         for doc_id, cands in results:                 # sequential single-writer commit
             if cands is None:
                 continue
             for c in cands:
                 self.membrane.submit(c)
             read += 1
-            if on_progress:
-                on_progress(doc_id, docmap.get(doc_id), cands)
         rep = self.membrane.harvest()
+        for k in rep.committed:
+            self._emit({"type": "admit", "claim_key": k})
+        for k in rep.held:
+            self._emit({"type": "reject", "claim_key": k})
+        for ev in rep.contradictions:
+            self._emit({"type": "flag", "claim_key": ev.claim_key, "kind": ev.kind})
         self.ledger.mark_many([doc_id for doc_id, cands in results if cands is not None])
         return {"read": read, "committed": len(rep.committed), "held": len(rep.held),
                 "contradictions": len(rep.contradictions), "strict": len(rep.strict_claims),

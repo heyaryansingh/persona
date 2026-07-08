@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
+from collections import deque
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -26,6 +28,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # single persistent researcher (the Self is durable on disk)
 _R: Researcher | None = None
+SWARM_EVENTS: deque = deque(maxlen=3000)      # live swarm control-room events
+_swarm = {"running": False}
 
 
 def researcher() -> Researcher:
@@ -104,6 +108,45 @@ def selftest(claim_key: str):
 def resolve(payload: dict):
     return researcher().resolve_handoff(payload["claim_key"], payload.get("explanation", ""),
                                         int(payload.get("truth", 1)))
+
+
+@app.post("/api/swarm/run")
+async def swarm_run(limit: int = 10):
+    """Kick off a REAL parallel Claude swarm read; events stream on /api/stream/swarm."""
+    if _swarm["running"]:
+        return {"status": "already running"}
+
+    async def _go():
+        _swarm["running"] = True
+        SWARM_EVENTS.append({"type": "run_start", "t": time.time()})
+        try:
+            summary = await researcher().aread(
+                limit=limit, on_event=lambda e: SWARM_EVENTS.append({**e, "t": time.time()}))
+            SWARM_EVENTS.append({"type": "run_done", "t": time.time(), **{k: summary[k]
+                                 for k in ("read", "committed", "held", "contradictions", "spent_usd")}})
+        except Exception as e:
+            SWARM_EVENTS.append({"type": "run_error", "t": time.time(), "error": str(e)[:200]})
+        finally:
+            _swarm["running"] = False
+
+    asyncio.create_task(_go())
+    return {"status": "started", "limit": limit}
+
+
+@app.get("/api/stream/swarm")
+async def stream_swarm():
+    async def gen():
+        seen = 0
+        while True:
+            n = len(SWARM_EVENTS)
+            if n > seen:
+                for e in list(SWARM_EVENTS)[seen:]:
+                    yield f"data: {json.dumps(e)}\n\n"
+                seen = n
+            else:
+                yield ": keepalive\n\n"
+            await asyncio.sleep(0.4)
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/api/stream/notebook")

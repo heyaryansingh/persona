@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+from . import config
 from .self_state import Self
 from .membrane import Membrane
 from .swarm.reader import HeuristicExtractor, Extractor
@@ -84,6 +85,27 @@ class Researcher:
                 self.me.notebook(f"spawned interest: {i.name} (weight {i.weight}) — {i.reason}")
                 break
         return top.__dict__ if top else {}
+
+    async def aread(self, queries=None, limit: int = 12, on_event=None) -> dict:
+        """Async, parallel, REAL swarm read (v2, P2): fan out Claude readers over the docs,
+        streaming live swarm events. Contradictions route to the human inbox."""
+        from .swarm.orchestrator import AsyncSwarm
+        queries = queries or [" AND ".join(self.seed_interests[:2] + ["alzheimer"])]
+        docs = []
+        for q in queries:
+            docs.extend(self.adapter.search(q, limit=limit))
+        swarm = AsyncSwarm(self.membrane, concurrency=16, budget_usd=config.DAILY_BUDGET_USD)
+        summary = await swarm.read_many(docs, on_event=on_event)
+        rep = summary.pop("report")
+        self._contradictions = rep.contradictions
+        for ev in rep.contradictions:
+            self.inbox.add_event(ev)
+        self.me.notebook(
+            f"swarm read {summary['read']} docs (real Claude) → committed {summary['committed']}, "
+            f"held {summary['held']}, {summary['contradictions']} contradiction(s); "
+            f"${summary['spent_usd']:.3f} spent")
+        self.me.consolidate()
+        return summary
 
     def close(self):
         self.me.close()
