@@ -1,0 +1,14 @@
+{
+  "independent_commit_rate": [
+    1.0,
+    0.0
+  ],
+  "echo_commit_rate": [
+    0.0,
+    0.0
+  ],
+  "naive_count_echo_admits": [
+    1.0,
+    0.0
+  ]
+}
