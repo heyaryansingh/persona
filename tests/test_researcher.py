@@ -39,7 +39,9 @@ def test_full_researcher_cycle():
 
             # self-test the loop (replay-labelled, human-gated)
             st = r.self_test(key)
-            assert st["is_replay"] is True and st["outcome"] in ("supports", "refutes", "inconclusive")
+            # real Claude first-pass when a key is present (is_replay False), else replay (True)
+            assert st["outcome"] in ("supports", "refutes", "inconclusive")
+            assert "is_replay" in st
 
             # human resolves -> belief anchored
             res = r.resolve_handoff(key, handoffs[0]["candidate_explanations"][0], truth=1)

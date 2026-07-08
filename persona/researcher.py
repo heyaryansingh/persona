@@ -19,7 +19,9 @@ from .loops.inner import run_inner_loop
 from .loops.outer import build_agenda, propose_interests, TasteWeights, Interest
 from .loops.delegation import HandoffInbox
 from .loops.artifact import mini_review, note_reversal
-from .loops.self_test import run_self_test, apply_result_with_signoff, MockDatasetScout, HeuristicTester
+from .loops.self_test import (run_self_test, apply_result_with_signoff, MockDatasetScout,
+                              HeuristicTester, GEODatasetScout, ClaudeScienceTester)
+from .ingest.base import DiskCache as _DiskCache
 from .engine import trajectory, state_of_argument, load_bearing, fragility_cascade, rank_experiments
 
 
@@ -195,7 +197,12 @@ class Researcher:
         ev = next((e for e in self._contradictions if e.claim_key == claim_key), None)
         if ev is None:
             return {"error": "no open contradiction for that claim"}
-        res = run_self_test(ev, MockDatasetScout(), HeuristicTester())
+        if config.have_key():                       # real: live GEO scout + Claude first-pass
+            scout = GEODatasetScout(cache=_DiskCache("tests/fixtures/ingest"))
+            tester = ClaudeScienceTester()
+        else:                                       # offline demo fallback
+            scout, tester = MockDatasetScout(), HeuristicTester()
+        res = run_self_test(ev, scout, tester)
         self.me.notebook(f"self-test on {claim_key}: {res.outcome} "
                          f"(conf {res.confidence:.2f}, replay={res.is_replay}) — needs human sign-off")
         return {"claim_key": claim_key, "outcome": res.outcome, "confidence": res.confidence,

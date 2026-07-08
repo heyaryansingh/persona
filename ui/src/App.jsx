@@ -4,6 +4,7 @@ import Notebook from "./screens/Notebook.jsx";
 import SwarmView from "./screens/SwarmView.jsx";
 import ArgumentState from "./screens/ArgumentState.jsx";
 import DependencyGraph from "./screens/DependencyGraph.jsx";
+import IdeaGraph from "./screens/IdeaGraph.jsx";
 import ExperimentQueue from "./screens/ExperimentQueue.jsx";
 import HandoffInbox from "./screens/HandoffInbox.jsx";
 import Artifacts from "./screens/Artifacts.jsx";
@@ -12,6 +13,7 @@ const SCREENS = [
   ["dashboard", "Dashboard", Dashboard],
   ["notebook", "Living Notebook", Notebook],
   ["swarm", "Swarm & Membrane", SwarmView],
+  ["idea", "Idea Graph", IdeaGraph],
   ["argument", "Argument-State", ArgumentState],
   ["dependency", "Dependency Graph", DependencyGraph],
   ["experiments", "Experiment Queue", ExperimentQueue],

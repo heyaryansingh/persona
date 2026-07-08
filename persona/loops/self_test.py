@@ -115,6 +115,63 @@ class HeuristicTester:
         )
 
 
+_TEST_TOOL = {
+    "name": "first_pass_result",
+    "description": "Record a first-pass assessment of whether the located dataset tests the hypothesis.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "outcome": {"type": "string", "enum": ["supports", "refutes", "inconclusive"]},
+            "confidence": {"type": "number", "description": "0-1, calibrated"},
+            "reasoning": {"type": "string"},
+            "what_analysis": {"type": "string", "description": "the analysis a full reanalysis would run"},
+        },
+        "required": ["outcome", "confidence", "reasoning"],
+    },
+}
+
+
+class ClaudeScienceTester:
+    """Real first-pass reanalysis via the reasoning model (v2, P6). Reasons over the
+    hypothesis + the located public dataset (accession/metadata) to give a calibrated
+    first-pass outcome. This is genuine LLM reasoning (is_replay=False), honestly NOT a full
+    computational reanalysis — that path (download GEO -> compute -> interpret) is the next
+    step and requires a data/compute sandbox. Falls back to the heuristic without a key."""
+
+    def __init__(self, model=None, client=None):
+        from .. import config
+        self.model = model or config.MODEL_REASONER
+        self._client = client
+
+    def run(self, hypothesis: Hypothesis, dataset) -> SelfTestResult:
+        from .. import config
+        client = self._client or (config.anthropic_client() if config.have_key() else None)
+        if client is None:
+            return HeuristicTester().run(hypothesis, dataset)
+        ds = (f"{dataset.accession} ({dataset.source}) {dataset.url}" if dataset
+              else "no dataset located")
+        resp = client.messages.create(
+            model=self.model, max_tokens=1024, tools=[_TEST_TOOL],
+            tool_choice={"type": "tool", "name": "first_pass_result"},
+            messages=[{"role": "user", "content":
+                       f"Hypothesis: {hypothesis.text}\n\nProposed test: {hypothesis.test_description}\n\n"
+                       f"Located public dataset: {ds}\n\n"
+                       f"As a FIRST-PASS (reasoning only, not a full computational reanalysis), "
+                       f"assess whether this dataset could test the hypothesis and what a "
+                       f"first-pass reanalysis would most likely find. Be calibrated and honest "
+                       f"about uncertainty."}])
+        out = {"outcome": "inconclusive", "confidence": 0.4, "reasoning": "", "what_analysis": ""}
+        for b in resp.content:
+            if b.type == "tool_use":
+                out.update(b.input)
+        return SelfTestResult(
+            hypothesis=hypothesis, dataset=dataset, outcome=out["outcome"],
+            confidence=float(out["confidence"]),
+            detail=f"Claude first-pass (reasoning, not full computation): {out['reasoning'][:400]}"
+                   + (f" | analysis: {out.get('what_analysis','')[:160]}" if out.get("what_analysis") else ""),
+            is_replay=False)
+
+
 def run_self_test(event: ContradictionEvent, scout: DatasetScout, tester: Tester) -> SelfTestResult:
     """Contradiction -> hypothesis -> dataset -> first-pass result. Does NOT write to the self."""
     hyp = hypothesize(event)
