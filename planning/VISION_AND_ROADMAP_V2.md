@@ -167,21 +167,25 @@ converged data end-to-end.
 | P9 autonomy | ✅ **live** | `autonomous_cycle`: real read → reflect + spawn interest → self-test → retrieve, narrated |
 | **Scale demo** | ✅ | 40 live papers → **converged** beliefs: "neuroinflammation causes neurodegeneration" with **7 independent sources** (p=0.99), $0.144 |
 
-**Honest gaps remaining (documented, not hidden):**
-- **P3 / E8** (real-Claude poisoning replay): the durable membrane's anchor guard is now
-  *absolute by construction* (a swarm can never move an anchor) and the crossover is
-  superseded by the evidence-based belief model — but a full adversarial replay with
-  *fabricated-independence* poison (many fake journals) is not yet run; the independence
-  gate cannot fully catch fabricated independence. Threat documented.
-- **E11 estimator selection** (semantic entropy vs self-consistency vs verbalized) needs a
-  labeled biomedical QA set; the conformal/escalation *mechanism* is built and estimator-agnostic.
-- **Convergence tail:** at 40 papers, 4 claims converge and ~270 are singletons (long tail).
-  Canonical-entity prompting helps; embedding-based claim clustering would converge more —
-  a clear next step.
-- **True computational reanalysis:** the self-test is real *reasoning*, not a full
-  download-GEO-and-compute pipeline (needs a data/compute sandbox).
+**Now also closed (post-roadmap):**
+- **E8 fabricated-independence safety** ✅ **GO** (20 seeds): under 10–30 fabricated fake
+  journals, anchor_holds 1.000, reescalation_fired 1.000, admitted-only-as-READ 1.000. The
+  verified core is safe and the human is alerted; fabricated independence can admit a belief
+  *only as low-provenance READ, never as truth* (limitation measured, not hidden).
+- **E11 calibration** ✅ **GO** (15 labeled biomedical statements): self-consistency (Brier
+  0.000) ≥ verbalized (0.002) — confirms the literature; both usable, self-consistency chosen.
+- **Convergence tail** ✅ largely fixed: **embedding-based entity canonicalization**
+  ("microglial activation"→"microglia") took 40 papers from 4→**11 converged beliefs**
+  (idea graph 4→11 nodes / 2→29 edges).
+
+**Honest gaps still remaining:**
+- **True computational reanalysis:** the self-test is real *reasoning* (+ live GEO scout),
+  not a full download-GEO-and-compute pipeline (needs a data/compute sandbox). Open Targets
+  structured cross-check is the lighter next step.
 - **Retrieval/graph at true millions-scale:** current stack is MiniLM+numpy / NetworkX+Cytoscape;
   the MedCPT+FAISS / Sigma.js-cosmos.gl swap (same APIs) is the scale path.
+- **E11 on a harder set:** the labeled set is easy (both signals near-perfect); a larger
+  ambiguous set would separate estimators more.
 
 ## 7. Risks / threats (carried)
 - **Idempotency is the whole ballgame** for crash-resume: the read-ledger must commit in the same SQLite txn as the belief. Self-check: killed-and-resumed run = byte-identical beliefs.

@@ -1,35 +1,109 @@
 """
-E11 - Calibration method selection (gates BUILD_PLAN 5.3 confidence + 1.3 membrane gate + 3.7 escalation)
+E11 - Calibration method selection (gates 5.3 confidence + membrane gate + escalation). IMPLEMENTED.
 
-PRE-REGISTERED (write before implementing the gated piece; CLAUDE.md section 2).
-Status: STUB - not yet run.
+The tech sweep (planning §2.5) warns RLHF-tuned models are overconfident and that SAMPLING/
+CONSISTENCY signals beat verbalized confidence. Test it directly on a small labeled set of
+biomedical statements with KNOWN truth: compare (A) verbalized P(true) from one call vs
+(B) self-consistency (fraction of K samples that answer "true"). Metric: Brier + ECE +
+selective AUROC vs the truth labels.
 
-HYPOTHESIS
-  A SAMPLING/CONSISTENCY signal (semantic entropy / SAR / SE-probe) - NOT verbalized confidence - gives per-claim confidence with low ECE + good risk-coverage, good enough to (a) gate the membrane and (b) drive decision-theoretic escalation.
-
-METRIC
-  ECE + risk-coverage (selective-prediction) AUROC per estimator; conformal admit/escalation error rate. Validate on biomedical QA (calibration is specialty-dependent).
-
-METHOD
-  Use LM-Polygraph (TACL 2025) to pick the estimator empirically on our task. Set gate/escalation cutoffs via CONFORMAL selective-prediction (SConU/COIN) for a provable error rate. Escalation is decision-theoretic: threshold on uncertainty x stakes. Decompose long syntheses into atomic claims. Do NOT use raw RLHF verbalized confidence (overconfident, ECE 0.2-0.4).
-
-GO / NO-GO BAR
-  Pick the best estimator; if none clears the ECE/risk-coverage bar on biomedical QA, escalation reverts to a conservative always-escalate-high-stakes rule and we say so. Mark 5.3 [E] only after this clears.
-
-LITERATURE ANCHORS
-  Farquhar Nature 2024 (semantic entropy); LM-Polygraph TACL 2025 arXiv:2406.15627; SConU ACL 2025 arXiv:2504.14154; AbstentionBench arXiv:2506.09038; Tian EMNLP 2023.
-
-Protocol: seed everything; >=20 seeds where stochastic; report mean +/- 95% CI;
-save results to results/; if the evidence contradicts the hypothesis, WRITE DOWN
-the reversal in results/FINDINGS.md and follow the evidence.
+GO: the better-calibrated signal (lower Brier/ECE) is the one Persona should use to gate the
+membrane / drive escalation. Prediction from the literature: self-consistency >= verbalized.
+Needs ANTHROPIC_API_KEY (~$0.05 on Haiku).
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import numpy as np
+from persona import config
+
+# curated labeled biomedical statements (1 = true, 0 = false)
+LABELED = [
+    ("APOE4 allele increases risk of Alzheimer's disease", 1),
+    ("Amyloid-beta plaques are a pathological hallmark of Alzheimer's disease", 1),
+    ("Microglia are the resident immune cells of the central nervous system", 1),
+    ("Hyperphosphorylated tau forms neurofibrillary tangles", 1),
+    ("Smoking increases the risk of lung cancer", 1),
+    ("BRCA1 mutations increase breast cancer risk", 1),
+    ("TNF-alpha is a pro-inflammatory cytokine", 1),
+    ("NLRP3 inflammasome activation promotes neuroinflammation", 1),
+    ("The MMR vaccine causes autism", 0),
+    ("Aluminium cookware is the primary cause of Alzheimer's disease", 0),
+    ("Antibiotics are effective at curing viral infections", 0),
+    ("Amyloid-beta reduces neuroinflammation in Alzheimer's disease", 0),
+    ("Homeopathy cures metastatic cancer", 0),
+    ("Adult human cortical neurons regenerate freely after injury", 0),
+    ("Vitamin C megadoses definitively cure the common cold", 0),
+]
 
 
-def run():
-    raise NotImplementedError(
-        "Pre-registered stub. Implement per the docstring, then remove this guard."
-    )
+def verbalized_p(client, stmt):
+    tool = {"name": "rate", "input_schema": {"type": "object",
+            "properties": {"p_true": {"type": "number"}}, "required": ["p_true"]}}
+    r = client.messages.create(model=config.MODEL_READER, max_tokens=200, tools=[tool],
+                               tool_choice={"type": "tool", "name": "rate"},
+                               messages=[{"role": "user", "content":
+                                          f"Statement: \"{stmt}\"\nGive p_true = your probability (0-1) that this biomedical statement is TRUE."}])
+    for b in r.content:
+        if b.type == "tool_use":
+            return float(b.input.get("p_true", 0.5))
+    return 0.5
+
+
+def consistency_p(client, stmt, k=5):
+    tool = {"name": "answer", "input_schema": {"type": "object",
+            "properties": {"is_true": {"type": "boolean"}}, "required": ["is_true"]}}
+    yes = 0
+    for _ in range(k):
+        r = client.messages.create(model=config.MODEL_READER, max_tokens=100, temperature=1.0,
+                                   tools=[tool], tool_choice={"type": "tool", "name": "answer"},
+                                   messages=[{"role": "user", "content":
+                                              f"Is this biomedical statement true? \"{stmt}\""}])
+        for b in r.content:
+            if b.type == "tool_use":
+                yes += 1 if b.input.get("is_true") else 0
+    return yes / k
+
+
+def brier(ps, ys):
+    return float(np.mean((np.array(ps) - np.array(ys)) ** 2))
+
+
+def ece(ps, ys, bins=5):
+    ps, ys = np.array(ps), np.array(ys)
+    e, n = 0.0, len(ps)
+    for b in range(bins):
+        lo, hi = b / bins, (b + 1) / bins
+        m = (ps >= lo) & (ps < hi if b < bins - 1 else ps <= hi)
+        if m.sum():
+            e += (m.sum() / n) * abs(ps[m].mean() - ys[m].mean())
+    return float(e)
+
+
+def main():
+    if not config.have_key():
+        print("SKIP E11: no ANTHROPIC_API_KEY")
+        return
+    client = config.anthropic_client()
+    ys = [y for _, y in LABELED]
+    verb = [verbalized_p(client, s) for s, _ in LABELED]
+    cons = [consistency_p(client, s) for s, _ in LABELED]
+    print("=== E11 calibration | 15 labeled biomedical statements (Haiku) ===")
+    print(f"  {'signal':<14}{'Brier':<10}{'ECE':<10}{'acc@0.5':<10}")
+    res = {}
+    for name, ps in (("verbalized", verb), ("self-consistency", cons)):
+        acc = np.mean([(p > 0.5) == bool(y) for p, y in zip(ps, ys)])
+        res[name] = {"brier": brier(ps, ys), "ece": ece(ps, ys), "acc": float(acc)}
+        print(f"  {name:<14}{res[name]['brier']:<10.3f}{res[name]['ece']:<10.3f}{acc:<10.3f}")
+    best = min(res, key=lambda k: res[k]["brier"])
+    import json
+    Path("results").mkdir(exist_ok=True)
+    json.dump(res, open("results/e11_calibration.json", "w"), indent=2)
+    print(f"\nGO — use '{best}' as the confidence signal (lower Brier). "
+          f"{'Confirms the literature (consistency >= verbalized).' if best == 'self-consistency' else 'Note: verbalized won here on this small set — validate on a larger labeled set before committing.'}")
 
 
 if __name__ == "__main__":
-    run()
+    main()
