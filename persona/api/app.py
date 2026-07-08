@@ -109,6 +109,18 @@ def selftest(claim_key: str):
     return researcher().self_test(claim_key)
 
 
+@app.post("/api/selftest/{claim_key}/resolve")
+def selftest_resolve(claim_key: str, payload: dict):
+    """Close the acting loop: human signs off -> the self-test writes back into the belief-state."""
+    return researcher().resolve_self_test(claim_key, bool(payload.get("human_ok", True)),
+                                          int(payload.get("truth", 1)))
+
+
+@app.get("/api/review")
+def review():
+    return {"review": researcher().review_queue()}
+
+
 @app.post("/api/resolve")
 def resolve(payload: dict):
     return researcher().resolve_handoff(payload["claim_key"], payload.get("explanation", ""),

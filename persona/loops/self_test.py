@@ -180,11 +180,14 @@ def run_self_test(event: ContradictionEvent, scout: DatasetScout, tester: Tester
 
 
 def apply_result_with_signoff(store, result: SelfTestResult, *, human_ok: bool, truth: int):
-    """Human-gated write-back. Only writes when a human signs off; then provenance=TESTED
-    (a genuinely tested belief) and it is anchored. Never auto-anchors an unreviewed result."""
+    """Human-gated write-back — this is where the acting loop CLOSES into the belief-state.
+    Provenance is honest: `TESTED` (the strongest tier) ONLY when a real computation ran
+    (result.is_replay == False); a human sign-off on a first-pass reasoning/replay result is
+    `HUMAN_CONFIRMED` (human judgment), not TESTED. Either way the belief is anchored."""
     if not human_ok:
         return None
     from ..store import Claim
     if store.get_claim(result.hypothesis.claim_key) is None:
         store.add_claim(Claim(result.hypothesis.claim_key, result.hypothesis.text, tier="core"))
-    return store.human_confirm(result.hypothesis.claim_key, truth, tested=True)
+    tested = not result.is_replay      # no data computed -> HUMAN_CONFIRMED, not TESTED
+    return store.human_confirm(result.hypothesis.claim_key, truth, tested=tested)

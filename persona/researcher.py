@@ -50,6 +50,7 @@ class Researcher:
         self.inbox = HandoffInbox(self.me.store)
         self._last = None
         self._contradictions = []
+        self._pending_tests = {}          # claim_key -> SelfTestResult awaiting human sign-off
         self._write_identity()
 
     def _write_identity(self):
@@ -248,11 +249,28 @@ class Researcher:
         else:                                       # offline demo fallback
             scout, tester = MockDatasetScout(), HeuristicTester()
         res = run_self_test(ev, scout, tester)
+        self._pending_tests[claim_key] = res      # hold for human sign-off (loop closes on resolve)
         self.me.notebook(f"self-test on {claim_key}: {res.outcome} "
                          f"(conf {res.confidence:.2f}, replay={res.is_replay}) — needs human sign-off")
         return {"claim_key": claim_key, "outcome": res.outcome, "confidence": res.confidence,
                 "dataset": (res.dataset.__dict__ if res.dataset else None),
                 "is_replay": res.is_replay, "detail": res.detail}
+
+    def resolve_self_test(self, claim_key: str, human_ok: bool, truth: int) -> dict:
+        """CLOSE the acting loop: a human signs off on a pending self-test → the result writes
+        back into the belief-state (TESTED only if real compute ran, else HUMAN_CONFIRMED)."""
+        res = self._pending_tests.get(claim_key)
+        if res is None:
+            return {"error": "no pending self-test for that claim"}
+        c = apply_result_with_signoff(self.me.store, res, human_ok=human_ok, truth=truth)
+        if c is None:
+            self.me.notebook(f"self-test on {claim_key} declined by human")
+            return {"claim_key": claim_key, "written": False}
+        self._pending_tests.pop(claim_key, None)
+        self.me.notebook(f"acting loop CLOSED on {claim_key}: written as {c.provenance_state} "
+                         f"(anchor={c.anchor}) after human sign-off")
+        return {"claim_id": c.claim_id, "written": True, "provenance_state": c.provenance_state,
+                "anchor": c.anchor, "calibrated_p": round(c.calibrated_p, 3)}
 
     def artifacts(self) -> dict:
         ids = [c.claim_id for c in self.me.store.core_claims()]
