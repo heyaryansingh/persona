@@ -1,0 +1,922 @@
+{
+  "summary": "Critically evaluate the frameworks/tech for Persona v2 (LangGraph, agent frameworks, scale/cost, RAG+embeddings, extraction+finetuning, temporal-KG+viz, observability, many-agent research systems) — ADOPT/CONDITIONAL/SKIP with a discriminating experiment each",
+  "agentCount": 8,
+  "logs": [],
+  "result": [
+    {
+      "domain": "Durable orchestration substrate for an always-on synthetic researcher that fans out to hundreds of parallel bounded readers (I/O-bound Claude + Europe PMC calls) and must checkpoint/resume across crashes — while keeping reasoning single-agent.",
+      "tools": [
+        {
+          "name": "Purpose-built asyncio orchestrator (asyncio.Semaphore + SQLite read-ledger)",
+          "what": "Bounded fan-out with asyncio.gather + Semaphore(N) for backpressure over hundreds of I/O-bound reads, plus a tiny SQLite 'read ledger' (doc_id -> pending/done) written in the SAME transaction as the belief commit for idempotent crash-resume. No new deps, no new infra.",
+          "maturity": "asyncio is Python stdlib (3.11+), rock-solid; the durable belief-store is ALREADY SQLite (persona/store.py: bi-temporal, provenance-typed). Confidence: HIGH (read the code directly).",
+          "verdict": "ADOPT",
+          "why": "This is the actual shape of the problem. The current inner loop (persona/loops/inner.py) is a SYNCHRONOUS for-loop — the 'hundreds of parallel readers' is aspirational, not yet built. The missing pieces are exactly two: (1) bounded parallel fan-out = Semaphore + gather (~30 LoC), (2) crash-resume = dedup against the store using the deterministic claim_key/doc_id that already exist, so re-runs are idempotent by construction. The store IS the checkpoint; you don't need a second durability engine. Matches Persona's own DPI finding: scale in the disposable swarm, keep the self small and single-agent.",
+          "integration_cost": "~30-60 LoC on top of existing code; zero new dependencies, zero new services. Highest risk is correctness of the ledger-in-same-txn, not volume of work."
+        },
+        {
+          "name": "LangGraph (v1.0.x, functional API + checkpointer)",
+          "what": "Agent-native orchestration with per-superstep checkpointing, human-in-the-loop interrupt/resume, token streaming, and time-travel state history. Functional API (@entrypoint/@task) can wrap raw Anthropic SDK calls — you do NOT have to buy LangChain's reasoning abstractions; checkpointers ship as separate light packages (langgraph-checkpoint-sqlite/-postgres).",
+          "maturity": "v1.0.8 confirmed via context7 (Jul 2026); 30k+ stars; functional API + standalone SqliteSaver verified in current docs. Confidence: HIGH on version/API; MEDIUM on vendor 'prod-at-scale' adopter claims (marketing-sourced).",
+          "verdict": "CONDITIONAL",
+          "why": "Earns its place ONLY for the single-agent inner reasoning loop IF the UI genuinely needs interrupt/resume + streaming + state-history that you'd otherwise hand-build. It does NOT fit the wide fan-out: Send() has no built-in throttle (all sends join one superstep), and multiple 2026 sources document checkpoint/WAL bloat at ~100 concurrent executions plus checkpoint-collision/write-skew when workers commit to a shared thread. Also, checkpoints save state BETWEEN nodes, not inside one — a long reasoning call that crashes mid-flight loses its work anyway (Diagrid critique: no watchdog, no auto-recovery, no distributed lock; resume is manual by thread_id). Persona already has HITL (inbox) and a notebook stream, so even the reasoning-loop justification is marginal.",
+          "integration_cost": "New deps (langgraph + a checkpoint backend); rewrite the reasoning tick as @entrypoint/@task; ~2-3 days to productivity. Scope tightly or LangChain message types creep in. Keep the swarm on asyncio regardless."
+        },
+        {
+          "name": "DBOS Transact (durable execution as a Postgres library)",
+          "what": "Durable execution (replay-based recovery, retries, signals) added as a decorator library inside your own process, state in Postgres — no separate orchestration server. Positioned as 'come back to Temporal only when you hit the wall.'",
+          "maturity": "dbos-transact-py active in 2026; DBOSify (drop-in Temporal-Python replacement) is newer/less proven. Confidence: MEDIUM (claims largely vendor / vendor-adjacent; independent dev.to comparison corroborates the library-vs-server tradeoff).",
+          "verdict": "CONDITIONAL",
+          "why": "The honest middle path IF process-crash durability ever needs finer granularity than the SQLite store gives (e.g. multi-step side-effecting workflows that must resume mid-sequence with exactly-once semantics). Far lighter than Temporal (~7 LoC to adopt vs a 3-service deployment). The catch for Persona: DBOS is Postgres-backed, so adopting it means introducing Postgres where today everything is stdlib SQLite — that's new infra you don't currently need. Hold as a documented escape hatch, not a day-1 adoption.",
+          "integration_cost": "+1 dependency and decorators are cheap, BUT requires standing up Postgres (net-new infra for a currently SQLite-only, stdlib project). Moderate."
+        },
+        {
+          "name": "Temporal",
+          "what": "Industrial durable-execution engine: event-sourced workflows-as-code, replay-based recovery where a worker dying mid-step is a non-event, durable timers/waits for day-long human approvals.",
+          "maturity": "Very mature (Uber-lineage, years in prod, v1.x). Confidence: HIGH.",
+          "verdict": "SKIP",
+          "why": "Solves a problem Persona doesn't have yet. Its durability guarantees are real but its cost is a 3-service deployment (server + persistence store + metrics + worker fleet), verbose SDK, and an execution model that 2026 practitioners repeatedly call awkward for open-ended agent routing. Persona fans out to HUNDREDS of I/O-bound calls on (presumably) one machine and already has a transactional SQLite durable boundary — bringing Temporal duplicates durability it owns while tripling ops surface. Re-evaluate only if it must scale to thousands of workers across machines with exactly-once side effects.",
+          "integration_cost": "High: multi-service infra to operate, workflow/activity rewrite, weeks not days. Ops tax dominates."
+        },
+        {
+          "name": "Ray (Core / Serve)",
+          "what": "Distributed compute framework: actors/tasks across a cluster, auto-scaling, retries; the substrate for running thousands of agents or self-hosted model inference in parallel.",
+          "maturity": "Very mature (237M+ downloads, Anyscale-backed; RayAI multi-agent product new in 2026). Confidence: HIGH.",
+          "verdict": "SKIP",
+          "why": "Wrong shape and wrong scale. Ray shines for CPU/GPU-bound distributed compute and thousands-of-agents-across-nodes; Persona's fan-out is a few hundred I/O-bound HTTP calls that a single asyncio event loop + Semaphore saturates trivially (the bottleneck is API rate limits, not compute). Adopting Ray means a head node, cluster ops, and an actor-model rewrite to solve a problem asyncio solves in 30 lines. It becomes interesting only if Persona self-hosts inference or truly needs multi-machine parallelism — not now.",
+          "integration_cost": "High: cluster to run, actor-model rewrite of the swarm, serialization concerns. Overkill for the workload."
+        },
+        {
+          "name": "Prefect (3.x) / Dagster",
+          "what": "Python data-pipeline orchestrators. Prefect: dynamic runtime tasks, lighter ops, first-party AI layer (Marvin 3.0). Dagster: asset-centric, lineage/partitions, strong observability.",
+          "maturity": "Both mature. Confidence: HIGH on capability; the 'best AI orchestrator' framing is largely blog-sourced.",
+          "verdict": "SKIP",
+          "why": "These are ETL/data-asset schedulers, not durable-execution engines for agents. Even the pro-orchestrator 2026 comparisons concede that for state-that-must-not-be-lost 'Temporal is the serious answer' — i.e. Prefect/Dagster don't give you the replay-based durable resume you actually asked about. Their scheduling/observability strengths overlap what Persona's living-notebook + SQLite store already provide for its own domain. Adopting one adds a server/agent and a DAG-modeling layer for benefits Persona doesn't need. Dagster's asset model in particular fights the dynamic, per-read fan-out.",
+          "integration_cost": "Moderate-high: server/agent to run, re-model work as flows/assets. Poor fit-to-need."
+        }
+      ],
+      "recommendation": "Build the purpose-built asyncio orchestrator as the swarm substrate and do NOT adopt a heavyweight durable-execution engine. Concretely: (1) fan out the readers with asyncio.gather under an asyncio.Semaphore(N) for backpressure — this replaces the current synchronous for-loop in persona/loops/inner.py; (2) get crash-resume for free by writing a small SQLite 'read ledger' (doc_id -> done) inside the SAME transaction as each belief commit, and skipping done doc_ids on restart — the belief-store (persona/store.py) is already a durable, transactional SQLite checkpoint and the deterministic claim_key/doc_id make re-commits idempotent. Keep reasoning single-agent (consistent with Persona's own DPI finding). Hold LangGraph's functional API + checkpointer as a scoped CONDITIONAL: adopt it ONLY around the single inner reasoning loop and ONLY if the UI truly needs interrupt/resume + token streaming + time-travel that you'd otherwise hand-build — never route the hundreds-wide fan-out through LangGraph Send (documented checkpoint/WAL bloat at ~100 concurrent, no built-in throttle). Keep DBOS Transact as the pre-approved escape hatch if process-crash durability ever needs finer granularity than the store gives, without Temporal's 3-service ops tax. Skip Temporal, Ray, and Prefect/Dagster now — they solve distributed-cluster / data-pipeline problems Persona doesn't have and duplicate durability the SQLite store already owns.",
+      "discriminating_experiment": "Crash-resume + fan-out bake-off, reusing the existing overnight run over N cached docs. Inject a hard kill (kill -9 / os._exit) at a randomized point (~50%) through one tick; measure across 20 seeds: (a) resume correctness — zero double-commits and zero lost docs, (b) wall-clock for 200 parallel reads, (c) peak checkpoint/WAL write volume, (d) net LoC + new infra added. Two arms: A = asyncio.Semaphore(20) + a SQLite read-ledger written in the same txn as the commit, dedup against the existing store on restart; B = LangGraph functional API (@task per read + SqliteSaver). Decision rule: pick A unless B's built-in HITL-interrupt + streaming + time-travel are features you would otherwise have to hand-build for the UI. Predicted result: A wins decisively on LoC, zero new infra, and write-amplification; B's checkpoint traffic balloons at 200 concurrent branches (matching the documented ~100-concurrent WAL-bloat reports) and buys no resume correctness that A's idempotent keys don't already give. This one experiment simultaneously ranks DIY-asyncio vs LangGraph and exposes whether any durable-execution engine is warranted at all.",
+      "risks": [
+        "Idempotency is the whole ballgame for the DIY path: the read-ledger MUST be written in the same SQLite transaction as the belief commit. If they can diverge, you reintroduce the exact double-commit gap that Temporal/LangGraph exist to close — a silent wrong number propagating into the belief-state, the worst bug class for this system. Add a self-check that a killed-and-resumed run produces byte-identical beliefs to an uninterrupted run.",
+        "Maturity claims are partly marketing: 2026 'prod-at-scale' adopter lists (LangGraph) and 'drop-in Temporal replacement' claims (DBOS/DBOSify) come from vendor or vendor-adjacent blogs. Version numbers are solid (LangGraph 1.0.8 verified via context7); scale/benchmark claims are NOT independently verified — treat as MEDIUM confidence and validate in the bake-off, not from the blog.",
+        "Single-process ceiling: asyncio fan-out is bounded by one event loop on one machine and by upstream API rate limits. Fine for 'hundreds'; it will NOT stretch to thousands across machines. That ceiling — not today's workload — is the concrete trigger to re-evaluate Ray/Temporal. Name the threshold explicitly so the decision isn't relitigated prematurely.",
+        "Intra-step durability is unsolved by the cheap options AND by LangGraph: a single long reasoning/LLM call that crashes mid-flight loses that call's work in asyncio AND in LangGraph (checkpoints save between nodes, not inside). Only Temporal-style replay closes this, and it's not worth the ops tax here — so don't over-credit LangGraph as buying durability it doesn't provide.",
+        "LangGraph lock-in creep: the functional API tends to pull in LangChain message types and the wider ecosystem. If adopted, wall it off to the reasoning loop; otherwise the 'single-agent, stdlib-lean' posture erodes one import at a time.",
+        "Adopting DBOS or Temporal for durability means introducing Postgres/Cassandra where Persona is currently stdlib-SQLite-only — new operational surface for a project whose whole design bet is a small, legible, dependency-light core. The durability they add is largely duplicative of the transactional SQLite store today."
+      ]
+    },
+    {
+      "domain": "Agent frameworks vs raw Anthropic SDK for Persona's bounded, single-job, READ-ONLY reader/extractor/cross-checker swarm (the \"hands\"), distinct from the outer acting loop (Hypothesizer/Tester/Reflector).",
+      "tools": [
+        {
+          "name": "Raw Anthropic SDK + tool use + Structured Outputs + Batch API",
+          "what": "Direct Messages API with strict-JSON constrained decoding (Structured Outputs now GA, no beta header), standardized tool use for Europe PMC / Open Targets / GEO fetches, and Batch API (50% token discount, up to 10k requests/batch) for embarrassingly-parallel background reads. Orchestrated by Persona's existing loops + adaptive membrane.",
+          "maturity": "GA and production-stable. Structured Outputs GA across Haiku/Sonnet/Opus with constrained decoding; Batch API GA; tool streaming GA. HIGH citation confidence (Anthropic platform docs corroborated by multiple sources); specific model-version strings LOW confidence but not load-bearing.",
+          "verdict": "ADOPT",
+          "why": "Persona's swarm is a fan-out MAP over bounded reads with a strict output schema, reduced by Persona's own validated membrane — not a handoff/conversation problem. Constrained decoding gives the schema guarantee frameworks bolt on with retries; Batch API gives the cheap parallelism frameworks can't expose. Matches Persona's DPI/E12 finding (single strong agent >= multi-agent at equal token budget), its cost discipline, and the 2026 industry convergence that thin wrappers over raw SDK win below the complexity bar. It is also the only option that keeps token construction fully auditable for the legibility/notebook mandate.",
+          "integration_cost": "Lowest. ~50-150 lines of purpose-built orchestrator (budget caps, retries/timeouts, concurrency) on top of Persona's existing lean backend. No new heavyweight dependency; nothing to keep runnable across framework upgrades."
+        },
+        {
+          "name": "Claude Agent SDK (subagents / Dynamic Workflows / Performance Outcomes)",
+          "what": "Anthropic's own agent library (renamed from Claude Code SDK, Sept 2025) built on the Claude Code harness. Lead agent fans out tens-to-hundreds of ephemeral subagents with isolated context/tools; June 2026 'Dynamic Workflows' + 'Performance Outcomes' add a grader that sends subagents back to revise against a rubric.",
+          "maturity": "Actively developed, production-positioned, Anthropic-native. MEDIUM confidence on the June-2026 Dynamic Workflows / hundreds-of-subagents specifics (secondary sources, not primary-verified here).",
+          "verdict": "CONDITIONAL",
+          "why": "This is the ONE 'framework' whose mental model actually matches Persona (orchestrator + disposable subagents returning compressed summaries; the grader-revise loop rhymes with the membrane). It earns its place for the OUTER acting loop (hypothesis -> dataset scout -> reanalysis) where dynamic tool use and real agency matter. But it is overkill for the READ-ONLY reader swarm: it bundles a CLI binary + hosted harness, and post-June-2026 it meters to per-token billing, so it loses to Batch-API reads on cost for embarrassingly-parallel extraction.",
+          "integration_cost": "Medium. Real harness weight (CLI binary, session/hosted execution model, permissioning). Worth it only where you need agentic tool loops, not for map-style reads."
+        },
+        {
+          "name": "LangGraph (LangChain)",
+          "what": "Graph/state-machine agent runtime with checkpointing, replay, and durable-execution modes (exit/async/sync). The most production-mature of the OSS multi-agent frameworks in 2026.",
+          "maturity": "Mature, widely deployed, the de facto 'graduate off CrewAI to this' choice. MEDIUM confidence on the '5-20% overhead at 100k runs/day' and 'minimal for 10-50 nodes' figures (single sources, directional).",
+          "verdict": "CONDITIONAL",
+          "why": "Nothing in the READ-ONLY swarm needs a graph — readers don't branch, message, or hand off. Its only relevance is durability/resumability of the always-on OUTER loop if crash-recovery becomes a real pain. Even there, Persona already has a belief-store; a durable SQLite/queue checkpoint (a few dozen lines) beats importing LangGraph's graph model and its 5-20% overhead. SKIP for the swarm; revisit only if long-horizon execution durability becomes a measured problem the built-in loop can't handle.",
+          "integration_cost": "Medium-high. Rewriting the loop into nodes/edges + a checkpointer backend; ongoing exposure to LangChain's fast API churn, which fights the 'runnable at every checkpoint' rule."
+        },
+        {
+          "name": "OpenAI Agents SDK",
+          "what": "OpenAI's production-focused agent framework: Agents, Tools, Handoffs, Guardrails (input/output + per-tool), and human-approval interruptions with resumable state. Became a common 2026 default for OpenAI-stack agents.",
+          "maturity": "GA, genuinely well-designed, production-oriented. HIGH confidence on feature set (OpenAI docs corroborated).",
+          "verdict": "SKIP",
+          "why": "OpenAI-centric while Persona is Anthropic-native (Claude Code + Claude Science); adopting it means an impedance mismatch to route Claude through adapters, for features (handoffs, agent-to-agent) the swarm doesn't use. Its ONE good idea worth STEALING is the guardrail pattern (validate inputs/outputs around each tool call) — but that's a ~decorator around Persona's membrane, not a dependency to take on.",
+          "integration_cost": "High and misaligned (model-routing adapters + a framework whose core primitives Persona won't exercise)."
+        },
+        {
+          "name": "CrewAI",
+          "what": "Role/task-based multi-agent framework ('crews' of role-playing agents passing task outputs sequentially). Optimized for fast prototyping.",
+          "maturity": "Popular for demos; explicitly the framework teams migrate OFF for production. MEDIUM confidence on the '~3x tokens on simple tasks' figure (single SEO source, directionally consistent with its verbose role prompting).",
+          "verdict": "SKIP",
+          "why": "Wrong shape and wrong economics for Persona. Role-based collaboration is exactly the multi-agent reasoning Persona's DPI/E12 finding warns against; the readers have no roles and never collaborate. Heaviest token footprint of the major frameworks, no checkpointing/persistence, coarse error handling, limited control over agent communication — it directly contradicts Persona's cost discipline, provenance typing, and legibility mandate. It is a prototyping tool, not a production research-swarm substrate.",
+          "integration_cost": "Deceptively low to start, high to live with (token bloat, no state model, you rebuild checkpointing/observability yourself)."
+        },
+        {
+          "name": "LangChain agents (AgentExecutor / legacy agent layer)",
+          "what": "The classic LangChain agent abstraction (ReAct-style AgentExecutor, tool wrappers, chains). Distinct from LangGraph.",
+          "maturity": "Legacy; 2026 consensus is the agent layer is being replaced by Agent SDKs. Integrations catalog remains broad. HIGH confidence on the 'being replaced' framing (multiple sources incl. LangChain's own pivot to LangGraph).",
+          "verdict": "SKIP",
+          "why": "Leaky abstraction over a loop Persona can write in a few lines, and the layer the ecosystem itself is deprecating in favor of graph runtimes and native SDKs. Its residual value is scattered document-loader/integration glue, not orchestration — and Persona ingests structured APIs (Europe PMC, Open Targets), not a doc corpus needing LangChain loaders. Nothing here earns a dependency.",
+          "integration_cost": "Low to add, but negative net value: hidden prompts break token auditability and the 'show the funnel' legibility requirement."
+        },
+        {
+          "name": "AutoGen / AG2",
+          "what": "Microsoft-origin multi-agent conversation framework (agents debate/converse to a solution); AG2 is the community fork.",
+          "maturity": "In maintenance mode in 2026; explicitly 'not a starting point for anything new'. HIGH confidence on the maintenance-mode status (corroborated across comparisons).",
+          "verdict": "SKIP",
+          "why": "Conversation/debate orchestration is the single worst fit for bounded READ-ONLY readers, and multi-agent debate is precisely what the Data-Processing-Inequality result says loses to one strong agent. Layer that on a framework in maintenance mode and there is no case.",
+          "integration_cost": "N/A — non-starter; would be adopting a declining dependency for an anti-pattern."
+        },
+        {
+          "name": "LlamaIndex agents / Workflows 1.0",
+          "what": "RAG-first agent + event-driven Workflows framework (memory, state, reflection, human-in-the-loop) where retrieval/indexes are first-class. Workflows 1.0 shipped June 2026.",
+          "maturity": "Mature in its RAG niche. HIGH confidence on RAG-first positioning; Workflows 1.0 release corroborated.",
+          "verdict": "SKIP",
+          "why": "Its core value is RAG over a private document corpus — not Persona's problem, which is structured queries against public biomedical APIs plus a purpose-built claim-graph. The Workflows event model is fine but redundant with Persona's own loop, and 2026 reporting notes coding agents have eroded RAG-framework value by generating custom pipelines on demand. No decisive capability for the swarm.",
+          "integration_cost": "Medium and redundant (a second orchestration/state model overlapping Persona's existing loop + belief-store)."
+        }
+      ],
+      "recommendation": "Build the READ-ONLY swarm on the raw Anthropic SDK: Structured Outputs (constrained decoding) for schema-guaranteed extraction, tool use for the public-API fetches, and the Batch API (50% off, 10k/batch) for background parallel reads — all reduced by Persona's already-validated adaptive membrane and driven by a ~100-line purpose-built orchestrator (budget caps, retries, concurrency). No general agent framework earns a place in the swarm: their headline features (handoffs, agent-to-agent messaging, role orchestration, durable conversation state) are exactly what a bounded fan-out of non-collaborating readers doesn't use, and they add token bloat, version churn, and opacity that fight Persona's cost discipline and legibility mandate. Reserve frameworks for the OUTER acting loop, and even there prefer the Anthropic-native Claude Agent SDK (CONDITIONAL) over CrewAI/LangChain/AutoGen. Blunt 2026 verdict on the two you asked about specifically: CrewAI and LangChain's agent layer are SKIP for a production research swarm — CrewAI is a prototyping tool teams migrate off, and LangChain's AgentExecutor is the layer its own ecosystem is deprecating. Steal one idea (OpenAI Agents SDK's input/output guardrail pattern) as a decorator around the membrane; take no dependency.",
+      "discriminating_experiment": "Extend the pre-registered E12 with a framework arm. On the E6-style extraction gold set (~100 abstracts, human-annotated claims), implement the SAME reader+extractor+cross-checker task two ways at a MATCHED total-token budget, >=20 seeds, mean +/- 95% CI: (A) raw Anthropic SDK + Structured Outputs + Batch API + Persona's membrane; (B) the single most tempting framework (LangGraph, since it's the only production-serious one). Measure four things: extraction F1 vs gold, schema-valid rate, total tokens + wall-clock, and integration lines-of-code. Go/No-Go bar: a framework EARNS adoption only if it Pareto-beats raw-SDK on the F1/token frontier OR cuts integration LOC by >2x with no token penalty and no loss of token auditability. Prediction from current evidence: raw SDK wins the frontier and ties or wins LOC; if it doesn't, follow the evidence and write the reversal into results/FINDINGS.md.",
+      "risks": [
+        "Leaky abstraction when you need fine control: Persona's load-bearing pieces (membrane thresholds, per-tick budget caps, provenance typing, anchoring) are exactly where frameworks fight you — the control you need lives below their API surface.",
+        "Token opacity vs legibility: frameworks hide prompt construction, which breaks both Persona's cost discipline (can't audit the ~15x multi-agent premium away) and the 'show the funnel' living-notebook mandate. A black-box orchestrator is anti-thetical to the product.",
+        "Version churn breaks 'runnable at every checkpoint': LangChain/CrewAI ship breaking API changes frequently; an always-on research system can't absorb framework upgrade breakage on the demo path.",
+        "Misreading the shape: treating readers as collaborating agents (roles/handoffs/debate) re-imports the multi-agent reasoning the DPI/E12 finding already showed loses to one strong agent — spending 3-15x tokens to make extraction worse.",
+        "Batch API latency trap: the 50% discount comes with up to a 24h SLA — correct for the always-on inner reading loop, wrong for the live 'swarm view' demo. Use Batch for background reads; use live/cached calls for the demo (per CLAUDE.md caching rule).",
+        "Single-benchmark overfit: don't let a framework win one toy extraction task and generalize; require the >=20-seed frontier result before adopting anything.",
+        "Anthropic-native lock-in cuts both ways: leaning on Structured Outputs + Batch + Claude Agent SDK ties the swarm to Anthropic. Acceptable given Persona IS Claude Code + Claude Science, but keep the extraction prompt+schema portable so a provider swap is a wrapper change, not a rewrite.",
+        "Confidence caveat: cross-source structural claims (Structured Outputs GA, Batch 50%, 2026 orchestrator+ephemeral-subagent convergence, AutoGen maintenance mode, ~15x multi-agent premium) are HIGH confidence; specific figures (CrewAI ~3x tokens, LangGraph 5-20% overhead, exact model-version strings/pricing) are MEDIUM-to-LOW and should be treated as directional, not quoted as settled."
+      ]
+    },
+    {
+      "domain": "Running hundreds of parallel LLM agents affordably and reliably — the read-at-scale swarm plus rate/cost/backpressure control — for Persona",
+      "tools": [
+        {
+          "name": "Anthropic Message Batches API",
+          "what": "Native async bulk endpoint (client.messages.batches.create): submit up to 100k requests per batch, 50% off all token usage, results typically <1h (max 24h), keyed by custom_id (results arrive unordered).",
+          "maturity": "GA on first-party API and Claude Platform on AWS; NOT available on Bedrock / Vertex / Foundry.",
+          "verdict": "ADOPT",
+          "why": "Persona's daily reading is embarrassingly-parallel fan-out with no latency SLA — Batch's exact sweet spot. 50% off compounds multiplicatively with prompt caching (Haiku batch+cache-read = $1x0.5x0.1 = $0.05/MTok, 95% off list). Batch has a SEPARATE rate-limit pool, so bulk reads don't starve the live reasoner. ~10k abstracts/day on Haiku 4.5 lands at ~$11-15/day. This is the primitive, not a framework — it earns its place cleanly.",
+          "integration_cost": "Low (~1 day): create -> poll processing_status -> stream results; key by custom_id (never by position); one SQLite table for in-flight batch ids. No new dependency (official SDK)."
+        },
+        {
+          "name": "Prompt caching (cache_control ephemeral)",
+          "what": "Prefix cache: reads at 0.1x input price, writes 1.25x (5m TTL) / 2x (1h TTL). Stacks multiplicatively with the 50% Batch discount.",
+          "maturity": "GA.",
+          "verdict": "ADOPT",
+          "why": "The reader's shared instructions/schema/few-shot and the reasoner's belief-state prefix are reused on every call — caching is the single biggest per-call cost lever, confirmed to compound with batch (x0.5x0.1). Break-even after 1 hit (5m) / 2 hits (1h).",
+          "integration_cost": "Low: mark the stable prefix once; verify usage.cache_read_input_tokens>0. Gotcha: Haiku 4.5 minimum cacheable prefix is 4096 tokens — a lean reader prompt silently won't cache (cache_creation_input_tokens=0); pad the shared prefix past 4096. Within-batch cache benefit is timing-dependent (concurrent requests may each write rather than read) — verify empirically."
+        },
+        {
+          "name": "Raw Anthropic SDK — AsyncAnthropic + aiohttp backend",
+          "what": "Official SDK async client with the anthropic[aiohttp] DefaultAioHttpClient backend, plus built-in exponential-backoff retry (max_retries) on 429/408/409/5xx, for the live/interactive concurrency tier.",
+          "maturity": "GA.",
+          "verdict": "ADOPT",
+          "why": "The interactive contradiction->hypothesis->reanalysis loop needs sub-second-to-seconds latency that Batch (minutes-to-hours) can't serve. aiohttp is Anthropic's documented backend for high-concurrency async, and the SDK already retries transient errors. Fan-out needs no framework — a semaphore over this client is the whole mechanism. Fits Persona's existing lean stdlib backend.",
+          "integration_cost": "Low: pip install 'anthropic[aiohttp]'; pass DefaultAioHttpClient. Drop-in."
+        },
+        {
+          "name": "Purpose-built async orchestrator (in-repo)",
+          "what": "~300-LOC controller: bounded work queue + DUAL RPM & TPM token-bucket (seeded from anthropic-ratelimit-* response headers) + AIMD backpressure on 429/529 + circuit breaker + custom_id->SQLite idempotent checkpoint + priority lane (reasoner over readers).",
+          "maturity": "Build (in-repo contribution).",
+          "verdict": "ADOPT",
+          "why": "This is the piece competitors lack and Persona should own (CLAUDE.md: build the contribution). HiveMind (arXiv 2604.17111) shows uncoordinated parallel agents fail at 72-100% under contention vs 0-18% with admission control + AIMD; a single concurrency semaphore is provably insufficient because APIs enforce RPM AND TPM simultaneously. A ~300-LOC controller beats any heavyweight framework for this fan-out + single-reasoner shape.",
+          "integration_cost": "Medium (2-4 days). Gotcha: do NOT dynamic-resize asyncio.Semaphore by mutating _value (CPython-undefined, silently breaks under load) — use an explicit counter + asyncio.Condition."
+        },
+        {
+          "name": "claude-flow / ruflo / hive-mind swarm framework",
+          "what": "ruvnet's many-agent orchestration MCP suite (swarm_init, agent_spawn, hive-mind consensus, coordination_orchestrate — the ~600 claude-flow MCP tools deferred in this session).",
+          "maturity": "Fast-moving OSS, unstable surface (recently renamed ruflo; V3 rebuild in progress).",
+          "verdict": "SKIP",
+          "why": "Directly contradicts Persona's own Data-Processing-Inequality finding (single strong agent > many-agent). Its own docs concede coordination overhead 'thrashes' and can trail a supervisor; Anthropic Agent Teams cost 4-7x tokens. Persona's reading is fan-out (zero agent-to-agent messaging) and its reasoning is deliberately single-agent — the swarm/consensus/shared-memory machinery is exactly the surface to avoid. Its self-reported ~75% savings come from model routing + caching, NOT from the multi-agent coordination layer (both of which Persona can capture directly without the framework).",
+          "integration_cost": "High and adverse — couples Persona's core loop to an unstable dependency for capability it does not need."
+        },
+        {
+          "name": "LangGraph (graph agent orchestration)",
+          "what": "Stateful graph/DAG orchestration for multi-step agent workflows with checkpointing and human-in-the-loop nodes.",
+          "maturity": "Mature OSS.",
+          "verdict": "SKIP",
+          "why": "Persona's loops are already implemented in the lean backend; LangGraph's value proposition IS the orchestration graph Persona has purpose-built. For fan-out reads + a single reasoner it adds abstraction and dependency weight without beating a ~300-LOC controller. Reconsider only if the acting loop becomes genuinely branchy with many conditional sub-flows.",
+          "integration_cost": "Medium — nontrivial rewrite of existing loops onto its state model; lock-in to its checkpoint format."
+        },
+        {
+          "name": "Ray / Ray Serve (distributed execution)",
+          "what": "Distributed actor/task framework for parallelizing Python across a cluster.",
+          "maturity": "GA.",
+          "verdict": "SKIP",
+          "why": "10k abstracts/day is I/O-bound HTTP fan-out — one asyncio process sustains thousands of concurrent API calls; the bottleneck is the provider's rate limit, not local CPU. Ray solves cluster distribution Persona doesn't have and adds ops overhead. Revisit only at >1M reads/day or if heavy LOCAL model inference (embeddings/rerankers) becomes the bottleneck.",
+          "integration_cost": "High — cluster provisioning/ops unjustified at this scale."
+        },
+        {
+          "name": "Temporal (durable-execution engine)",
+          "what": "Durable workflow engine: crash-safe retries, durable timers, signals, resumable long-running workflows.",
+          "maturity": "GA.",
+          "verdict": "CONDITIONAL",
+          "why": "The always-on requirement wants crash-safe resume, but a custom_id->SQLite idempotent checkpoint (already inside the purpose-built orchestrator) covers batch resume and most of that need at a fraction of the ops cost. Temporal earns its place only if the acting loop grows many long-lived, human-gated workflows needing durable timers/signals (the human-as-resolver handoff at scale).",
+          "integration_cost": "High — a server to run and operate; adopt lazily, not up front."
+        },
+        {
+          "name": "LiteLLM / LLM gateway proxy",
+          "what": "Proxy for unified routing, per-key budgets, rate-limit smoothing, retries, and spend tracking across providers.",
+          "maturity": "GA OSS.",
+          "verdict": "CONDITIONAL",
+          "why": "Its headline multi-provider abstraction is wasted on a single-provider (Anthropic) system, and the SDK already retries. Worth it ONLY if Persona wants centralized spend caps / budget enforcement / cross-swarm observability without building them — but that logic overlaps the purpose-built orchestrator, so building it in-repo keeps one source of truth. Not both.",
+          "integration_cost": "Low-Medium — runs as a sidecar; but duplicates the orchestrator's rate/budget responsibilities (pick one)."
+        }
+      ],
+      "recommendation": "Two-tier, framework-free. THROUGHPUT tier (the ~10k-abstract/day swarm): Anthropic Message Batches API on Haiku 4.5 (50% off, stacks with prompt caching to ~$0.05/MTok cached input), keyed by custom_id, checkpointed in SQLite. LIVE tier (the interactive contradiction->hypothesis->reanalysis loop): AsyncAnthropic with the anthropic[aiohttp] backend behind a ~300-LOC purpose-built orchestrator — bounded queue + DUAL RPM/TPM token-bucket (from anthropic-ratelimit-* headers) + AIMD backpressure on 429/529 + circuit breaker + priority lane. REASONING stays a SINGLE strong agent (Sonnet 5, escalate to Opus 4.8) with prompt caching on the shared belief-state prefix — never a multi-agent swarm. SKIP claude-flow/hive-mind, LangGraph, and Ray; hold Temporal/LiteLLM for later only if a specific need appears. Realistic all-in cost at 10k abstracts/day: reading ~$11-15/day (Haiku Batch) + reasoning ~$9/day (Sonnet 5 on ~4% escalations) ≈ under $750/month. This keeps scale in the disposable swarm and the discipline (single reasoner, provenance) in the self, exactly per Persona's architecture.",
+      "discriminating_experiment": "Framework-vs-lean bake-off on the real task. Take ~500 held-out abstracts with ground-truth support/contradiction labels (from FINDINGS.md or a hand-labeled set). Run 3 arms x 20 seeds: (A) Haiku-4.5 single-pass readers via Batch API + one Sonnet-5 reasoner over the flagged subset; (B) identical reads but routed through the claude-flow/hive-mind swarm; (C) a multi-agent debate/consensus reasoner over the flagged subset. Metrics: contradiction-detection precision/recall/F1, wall-clock, and $ per 1k abstracts (report mean +/- 95% CI). Decision rule: adopt a framework ONLY if it beats (A) on F1 at <=1.5x the cost. Prediction from Persona's DPI prior: (A) wins cost by ~5-10x and ties-or-beats on F1, so the framework is rejected. Bundle a 1-hour micro-check: submit one 200-request batch with an identical >4096-token cached prefix and confirm usage.cache_read_input_tokens>0 — this discriminates the ~$11/day (caching works in-batch) vs ~$14/day (it doesn't) cost scenarios.",
+      "risks": [
+        "Within-batch prompt-cache benefit is timing-dependent: concurrent batch requests can each WRITE the prefix rather than read a warm one (a cache entry is only readable after the first response begins), so real cost may run ~20-30% above the cached estimate. Verify usage.cache_read_input_tokens in an actual batch before banking the savings.",
+        "Haiku 4.5 minimum cacheable prefix is 4096 tokens — a lean reader prompt under 4k silently won't cache (cache_creation_input_tokens=0, no error). The shared prefix must be padded past 4096 to benefit at all.",
+        "Batch API latency is minutes-to-24h — unusable for the interactive contradiction->hypothesis->reanalysis loop. That path MUST use the live async tier with its own rate budget; don't try to serve it from Batch.",
+        "Batch API is first-party / Claude-Platform-on-AWS only (not Bedrock/Vertex/Foundry) — the throughput tier is single-provider-dependent. Acceptable for the demo, but a stated coupling.",
+        "Concurrency correctness: a single concurrency semaphore is insufficient (APIs bind on RPM AND TPM simultaneously), and dynamic-resizing asyncio.Semaphore via _value is CPython-undefined and breaks under load (HiveMind, arXiv 2604.17111). Use dual token-buckets + an explicit counter/Condition, or the swarm silently fails under contention.",
+        "Live-tier starvation: bursty swarm reads draw the standard ITPM/OTPM pool and can starve the reasoner. Needs priority queuing / separate budgets — reason Batch (separate pool) should carry the bulk load.",
+        "Framework churn/lock-in: claude-flow/ruflo is fast-moving OSS (renamed, mid-V3-rebuild) with self-reported savings; adopting it wires Persona's core loop to an unstable dependency for capability its DPI finding says it doesn't need.",
+        "Citation confidence: Anthropic specifics (Batch 50%/limits, caching 0.1x, stacking, min-prefix, tier prices) are HIGH — from the claude-api reference cached 2026-06-24 plus platform docs and multiple 2026 sources. MEDIUM: per-batch size figure drifted (10k in the original launch -> 100k requests/256MB in current docs) — confirm current tier limits on the live rate-limits page. TIME-BOXED: Sonnet 5 intro pricing ($2/$10) expires 2026-08-31, reverting to $3/$15 (estimates above use the durable $3/$15). The HiveMind failure-rate numbers are from one arXiv preprint — directional, not gospel."
+      ]
+    },
+    {
+      "domain": "Retrieval / RAG / embeddings at literature scale (millions of biomedical abstracts) for Persona, a solo/small always-on synthetic researcher",
+      "recommendation": "Lean, mostly-embedded, single-pipeline stack (consistent with Persona's DPI/anti-framework finding): (1) SPARSE = reuse Europe PMC / PubMed E-utilities as the BM25 side; do NOT rebuild a Lucene index over the firehose. Only add rank_bm25/Pyserini for local lexical scoring over an already-fetched candidate set. (2) DENSE = MedCPT (asymmetric query-encoder + article-encoder) as the primary biomedical retriever, and DOWNLOAD NCBI's precomputed MedCPT embeddings for all ~37M PubMed articles so you never pay to embed the corpus; use SPECTER2 for paper->paper similarity feeding the 'what the field rests on' dependency graph. (3) INDEX = FAISS (IVF-PQ or HNSW) in-process for the topic-scoped working set; graduate to LanceDB (embedded, disk-based, no server) only when the set exceeds RAM. Skip Postgres/Qdrant/Milvus servers until a concrete filtering/persistence/scale need appears. (4) FUSE ranks with ~20-line Reciprocal Rank Fusion — no framework. (5) RERANK top-50->top-10 with an open cross-encoder (MedCPT cross-encoder for biomedical, or bge-reranker-v2-m3); no paid rerank API. (6) DEPENDENCY GRAPH from citation edges + Open Targets/SemMedDB, NOT LLM-extracted GraphRAG communities. Every added stage (dense, fusion, rerank) must clear the experiment below or get cut.",
+      "discriminating_experiment": "Build a ~100-query biomedical IR eval with known-relevant PMIDs (BioASQ, or BEIR NFCorpus/TREC-COVID as a proxy; or curate from Europe PMC citation links). On the SAME candidate pool, measure nDCG@10 and recall@50 for four rungs: (a) Europe PMC lexical only, (b) MedCPT dense only, (c) RRF(lexical, dense), (d) c + cross-encoder rerank. Bootstrap 20 query resamples, report mean +/- 95% CI. Adopt a rung ONLY if its CI clears the prior rung by a margin worth its added latency/GPU cost — the DPI test applied to retrieval (if dense~=hybrid, drop the BM25 plumbing; if rerank doesn't clear hybrid, don't ship a GPU cross-encoder). Fold in an A/B of MedCPT vs MedEmbed vs one general 8B (Qwen3-Embedding) on rung (b) to confirm the in-domain model beats the MTEB leader on YOUR queries before committing. ~1 day, no GPU cluster needed (article embeddings are precomputed).",
+      "tools": [
+        {
+          "name": "MedCPT (ncbi query/article encoders + cross-encoder)",
+          "what": "Biomedical dense retriever contrastively trained on 255M PubMed click pairs; asymmetric query vs article encoders + a biomedical cross-encoder reranker; NCBI hosts precomputed article embeddings for ALL of PubMed.",
+          "maturity": "Stable, NCBI-maintained, widely used since 2023; de-facto biomedical IR baseline",
+          "verdict": "ADOPT",
+          "why": "Purpose-built for exactly Persona's task (query->PubMed abstract), and the precomputed all-PubMed embedding dump removes the single biggest solo-setup cost. The cross-encoder gives a free in-domain reranker. This is the 'reuse the ecosystem' win.",
+          "integration_cost": "Low. HF transformers for encoders; download + mmap the FTP embedding shards. 512-token cap fits title+abstract. Must run the article encoder yourself for papers newer than the dump."
+        },
+        {
+          "name": "SPECTER2 (allenai)",
+          "what": "Document-level scientific paper embeddings from citation links, with task adapters (proximity/adhoc-query/classification).",
+          "maturity": "Stable, 2023, standard for scientific-doc similarity",
+          "verdict": "CONDITIONAL",
+          "why": "Best fit for paper->paper similarity and the citation/dependency graph, NOT as the primary query->abstract retriever (MedCPT's click-trained asymmetry wins there). Use it for the legibility-layer dependency graph, not front-line retrieval.",
+          "integration_cost": "Low. sentence-transformers/adapter load; 512-token cap."
+        },
+        {
+          "name": "MedEmbed (abhinand5)",
+          "what": "BGE-family embedders fine-tuned on PMC/clinical + medical IR data; strong on PubMed/BioRxiv retrieval.",
+          "maturity": "Newer (2024-25), less battle-tested than MedCPT",
+          "verdict": "CONDITIONAL",
+          "why": "Credible challenger to MedCPT and a symmetric single-encoder (simpler than MedCPT's dual encoders), but no free precomputed all-PubMed dump, so you pay to embed the corpus. Worth A/B-ing in the experiment; adopt only if it clears MedCPT on your queries enough to justify embedding cost.",
+          "integration_cost": "Medium. Must embed the corpus yourself (GPU-hours at 37M scale) or scope to subsets."
+        },
+        {
+          "name": "BMRetriever",
+          "what": "Decoder-based biomedical dense retriever (410M/1B/2B/7B), unsup pretrain + finetune on biomedical retrieval sets.",
+          "maturity": "Real (EMNLP 2024), less adopted than MedCPT",
+          "verdict": "CONDITIONAL",
+          "why": "Strong quality but heavier (larger, decoder-based, GPU-hungrier) with no precomputed PubMed dump. Only earns its place if the 410M/1B variant measurably beats MedCPT AND you have the GPU budget to embed the working set.",
+          "integration_cost": "Medium-High. GPU required; self-embed corpus."
+        },
+        {
+          "name": "bge-m3 (BAAI)",
+          "what": "Single model producing dense + learned-sparse + ColBERT multi-vector, 8192-token context, multilingual.",
+          "maturity": "Stable, popular, 2024",
+          "verdict": "CONDITIONAL",
+          "why": "Its dense+sparse+ColBERT-in-one is a genuinely tidy 'hybrid-in-a-box' that avoids a separate BM25 stack, and 8192 ctx handles full-text PMC chunks. But it's general-domain; on in-domain PubMed IR, MedCPT typically edges it. Adopt for long full-text chunks or if you want one model to do hybrid.",
+          "integration_cost": "Medium. Multi-vector index (ColBERT) adds storage/latency; dense-only mode is cheap."
+        },
+        {
+          "name": "General SOTA large embedders (Qwen3-Embedding-8B, NV-Embed-v2, gte-Qwen2-7B, Gemini-Embedding)",
+          "what": "Top of the 2026 MTEB leaderboard; 7-8B open models or paid API embeddings.",
+          "maturity": "Current MTEB leaders (open 7-8B; exact scores directional)",
+          "verdict": "SKIP",
+          "why": "MTEB rank does not equal biomedical IR — domain models (MedCPT/MedEmbed) usually beat these in-domain at a fraction of the compute. At 37M-abstract scale, running an 8B embedder (or paying per-token API) is the opposite of the lean, cache-everything mandate. Keep one as an experiment baseline only.",
+          "integration_cost": "High (GPU/VRAM for 8B, or recurring API $ + network dependency that breaks the offline demo)."
+        },
+        {
+          "name": "General open small embedders (E5, GTE, nomic-embed-v1.5)",
+          "what": "Strong, cheap, open general-purpose sentence embedders (Matryoshka/long-context variants).",
+          "maturity": "Stable, widely used",
+          "verdict": "CONDITIONAL",
+          "why": "Fine as a cheap local fallback or for non-biomedical text (news, methods blogs), and easy to run. In-domain they trail MedCPT/MedEmbed. Use as a low-cost default when a biomedical model is inconvenient, not as the primary.",
+          "integration_cost": "Low. CPU-feasible for small variants."
+        },
+        {
+          "name": "PubMedBERT / BioBERT (as embedders)",
+          "what": "Biomedical masked-LM encoders often mistaken for retrievers.",
+          "maturity": "Stable but mis-applied",
+          "verdict": "SKIP",
+          "why": "These are pretrained LMs, not sentence embedders — mean-pooled CLS vectors give poor retrieval without contrastive fine-tuning. They are the BASE that MedCPT/MedEmbed fine-tune FROM; using them raw is a known trap.",
+          "integration_cost": "N/A — wrong tool."
+        },
+        {
+          "name": "BioLORD-2023",
+          "what": "Biomedical concept/sentence embeddings tuned for clinical/ontology semantic similarity.",
+          "maturity": "Stable, 2023",
+          "verdict": "CONDITIONAL",
+          "why": "Excellent for concept normalization / entity dedup / STS (e.g., collapsing synonymous mechanisms named differently across subfields — directly useful for Persona's cross-field-synonym detection), but tuned for symmetric similarity, not query->abstract asymmetric retrieval. Use it in the membrane/graph layer, not front-line retrieval.",
+          "integration_cost": "Low."
+        },
+        {
+          "name": "FAISS",
+          "what": "In-process ANN library (IVF, HNSW, PQ/SQ quantization).",
+          "maturity": "Very stable, industry standard",
+          "verdict": "ADOPT",
+          "why": "Leanest possible index for the topic-scoped working set: no server, fastest ANN, PQ/SQ to fit millions of vectors in RAM. Matches Persona's stdlib ethos. You manage the id->doc map (trivial with the existing store).",
+          "integration_cost": "Low. No metadata filtering/persistence niceties — you keep the PMID mapping yourself."
+        },
+        {
+          "name": "LanceDB",
+          "what": "Embedded, disk-based columnar vector store (Lance format) with on-disk ANN, no server.",
+          "maturity": "Maturing fast (v0.13-era), production use growing",
+          "verdict": "ADOPT",
+          "why": "The scale-up path when the working set exceeds RAM without standing up a server: larger-than-RAM on-disk indexing, cheap per-query, keeps ops at zero. Natural graduation from FAISS while staying embedded.",
+          "integration_cost": "Low-Medium. New-ish; pin the version and re-test recall after upgrades."
+        },
+        {
+          "name": "pgvector (+ pgvectorscale/StreamingDiskANN)",
+          "what": "Postgres extension for vector search with SQL filtering + transactions; DiskANN add-on scales to ~50M.",
+          "maturity": "Stable, very widely deployed",
+          "verdict": "CONDITIONAL",
+          "why": "Great IF the belief-store were already Postgres — you'd get filtered hybrid + ACID for free. But Persona's store is lean stdlib (SQLite/JSON); standing up Postgres purely for vectors adds an ops surface a solo setup pays for continuously. Adopt only if/when you move the belief-store to Postgres anyway.",
+          "integration_cost": "Medium-High. Full Postgres to operate, tune (HNSW params), and back up."
+        },
+        {
+          "name": "Qdrant",
+          "what": "Rust vector DB with strong metadata filtering and native dense+sparse hybrid.",
+          "maturity": "Stable, production-grade",
+          "verdict": "CONDITIONAL",
+          "why": "Best-in-class filtered hybrid with persistence out of the box — earns its place only when you genuinely need metadata-filtered hybrid at scale and don't want to hand-roll it over FAISS. For a topic-scoped subset it's more server than a solo setup needs.",
+          "integration_cost": "Medium. Runs as a server (binary/Docker) to operate and monitor."
+        },
+        {
+          "name": "Milvus",
+          "what": "Distributed, billion-scale vector DB with GPU index build.",
+          "maturity": "Stable, heavyweight",
+          "verdict": "SKIP",
+          "why": "Built for billion-vector, multi-node enterprise workloads. For a solo/small setup over topic-scoped millions it is over-engineered — exactly the kind of cost-without-payoff Persona's findings warn against.",
+          "integration_cost": "High. Multi-component cluster; heavy ops."
+        },
+        {
+          "name": "Chroma",
+          "what": "Developer-friendly embedded/local vector store.",
+          "maturity": "Stable for small scale",
+          "verdict": "SKIP",
+          "why": "Great for prototyping but weak/awkward at the millions-of-vectors scale Persona targets; FAISS (speed) or LanceDB (disk scale) dominate it for this use.",
+          "integration_cost": "Low to start, but you'd migrate off it at scale — avoid the rework."
+        },
+        {
+          "name": "BM25 / lexical via Europe PMC (rank_bm25 / Pyserini for local)",
+          "what": "Sparse keyword retrieval; Europe PMC/PubMed already expose ranked keyword search over the full corpus.",
+          "maturity": "Very stable",
+          "verdict": "ADOPT",
+          "why": "Europe PMC IS your BM25 over 40M+ records — reuse it as the sparse arm and skip indexing the firehose. Add rank_bm25 (pure-Python) only for local lexical re-scoring of a fetched candidate set. Cheapest possible high-recall first stage.",
+          "integration_cost": "Very low. API call you already make; rank_bm25 is a few lines."
+        },
+        {
+          "name": "Reciprocal Rank Fusion (RRF)",
+          "what": "Rank-level fusion of lexical + dense result lists.",
+          "maturity": "Standard, trivially reproducible",
+          "verdict": "ADOPT",
+          "why": "~20 lines, no framework, tuning-free, robust — the disciplined way to combine Europe PMC lexical rank with MedCPT dense rank. Beats hand-tuned score weighting and needs no calibration.",
+          "integration_cost": "Negligible."
+        },
+        {
+          "name": "bge-reranker-v2-m3 (open cross-encoder)",
+          "what": "Open Apache-2.0 cross-encoder reranker, <600M params, runs on a consumer GPU/CPU.",
+          "maturity": "Stable, 2024",
+          "verdict": "ADOPT",
+          "why": "Reranking top-50->top-10 is cheap and high-yield, and this runs self-hosted with no API cost or network dependency (preserves the offline/cached demo). Use it if MedCPT's cross-encoder underperforms on your queries; otherwise prefer MedCPT's in-domain cross-encoder.",
+          "integration_cost": "Low. One GPU-light forward pass over top-k."
+        },
+        {
+          "name": "Cohere Rerank / Voyage Rerank (API)",
+          "what": "Paid, proprietary reranking APIs.",
+          "maturity": "Stable, high quality",
+          "verdict": "SKIP",
+          "why": "Per-query recurring cost + network dependency that breaks Persona's cache-everything, offline-demo guarantee — for marginal-to-no quality gain over an open cross-encoder on this task. The lean self-hosted reranker matches them for reranking a top-k list.",
+          "integration_cost": "Low to wire, but ongoing $ and a live dependency you don't want on the money-shot path."
+        },
+        {
+          "name": "Microsoft GraphRAG (full)",
+          "what": "LLM-extracted entity/community knowledge graph + global query-focused summarization.",
+          "maturity": "Stable but expensive",
+          "verdict": "SKIP",
+          "why": "An LLM call per chunk means a documented indexing cost cliff (Microsoft's own ~$33k example) and full re-index on corpus change — untenable over millions of abstracts for a solo budget. Persona's dependency graph is better built from real citation edges + Open Targets/SemMedDB, which are curated and free.",
+          "integration_cost": "Very high (LLM $ per chunk; re-index on updates)."
+        },
+        {
+          "name": "LazyGraphRAG",
+          "what": "Deferred-summarization GraphRAG variant with indexing cost ~= vector RAG (~0.1% of full GraphRAG).",
+          "maturity": "New (2025), promising",
+          "verdict": "CONDITIONAL",
+          "why": "Removes the indexing cost cliff, so it's viable IF a global 'what does the whole subfield rest on' summarization query genuinely beats citation-graph + dense retrieval. Reserve it for a curated topic subgraph and only after the discriminating experiment shows plain hybrid can't answer those global questions.",
+          "integration_cost": "Medium. Extra query-time compute; still an added subsystem to justify."
+        }
+      ],
+      "risks": [
+        "MTEB rank != biomedical IR: general 8B leaders (Qwen3-Embedding, NV-Embed) top the board but domain models (MedCPT/MedEmbed) usually win on in-domain PubMed retrieval at a fraction of the compute. Do not pick by leaderboard; verify on your own labeled queries.",
+        "Corpus-scale RAM: 37M x 768-dim float32 ~= 114 GB — will not fit a solo box in RAM. You MUST either scope to a topic subset per query (recommended; Europe PMC returns the candidate set) or use PQ/SQ quantization + on-disk ANN (FAISS IVF-PQ or LanceDB). Naive flat FAISS over all-PubMed is not solo-feasible.",
+        "MedCPT precomputed embeddings are a stale snapshot: NCBI's dump lags live PubMed by months, and an 'always-on' researcher must embed new/edited abstracts on the fly with the article encoder. Without an incremental-embedding path you silently miss the newest papers — the exact failure an always-on system can't have.",
+        "512-token truncation: MedCPT/SPECTER2 cap at 512 tokens — fine for title+abstract, wrong for full text. If you ever index full-text PMC, route those chunks to a long-context embedder (bge-m3, 8192).",
+        "GraphRAG indexing cost cliff: full Microsoft GraphRAG over millions of abstracts is thousands of dollars in LLM calls and re-indexes on every corpus change. Do not adopt it as the dependency-graph builder; use citation edges + Open Targets/SemMedDB. Consider LazyGraphRAG only for curated subgraphs.",
+        "Paid embedding/rerank APIs (Cohere, Voyage, OpenAI/Gemini embeddings) add per-query recurring cost and a live network dependency that breaks the offline/cached demo guarantee; self-hosted open models remove both.",
+        "Server vector DBs (Qdrant/Milvus/pgvector) add a continuous ops surface a solo setup pays for; only adopt when embedded FAISS/LanceDB provably can't meet a filtering/persistence/scale need you actually hit — don't pre-provision it.",
+        "Version-confidence caveat: exact April-2026 MTEB scores and some newest models (Jina v5, Gemini-Embedding-001 numbers, NV-Embed release dates) came from secondary blogs, a few citing implausible/future-dated arxiv IDs. Treat specific scores as directional and re-check the official MTEB leaderboard before committing to any general model. Confidence is HIGH on MedCPT/SPECTER2/bge/FAISS/pgvector/Qdrant/LanceDB identities and the GraphRAG cost story; MEDIUM on exact benchmark QPS/nDCG numbers."
+      ]
+    },
+    {
+      "domain": "Turning abstracts into structured claims + inferential-dependency edges (presupposes/derives-from), and whether to fine-tune vs LLM few-shot + prompt caching",
+      "tools": [
+        {
+          "name": "Anthropic structured outputs / strict tool use (messages.parse / output_config.format)",
+          "what": "Constrain Claude's output to a JSON Schema (or strict:true tool) so each abstract returns a validated claim tuple (entity, relation, object, effect, direction, population, method, power, provenance). Supported on Haiku 4.5, Sonnet 5, Opus 4.8.",
+          "maturity": "GA / production (cached ref 2026-06-24)",
+          "verdict": "ADOPT",
+          "why": "This is the extraction contract you already need: schema-conformant tuples with no brittle regex/JSON-repair. Reader/Extractor is a bounded, disposable swarm job (BUILD_PLAN 5.1) - exactly the single-strong-agent-per-call shape your own DPI finding favors over many-agent frameworks. Flat schema (list of typed edges) sidesteps the JSON-Schema limits (no recursion / no numeric / no array-size constraints); build the DAG in code from flat edges.",
+          "integration_cost": "~0.5-1 day. One Pydantic/Zod schema + messages.parse(); you already run FastAPI+SDK. No new infra."
+        },
+        {
+          "name": "Claude Haiku 4.5 as the swarm reader + prompt caching + Batches API",
+          "what": "claude-haiku-4-5 ($1/$5 per 1M in/out, 200K ctx) as the high-volume reader, with the shared schema+few-shot exemplars cached (cache_control ephemeral, ~0.1x read) and bulk backfill via the Batches API (50% off). Escalate hard/ambiguous abstracts to Sonnet 5 / Opus 4.8.",
+          "maturity": "GA / production",
+          "verdict": "ADOPT",
+          "why": "Cost math: ~300-token abstract + ~3-4K cached prefix + ~400-token tuple on Haiku+cache+batch is roughly $0.001-0.003/abstract, so 100K abstracts is on the order of $100-300 and zero training/serving infra. At Persona's realistic always-on volume (hundreds-to-low-thousands/day) a local fine-tuned reader does not amortize. Matches 'scale in the disposable swarm, keep the self small.'",
+          "integration_cost": "~1 day. Wire cache breakpoint on the frozen prefix + a Batches path. Verify usage.cache_read_input_tokens > 0."
+        },
+        {
+          "name": "Claude few-shot for inferential-dependency edges (presupposes / derives-from / operationalizes)",
+          "what": "Opus/Sonnet few-shot edge tagger, labels anchored to existing schemas (ACL-ARC/SciCite: Uses~=derives-from, Extends~=operationalizes), citation graph as a backbone prior, output emitted as CANDIDATE edges with provenance=INFERRED, scored by rank-correlation not per-edge precision.",
+          "maturity": "Research-frontier (no dataset exists)",
+          "verdict": "ADOPT",
+          "why": "This is the E6 whitespace and your biggest differentiator (BUILD_PLAN 3.2). Persona's own literature sweep (planning/LITERATURE.md sec C) says no dataset/method exists for these 4 labels, expect per-edge precision <0.7 and low inter-annotator agreement - so any supervised model would only imitate a noisy teacher. Keeping Claude in the loop lets you prompt-fix, keep provenance honest, and downgrade to human-in-the-loop assisted if precision is too low (the plan's pre-registered fallback).",
+          "integration_cost": "~2-3 days for the prompt + exemplar set + citation-backbone join + an IAA-first mini-gold set (E6)."
+        },
+        {
+          "name": "GLiNER-BioMed / GLiREL (efficient local encoder NER+RE)",
+          "what": "Small zero-shot biomedical NER (GLiNER-BioMed, ~+5.96% F1 over baselines) and zero-shot RE (GLiREL, operates on pre-identified entities) as a cheap local pre-tagging layer for entity spans/normalization before Claude does the claim-tuple + typed-relation reasoning.",
+          "maturity": "Emerging (2025 arXiv; NER solid, RE weaker)",
+          "verdict": "CONDITIONAL",
+          "why": "Only earns its place if entity-span precision / normalization becomes a MEASURED bottleneck in the Haiku output (e.g. gene/disease boundary errors). GLiREL zero-shot RE is not yet good enough to replace Claude for typed inferential relations, and a second model is one more thing in a swarm you want disposable. Adopt as a narrow NER pre-filter, not as the extractor.",
+          "integration_cost": "~2-4 days (HF model serving, an extra pipeline stage). Adds a persistent local dependency to an otherwise stateless swarm."
+        },
+        {
+          "name": "QLoRA/LoRA fine-tune of an open model (Llama-3.1-8B via Unsloth) on a solo GPU",
+          "what": "4-bit QLoRA fine-tune of an 8B model on Claude-distilled silver tuples; fits ~7GB on a 24GB card, trains in minutes with Unsloth.",
+          "maturity": "Mature tooling (Unsloth/PEFT); feasibility high",
+          "verdict": "CONDITIONAL",
+          "why": "Technically trivial to run, but for STANDARD biomedical RE, current LLMs+structured-outputs already match or beat prior fine-tuned SOTA on several sets, so a solo FT rarely buys accuracy - only inference cost, and only at sustained volume you don't yet have. For the inferential edges it is actively worse: it launders Claude's <0.7-precision labels into an opaque model you cannot prompt-correct, a direct poisoning-into-the-belief-state risk. Defer behind the discriminating experiment; never use it for the edges.",
+          "integration_cost": "Deceptive. Training is ~1 hr; the real cost is recurring MLOps you don't have - retrain on schema/model drift, eval harness, quantized serving, GPU availability. Breaks 'swarm is disposable.'"
+        },
+        {
+          "name": "Distillation: Claude teacher -> small student (PubMedBERT / distil-8B) for a fixed-schema reader",
+          "what": "Self-supervised distillation of a strong Claude teacher into a ~110M-1B student on unlabeled in-domain abstracts, for one frozen extraction schema.",
+          "maturity": "Published method (MSR ADE case study), pre-2026 era",
+          "verdict": "CONDITIONAL",
+          "why": "Real and strong WHERE it fits: MSR showed a GPT-3.5-distilled PubMedBERT matched supervised SOTA with no labels, >1000x smaller, beating the teacher by ~5 F1 - a genuine cost/latency/white-box win for a NARROW, high-volume, STABLE task. But it's 2023/GPT-era and task-specific (ADE); a 2026 Claude-Opus teacher shrinks that gap, and Persona's schema is multi-field and still moving. Only worth it once the reader schema is frozen AND volume justifies it.",
+          "integration_cost": "~1-2 weeks: build silver corpus, train, eval vs Claude, serve. Same recurring-drift tax as fine-tuning."
+        }
+      ],
+      "recommendation": "Ship the extraction stack as CLAUDE-NATIVE now; fine-tune nothing on day one. (1) Reader/Extractor swarm = Claude Haiku 4.5 (claude-haiku-4-5) via messages.parse()/output_config.format structured outputs, with the schema + >=4096-token few-shot exemplars in a cached prefix (cache_control ephemeral) and bulk backfill through the Batches API (50% off); route only hard/ambiguous abstracts to Sonnet 5 / Opus 4.8. This is ~$0.001-0.003/abstract, zero training infra, and prompt-fixable - the right shape for a bounded, disposable swarm agent and consistent with your own single-strong-agent > many-agent finding. (2) Inferential-dependency edges (presupposes/derives-from) = Claude Opus/Sonnet few-shot, labels anchored to ACL-ARC/SciCite (Uses~=derives-from, Extends~=operationalizes), citation graph as backbone prior, emitted as CANDIDATE edges with provenance=INFERRED and scored by rank-correlation - exactly the E6 spec in planning/LITERATURE.md sec C. Do NOT fine-tune or distill the edges: no gold exists, teacher precision is <0.7, and a black-box student would launder those errors past the membrane. (3) Fine-tune/distill = DEFER, not reject. QLoRA on a solo 24GB GPU (Unsloth) is trivial to run, and distillation into a small reader is a proven cost/latency win (MSR ADE), but both only pay off once the reader schema is FROZEN and sustained volume is large - which Persona is not yet. Gate any local reader behind the discriminating experiment below; treat it as a swarm-cost optimization, never as the belief-forming step. (4) GLiNER-BioMed = optional entity-span/normalization pre-filter, add only if a measured span-precision problem appears.",
+      "discriminating_experiment": "Cost-adjusted extraction bake-off on ONE curated subfield (~200 abstracts with Opus-4.8-adjudicated gold claim tuples). Run two readers on the SAME abstracts: (A) Haiku 4.5 + structured outputs + cached schema/exemplars + Batches; (B) QLoRA Llama-3.1-8B (Unsloth) fine-tuned on ~500 Opus-distilled silver tuples from a DISJOINT set of abstracts. Metrics: tuple-level precision/recall/F1 vs gold with bootstrap 95% CIs over the abstract set; $ per 1,000 abstracts (for B include amortized GPU + serving time at your real sustained daily volume); p50/p95 latency. Decision rule (pre-register it): adopt the local fine-tuned reader B ONLY IF its F1 is within the CI of A AND its all-in amortized cost beats Haiku+cache+batch at your actual volume - otherwise ship A and revisit only when volume 10x's. Run edges separately and never in this bake-off: score candidate edges by Spearman rank-correlation of load-bearing scores vs an expert ranking (E6), not per-edge precision, and measure IAA first.",
+      "risks": [
+        "Silent cache no-op: Haiku 4.5's minimum cacheable prefix is 4096 tokens. If schema+exemplars fall below that, caching silently fails (usage.cache_read_input_tokens=0) and you pay full input price on every abstract - pad the exemplar block above 4096 tokens and assert cache_read>0 in a smoke test.",
+        "Fine-tuning/distilling the edges is a poisoning vector, not an optimization. A student trained on Claude's <0.7-precision, low-IAA inferential labels bakes those errors into an opaque model you cannot prompt-correct, and they cross the membrane as if TESTED rather than INFERRED. Keep edges as Claude few-shot + provenance=INFERRED + human-in-the-loop fallback (E6).",
+        "The '34-second QLoRA beats GPT-4' blogs hide the real cost: recurring retraining on schema/model drift, an eval harness, quantized serving, and GPU availability. That MLOps tax contradicts 'keep the swarm disposable' and is the actual reason to defer, not training difficulty.",
+        "The distillation-beats-teacher result (MSR ADE) is 2023/GPT-3.5-4 era and single-task. A 2026 Claude-Opus teacher narrows the gap, and Persona's multi-field, still-evolving claim schema is a weaker fit than a frozen ADE schema - do not assume the +5 F1 transfers.",
+        "JSON-Schema structured outputs can't express recursion, numeric bounds, or array-size limits. Don't try to emit a nested DAG in one call; extract a FLAT list of {source_claim, target_claim, relation_type, confidence} edges and assemble the DAG in code.",
+        "GLiREL / zero-shot RE is not yet strong enough to be the extractor and needs pre-identified entities; scope GLiNER-BioMed to entity spans/normalization only, or it becomes an accuracy regression plus a persistent dependency in a swarm meant to be stateless.",
+        "Citation-confidence honesty: Anthropic model IDs/pricing/caching/structured-output support are HIGH confidence (authoritative cached ref). Distillation numbers, QLoRA feasibility, GLiNER-BioMed gains, and few-shot-vs-FT break-even are MEDIUM (real but era-/task-specific or blog-sourced); the 'no dataset, <0.7 precision' edge claim is Persona's own sweep (MEDIUM, some sub-citations self-marked low)."
+      ]
+    },
+    {
+      "domain": "Temporal knowledge/idea graph substrate (belief evolution, spawn, contradiction, collapse) + large interactive graph visualization (10k-100k+ nodes) for Persona, a persistent single-'self' synthetic researcher with an existing lean stdlib backend (FastAPI+React). Prior Persona findings bias against heavy multi-agent/framework dependencies (~10x cost for little gain).",
+      "tools": [
+        {
+          "name": "Graphiti (Zep)",
+          "what": "Open-source Python framework building a BI-TEMPORAL knowledge graph for agent memory: an LLM extracts entities/edges from episodes, stores valid-time + ingestion-time, invalidates (not deletes) superseded facts, and serves hybrid semantic+BM25+graph retrieval. ~20k GitHub stars; backends Neo4j/FalkorDB/Kuzu/Neptune.",
+          "maturity": "Mature and actively developed 2024-2026, 20k+ stars, production use at Zep. High confidence.",
+          "verdict": "CONDITIONAL",
+          "why": "Steal the SCHEMA, skip the RUNTIME. The bi-temporal edge model (t_valid/t_invalid, invalidate-don't-delete) is a near-exact fit for belief evolution/contradiction/collapse and is ~100 lines to implement in Persona's own store. But the framework runs an LLM extraction pass per episode (recurring token cost — the exact ~10x-for-little-gain trap Persona already found) and re-derives provenance Persona already types (READ/INFERRED/HUMAN_CONFIRMED/TESTED). Adopting the runtime also drags in a Neo4j/FalkorDB server. The membrane already does the extraction job Graphiti would duplicate.",
+          "integration_cost": "High as a runtime (graph-DB server + LLM extraction pipeline + retrieval layer). Near-zero to adopt only the bi-temporal schema pattern in the existing store."
+        },
+        {
+          "name": "Neo4j",
+          "what": "Mature server graph database, Cypher, best-in-class tooling/visualization (Bloom) and APOC library. Community edition GPLv3; enterprise features licensed.",
+          "maturity": "Very mature industry standard. High confidence.",
+          "verdict": "SKIP",
+          "why": "100k nodes is trivial for Neo4j — you'd pay JVM+server ops and a heavyweight dependency for headroom a single always-on 'self' won't use. Persona's shape is one persistent process, not a multi-tenant DB; an embedded store matches that shape. Neo4j only earns its place if Persona goes multi-user or needs millions of edges with heavy Cypher.",
+          "integration_cost": "High: operate a server + driver, rewrite the store layer in Cypher."
+        },
+        {
+          "name": "KuzuDB",
+          "what": "WAS the embedded (in-process, SQLite-like) analytical graph DB: columnar, Cypher, built-in vector+FTS; a Graphiti backend. The ideal low-ops shape for a persistent researcher.",
+          "maturity": "ABANDONED. Repo archived read-only 2025-10-10; sponsor Kuzu Inc. stopped support at v0.11.3. Community fork 'bighorn' (Kineviz) is unproven. High confidence (The Register, HN, GitHub archive).",
+          "verdict": "SKIP",
+          "why": "It was the best-fit shape, but recommending an unmaintained DB as the foundation of a 'persistent always-on' system is malpractice — no security or bug fixes, fork governance unsettled. Watch 'bighorn'; do not build on it yet.",
+          "integration_cost": "N/A — do not adopt. (FalkorDB publishes a migration path if already invested.)"
+        },
+        {
+          "name": "Apache AGE + pgvector",
+          "what": "AGE = Apache Top-Level-Project PostgreSQL extension adding openCypher graph queries; pgvector = embeddings/ANN in the same Postgres. Together: relational + graph + vector in one instance.",
+          "maturity": "AGE: Apache TLP since 2022, active, PG11-18 support added 2025, Azure-managed. pgvector: mature. Medium-high confidence.",
+          "verdict": "CONDITIONAL",
+          "why": "Compelling ONLY IF Persona commits to Postgres for other reasons (durable multi-index belief-store at real scale) — then one instance covers storage, Cypher traversal, and semantic search. Caveats: AGE's openCypher is less complete/tuned than Neo4j; AGE and pgvector are SEPARATE extensions that do NOT compose in a single graph+vector query (you orchestrate two queries); and it's a real infra jump from a stdlib backend that has no DB today.",
+          "integration_cost": "Medium-high: stand up Postgres + 2 extensions, model the belief graph in AGE, wire pgvector separately."
+        },
+        {
+          "name": "NetworkX",
+          "what": "Pure-Python in-memory graph library with rich algorithms (paths, centrality, community detection). Not a durable store, not a renderer.",
+          "maturity": "Mature, ubiquitous. High confidence.",
+          "verdict": "ADOPT",
+          "why": "Ladder-correct: already in the Python ecosystem, zero new infra, and Persona's live belief graph is almost certainly <10-50k nodes today — well within NetworkX's comfort zone for traversal, contradiction-neighborhood, and centrality. Persist to disk yourself. Known ceilings to respect: dict-of-dicts memory blows up and algorithms slow past ~100k-500k nodes, and it is NEITHER durable NOR a renderer — pair it with a store (DuckDB) and a viz lib (Sigma).",
+          "integration_cost": "Low: pip install; operate directly on existing belief objects."
+        },
+        {
+          "name": "DuckDB (+ VSS, + DuckPGQ)",
+          "what": "Embedded (in-process, single-file, SQLite-like) columnar analytical DB. VSS extension = vector search. DuckPGQ community extension = SQL/PGQ graph pattern/path queries (SQL:2023).",
+          "maturity": "DuckDB core: mature (high confidence). VSS: usable, evolving. DuckPGQ: community extension, research-prototype lineage, VERSION-PINNED (needs DuckDB 1.4.4; not in 1.5.x as of late 2025). Medium confidence on extensions.",
+          "verdict": "ADOPT",
+          "why": "Core matches Persona's shape exactly — zero-server, single-file, in-process — and is ideal as the durable temporal event log + belief/edge tables + analytical rollups ('evolution of belief X over time' is a windowed SQL query). Vectors via VSS keep semantics in the same file. DuckPGQ adds real graph pattern/path queries but is version-pinned and prototype-grade: use it as an optional accelerator, never a hard dependency — a recursive CTE or NetworkX covers traversal if it breaks.",
+          "integration_cost": "Low for core (one dependency, SQL). Low-medium for DuckPGQ given the version pin and extension install."
+        },
+        {
+          "name": "Cytoscape.js",
+          "what": "Canvas graph-viz library with rich layouts, per-element styling, and a graph-analysis API; strong ecosystem. A WebGL renderer shipped as PREVIEW Jan 2025.",
+          "maturity": "Mature (canvas). WebGL renderer new/preview in 2025. High confidence.",
+          "verdict": "CONDITIONAL",
+          "why": "Canvas renderer crawls at real edge density (~3-20 FPS by ~1-3k nodes / tens-of-thousands of edges); the WebGL preview pushes usable range to ~10k. But the honest UX truth is nobody reads a 100k-node hairball — Persona's curated 'what does the field rest on' subgraphs are <5-10k nodes, and there Cytoscape's per-node styling (provenance colors, glyphs) and layout API BEAT the WebGL libs. Use it for curated-subgraph screens, not the full-network overview.",
+          "integration_cost": "Low-medium: mature API, but imperative updates (less React-reactive than Sigma's event system)."
+        },
+        {
+          "name": "Sigma.js + graphology",
+          "what": "WebGL graph RENDERER (Sigma) on a graph DATA/algorithms layer (graphology: metrics, ForceAtlas2 layout, community detection). @react-sigma bindings; event-driven updates.",
+          "maturity": "Mature, purpose-built for large graphs; v3/v4 line active. High confidence.",
+          "verdict": "ADOPT",
+          "why": "Sweet spot for Persona's 10k-50k target: WebGL renders ~100k edges with default styles, graphology doubles as an in-browser model (metrics/layout) that offloads backend work, and its event system gives natural React reactivity for LIVE belief updates — directly serving the 'notebook / mind-at-work / motion only for real state change' UX. Ceilings to respect: ForceAtlas2 layout slows past ~50k edges (precompute layout server-side for bigger), and custom per-node glyphs are harder in WebGL than in Cytoscape's canvas.",
+          "integration_cost": "Medium: WebGL styling is less trivial than canvas and graphology's data layer is a learning cost, but official React bindings exist."
+        },
+        {
+          "name": "cosmos.gl (formerly Cosmograph engine)",
+          "what": "GPU force-layout + renderer — ALL simulation and drawing run in WebGL2 shaders, so hundreds-of-thousands to millions of nodes/links animate in real time. 2D only; edges are lines.",
+          "maturity": "Active; MIT license under OpenJS Foundation; @cosmos.gl/graph v3.1 (June 2026). High confidence. LICENSE SPLIT: the cosmos.gl ENGINE is MIT; the Cosmograph PRODUCT library/app is CC BY-NC 4.0 (non-commercial) — use the MIT engine.",
+          "verdict": "ADOPT",
+          "why": "The only option here that truly survives 100k+ nodes live, because layout runs on GPU (CPU force libraries wall around ~50k). Right tool for the zoomed-out 'galaxy of ideas' overview. But it is rawer than Sigma: 2D-only, line edges, basic labels/interaction, WebGL2 required (fails on some old Android/iOS lacking OES_texture_float). Make it the OVERVIEW layer and Sigma the styled interactive layer. Depend on the MIT @cosmos.gl/graph package, NOT the NC-licensed Cosmograph product lib.",
+          "integration_cost": "Medium: lower-level API (Float32Array point/link attributes); you build labels, interaction, and surrounding UI yourself."
+        },
+        {
+          "name": "deck.gl",
+          "what": "GPU layer-based visualization framework (OpenJS), excels at geospatial/scatter; graphs are possible via custom layers but you supply the layout, picking, and interaction.",
+          "maturity": "Mature, active. High confidence.",
+          "verdict": "SKIP",
+          "why": "It's a GPU viz TOOLKIT, not a graph library — you'd hand-build node/link layers, layout, picking, and interaction to reach what Sigma/cosmos.gl give out of the box. Only worth it if a bespoke custom-shader idea-map is an explicit product goal, which contradicts the lean/legibility posture.",
+          "integration_cost": "High: build the graph abstraction and all interactions from primitives."
+        },
+        {
+          "name": "react-force-graph",
+          "what": "React wrapper over d3-force / three.js; 2D/3D/VR force graphs on canvas/WebGL. Very fast to drop in.",
+          "maturity": "Popular, maintained. High confidence.",
+          "verdict": "CONDITIONAL",
+          "why": "Great for a quick, pretty demo at <5-10k nodes, but the d3-force layout is CPU and walls near ~10k, and its 3D mode is eye-candy that produces spinning hairballs — actively against Persona's 'legibility over polish' and 'motion only for real state change' principles. Sigma covers the same 2D ground with a higher ceiling and a real data layer, so this is a lean SKIP for the main graph.",
+          "integration_cost": "Low to start; re-platforming cost later when it stops scaling."
+        },
+        {
+          "name": "regl-scatterplot",
+          "what": "WebGL scatterplot renderer for MILLIONS of points (pan/zoom/lasso-select). No first-class edges/links.",
+          "maturity": "Mature for its niche. High confidence.",
+          "verdict": "CONDITIONAL",
+          "why": "Not a graph renderer — no edges — so wrong for the spawn/contradiction network. But it's the RIGHT tool for a SEPARATE screen: projecting belief embeddings (UMAP/t-SNE) as a point cloud to show semantic clusters of ideas, colored by provenance/time. Adopt for the embedding-space view only.",
+          "integration_cost": "Low-medium for the embedding view; needs an upstream projection (UMAP/t-SNE) step."
+        }
+      ],
+      "recommendation": "SUBSTRATE — stay lean; do NOT add a graph server. Keep the belief-store in-process: NetworkX (Python) as the live in-memory belief graph for traversal / contradiction-neighborhood / centrality, persisted to DuckDB (embedded, single-file) as the durable temporal event log + belief/edge tables, with embeddings in DuckDB VSS. Adopt Graphiti's BI-TEMPORAL SCHEMA — every edge carries (t_valid, t_invalid); superseded beliefs are invalidated, not deleted — but implement it yourself (~100 lines) rather than adopting the Graphiti runtime or a Neo4j/FalkorDB server, whose per-episode LLM extraction duplicates the membrane and adds recurring cost. SKIP Kuzu (abandoned Oct 2025) and Neo4j (server ops unneeded at this scale). Revisit Apache AGE + pgvector only if/when Persona commits to Postgres for other reasons. Add DuckPGQ as an OPTIONAL path/pattern accelerator, never a hard dependency (version-pinned/prototype-grade). VIZ — two layers. Default: Sigma.js + graphology for the styled, interactive, labeled idea-graph (10k-50k comfortable; provenance-colored nodes; event-driven live updates fit the 'notebook / mind-at-work' UX). Escape hatch: cosmos.gl (the MIT engine, NOT the CC BY-NC Cosmograph product) for the zoomed-out 100k+ 'galaxy of ideas' overview where GPU layout is the only thing that survives; precompute layouts server-side to dodge ForceAtlas2's ~50k ceiling. Use Cytoscape.js instead of Sigma only if the team values its richer per-node styling/API and caps visible nodes to <~10k curated subgraphs. Add regl-scatterplot for a SEPARATE embedding-projection screen. SKIP deck.gl (build-it-yourself) and react-force-graph (walls ~10k; 3D fights legibility).",
+      "discriminating_experiment": "One fixture, two decisions. Export Persona's real belief graph to JSON at N = 5k / 20k / 50k / 100k nodes with realistic edge density (~3-5x edges), provenance-colored nodes, and (t_valid, t_invalid) time attributes. (a) VIZ: render the SAME fixture in Sigma.js and cosmos.gl on target hardware; measure first-paint+layout time, sustained pan/zoom FPS with labels on, and time-to-highlight a searched node. Rule: keep Sigma if it holds >=30 FPS with labels at your real N; fall to cosmos.gl only when it doesn't. (b) STORE: load the same temporal edges into DuckDB+NetworkX (recursive CTE / in-memory traversal) vs Apache AGE, and time the three queries Persona actually runs — current-valid-belief subgraph, contradiction neighborhood of node X, and evolution-of-belief-X-over-time. If DuckDB+NetworkX answers all three acceptably at your scale, you do NOT need a graph DB — stop there.",
+      "risks": [
+        "KuzuDB abandonment (repo archived read-only, 2025-10-10; support ended at v0.11.3) removes the ideal embedded graph DB; the 'bighorn' fork is unproven — do not build on Kuzu or its forks yet. High confidence, multiple corroborating sources (The Register, HN, GitHub archive).",
+        "Graphiti's per-episode LLM extraction is a recurring token cost and duplicates Persona's own membrane/provenance — adopting the FRAMEWORK risks the exact ~10x-cost-for-little-gain pattern Persona already found. Adopt only the bi-temporal schema, not the runtime.",
+        "cosmos.gl vs Cosmograph LICENSE trap: the MIT engine (@cosmos.gl/graph, OpenJS, v3.1 June 2026) is fine; the Cosmograph PRODUCT library is CC BY-NC 4.0 — accidentally depending on the NC package blocks any commercial/hosted use. Also WebGL2-only: fails on some older Android/iOS.",
+        "DuckPGQ is a community extension with version pinning (needs DuckDB 1.4.4; not in 1.5.x as of late 2025) and research-prototype lineage — treat as optional, not load-bearing; keep a recursive-CTE / NetworkX fallback.",
+        "Every WebGL renderer hits a UX wall well before its technical wall: a 100k-node hairball is unreadable regardless of FPS. Persona's legibility goal means the load-bearing screens are curated <10k subgraphs — don't over-invest in max-node throughput at the expense of styling/interaction the researcher actually reads.",
+        "Apache AGE + pgvector do NOT compose in a single graph+vector query (separate extensions); plan to orchestrate two queries, and note AGE's openCypher is less complete/tuned than Neo4j.",
+        "Confidence/version notes: Kuzu status, cosmos.gl MIT + v3.1 (June 2026), Graphiti bi-temporal model, AGE Apache-TLP/PG18, and DuckPGQ version pin were corroborated this session (high confidence). Exact FPS / node-ceiling numbers for Sigma/Cytoscape/cosmos.gl are workload-dependent vendor/benchmark claims — treat as order-of-magnitude only, which is precisely why the fixture experiment above is the real decider (medium confidence on the precise numbers)."
+      ]
+    },
+    {
+      "domain": "Observability, tracing & cost tracking for a swarm of hundreds of concurrent bounded agents (per-agent traces, token/cost, live run trees, self-hostable dashboard). Persona stack: lean stdlib backend, raw Anthropic SDK for the swarm, FastAPI + React UI already in place.",
+      "tools": [
+        {
+          "name": "OpenTelemetry GenAI + OpenInference instrumentation (openinference-instrumentation-anthropic)",
+          "what": "Vendor-neutral wire format + a monkey-patch instrumentor that emits per-call spans (prompts, responses, tool calls, token usage) for the Anthropic SDK over OTLP to ANY backend, and can also feed an in-process SpanProcessor.",
+          "maturity": "OTEL GenAI semconv still 'Development'/experimental as of Apr 2026 (attr names can drift), BUT core attrs (gen_ai.system, request.model, token counts) are stable and agent/workflow/tool/model spans are defined as of spec v1.41. OpenInference Anthropic + claude-agent-sdk instrumentors are shipping on PyPI. Confidence: high on the seam existing, medium on attr stability.",
+          "verdict": "ADOPT",
+          "why": "This is the load-bearing choice: it is the seam, not a platform. One `pip install` + one `AnthropicInstrumentor().instrument()` gives per-agent spans with token usage, exportable to Phoenix OR Langfuse (swap backends behind the same exporter — insulates you from vendor churn). Critically, the SAME spans can be tapped by a custom in-process OTEL SpanProcessor that pushes compact events into your existing FastAPI SSE/WebSocket for the live control room. One instrumentation, two sinks (durable backend + live UI). Nothing else here gives you that decoupling.",
+          "integration_cost": "Low. ~15 lines in the swarm entrypoint. Gotcha: instrumentor must run BEFORE `import anthropic` or spans silently vanish — assert-at-startup. Pin versions and set OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental for dual-emit; keep an attr-name mapping layer so a semconv rename doesn't break your SpanProcessor."
+        },
+        {
+          "name": "Arize Phoenix (self-host)",
+          "what": "Single-container, OTEL/OpenInference-native trace store + waterfall/run-tree UI + eval. localhost:6006. No event caps self-hosted.",
+          "maturity": "Mature, actively developed. Elastic License 2.0 (source-available, not OSI-approved — fine for internal/research use; only matters if you'd redistribute). Default SQLite, optional Postgres. Confidence: high.",
+          "verdict": "ADOPT",
+          "why": "Best fit for the DURABLE per-agent trace/debug/forensics surface IF you decide you need one beyond Persona's own notebook log. Lightest self-host that holds: one `docker run`, no ClickHouse/Redis/S3 to babysit, no per-trace cost. OpenInference-native so it consumes your instrumentation with zero glue. Use it for the engineer-facing 'replay this agent's run' tab — NOT as your live control room (see recommendation).",
+          "integration_cost": "Low. `docker run` + point the OTLP exporter at :6006. Caveat: single-process + SQLite/Postgres may bottleneck at sustained hundreds-of-agents x high-QPS — validate at target concurrency before trusting it for the demo money-shot; that stress signal is exactly what tells you whether you need the heavier Langfuse tier."
+        },
+        {
+          "name": "Langfuse (self-host, OSS)",
+          "what": "MIT-core LLM observability platform: nested traces, token/cost with built-in Anthropic price tables, filter by session/cost/latency/metadata, OTLP ingestion, plus prompt-mgmt/evals/datasets/LLM-as-judge. ClickHouse-backed OLAP.",
+          "maturity": "Very mature; acquired by ClickHouse Jan 2026 (healthy for longevity + scale, roadmap now steered by acquirer). MIT core is genuinely open + uncapped when self-hosted. Confidence: high.",
+          "verdict": "CONDITIONAL",
+          "why": "Technically excellent and the right answer at SCALE (ClickHouse handles high sustained trace volume that Phoenix's single process may not). Two conditions gate it: (1) you actually need historical trace analytics at volume, not just the live stream + notebook — otherwise it is heavier than the need; (2) DISCIPLINE — its prompt-mgmt/evals/scores/datasets DIRECTLY DUPLICATE Persona's belief-store/membrane/engine. Adopting those creates a second, competing source of truth about 'what Persona believes.' Use it as a trace store ONLY, or don't use it.",
+          "integration_cost": "SDK/OTLP side: low. Infra side: medium-heavy — Postgres + ClickHouse + Redis/Valkey + S3 + 2 app containers, ~4 CPU/16GB/100GB floor for prod. That's real ops surface for a research project; it earns its place only past Phoenix's ceiling."
+        },
+        {
+          "name": "Helicone (self-host)",
+          "what": "Apache-2.0 proxy-first gateway + observability: every LLM call routes THROUGH its proxy, which logs req/resp, token/cost (300+ model price DB), caching, rate limits. Anthropic gateway supported self-hosted.",
+          "maturity": "Acquired by Mintlify Mar 2026, now in MAINTENANCE MODE. Repo/Docker still current but no active roadmap. Confidence: high on the acquisition/maintenance status.",
+          "verdict": "SKIP",
+          "why": "Three strikes for Persona: (1) maintenance mode — do not build a NEW prod dependency on it; (2) the proxy model inserts a network hop + single point of failure in front of EVERY one of hundreds of concurrent agent calls, and you surrender the direct Anthropic streaming/retry/timeout control you own in-process; (3) you already get exact token/cost from the Anthropic response `usage` field for free — a ~20-line price dict beats standing up a proxy for the one thing it'd buy you.",
+          "integration_cost": "Deceptively low (one base-URL swap) but the wrong axis — the cost is architectural: a proxy SPOF and lost in-process call control, for a capability you already have from the SDK."
+        },
+        {
+          "name": "LangSmith (self-host)",
+          "what": "LangChain's agent/LLM observability platform. Purpose-built agent trace store (SmithDB), deep nested run trees, evals.",
+          "maturity": "Mature, commercial, closed. Self-host is an Enterprise-only add-on (Kubernetes, BYOC/self-host). Third-party estimates put the Enterprise floor around ~$100K/yr (unofficial figure — treat as directional). Confidence: high on 'enterprise-only self-host', medium on the exact dollar figure.",
+          "verdict": "SKIP",
+          "why": "Fails the two hard constraints. Self-host is gated behind a heavy Enterprise commitment — a non-starter for this project's scale. Cloud free tier (5K traces/mo) is blown apart instantly by hundreds of agents AND ships your traces off-infra. Also LangChain-centric while Persona uses the raw Anthropic SDK — no leverage from its ecosystem. Nothing here that Phoenix/Langfuse don't give self-hosted for free.",
+          "integration_cost": "N/A — blocked by licensing/cost before integration is even relevant."
+        },
+        {
+          "name": "Pydantic Logfire (honorable-mention, not in original list)",
+          "what": "OTEL-native full-stack observability from the Pydantic team; one-line FastAPI instrument, native Pydantic-AI integration, LLM/agent tracing.",
+          "maturity": "Mature, best-in-class DX for a Pydantic/FastAPI shop (which Persona is). Confidence: high.",
+          "verdict": "SKIP",
+          "why": "Surfaced because Persona is exactly its sweet spot (FastAPI + Pydantic), so honest scouting must name it — but the backend is CLOSED and self-host is Enterprise-only, which fails Persona's self-hostable requirement. If cloud-with-data-leaving were ever acceptable it'd be the nicest DX of the lot; under the self-host constraint it's out. Because everything rides OTLP, you could still swap it in later behind the same exporter with zero rework.",
+          "integration_cost": "Low DX, but blocked by the self-host constraint — same OTLP seam means switching later is cheap if the constraint changes."
+        }
+      ],
+      "recommendation": "Separate the two needs people conflate. (A) The LIVE 'swarm control room' — hundreds of agents in flight, membrane admit/reject, belief updates — is Persona's PRODUCT and its legibility thesis; NO off-the-shelf tool gives it to you (every one here is an engineer's trace explorer, not an editorial 'mind at work' view). Build it yourself in the existing React UI. (B) The durable per-agent trace/forensics backend is undifferentiated plumbing you should NOT hand-roll. Bridge both with ONE instrumentation: instrument the swarm's Anthropic SDK once with OpenInference (OTLP), then fan to two sinks — (1) a custom in-process OTEL SpanProcessor that pushes compact per-agent events over your existing FastAPI SSE/WebSocket into the React control room, and (2) a self-hosted Arize Phoenix container as the debug/replay backend. Get live token/cost straight from the Anthropic `usage` field x a ~20-line price dict — don't stand up Helicone's proxy for it. Adopt Langfuse instead of Phoenix ONLY when you outgrow Phoenix's single-process ceiling AND accept the ClickHouse infra, and even then restrict it to trace storage so it never becomes a second brain competing with the belief-store. Skip LangSmith (Enterprise-only self-host) and Helicone (maintenance mode + proxy SPOF). Net: raw Anthropic SDK + OpenInference seam + your own SSE control room + Phoenix as the debug tab — a framework earns its place only at the trace-store rung, and only Phoenix/Langfuse clear the self-host bar there.",
+      "discriminating_experiment": "Spin up Phoenix (single `docker run`) and run ONE swarm burst of ~50 concurrent agents instrumented with openinference-instrumentation-anthropic exporting OTLP. Measure three things: (a) does Phoenix render the per-agent run tree + token/cost at 50-concurrency without dropping spans; (b) the added p50/p95 latency and CPU from instrumentation on your agent calls; (c) can a custom SpanProcessor tap the same spans and push to your SSE hub in <200ms end-to-end. Decision rule: if the SpanProcessor->SSE path is clean, you've proven the 'one instrumentation, two sinks' architecture AND you may not even need the heavy backend for the live view. If Phoenix drops spans or the run-tree is unusable at 50 agents, that's your explicit signal to move the trace-store sink up to the Langfuse/ClickHouse tier — without touching the instrumentation or the live UI, because both sit behind the OTLP seam.",
+      "risks": [
+        "Semconv instability: OTEL GenAI conventions are still 'Development' as of Apr 2026 — attribute names can change without a major bump. Pin instrumentation versions, set OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental for dual-emit, and keep an attr-name mapping layer so a rename doesn't silently break the live SpanProcessor.",
+        "Duplication trap (the real DPI-style risk here): Langfuse/LangSmith ship prompt-mgmt, evals, scores and datasets that OVERLAP Persona's belief-store/membrane/engine. Adopting those features creates a second, conflicting source of truth about 'what Persona believes.' If you adopt Langfuse, restrict it to trace storage only.",
+        "The live control room is NOT free from any tool: budget to build it in React. The observability backends only back the forensics/debug tab; presenting an inferred belief or a mid-flight agent with the same visual authority as a confirmed one would violate Persona's honest-uncertainty principle — a generic trace UI won't respect that, your own UI must.",
+        "Phoenix single-process + SQLite/Postgres may bottleneck at sustained hundreds-of-agents x high-QPS. Validate at target concurrency before the demo, and per Persona's caching principle, cache/replay pre-run traces so nothing live can break the money-shot.",
+        "Vendor churn is live in this space: Helicone->Mintlify (maintenance, Mar 2026), Langfuse->ClickHouse (acquired Jan 2026). Betting on the OTLP wire format rather than any one vendor's proprietary SDK is what keeps Phoenix<->Langfuse<->Logfire swappable — treat that seam as the durable choice, the backend as replaceable.",
+        "Instrumentation ordering: AnthropicInstrumentor().instrument() must run before `import anthropic` or spans vanish silently — a silent-wrong-observability bug is exactly the fail-loud boundary Persona's principles call out. Assert instrumentation is active at startup.",
+        "Don't run BOTH Phoenix and Langfuse — pick one backend behind the OTLP exporter; two trace stores is duplicated ops for no gain.",
+        "Citation confidence: tool existence/architecture claims are high-confidence (official docs/PyPI/GitHub). The LangSmith '~$100K/yr' self-host floor is a third-party estimate (unofficial) — directional only. Acquisition dates (Helicone/Mintlify Mar 2026, Langfuse/ClickHouse Jan 2026) come from secondary sources; verify against the vendors' own announcements before quoting."
+      ]
+    },
+    {
+      "domain": "State-of-the-art many-agent / deep-research systems for biomedical literature analysis (2025-2026)",
+      "tools": [
+        {
+          "name": "Anthropic orchestrator-worker research pattern (the pattern, not a product)",
+          "what": "Lead agent plans and decomposes a breadth-first query, spawns 3-5 parallel subagents each with its own context window and one bounded objective, then a separate pass synthesizes and attaches citations. Shipped as Claude Research (Apr 2025).",
+          "maturity": "Mature, production-proven pattern; high confidence on the numbers (from Anthropic's own engineering post).",
+          "verdict": "ADOPT",
+          "why": "This is exactly Persona's swarm architecture already: self/engine = lead, ephemeral bounded readers = subagents, separate citation pass = provenance layer. Anthropic's own data VALIDATES Persona's split: multi-agent beat single-agent Opus by 90.2% ONLY on breadth-first parallel-reading tasks, and they explicitly say it FAILS on 'tasks that require all agents to share context or have many dependencies' and that 'LLM agents are not yet great at coordinating in real time.' That is the same boundary as Persona's DPI finding - parallelize independent READING (map), never parallelize interdependent REASONING (debate). Adopt it as a prompt-engineering playbook, not a dependency: teach the orchestrator to hand each reader an objective + boundaries + output format + tool guidance (their headline lesson - vague 'research X' caused subagents to duplicate the 2021 chip crisis while others redid 2025 supply chains).",
+          "integration_cost": "Low - it is a pattern Persona already implements; the value is the delegation-prompt discipline and the 'scale reads with more agents / scale reasoning by not adding agents' rule."
+        },
+        {
+          "name": "PaperQA2 (Future-House/paper-qa)",
+          "what": "Apache-2.0 domain-specialized agentic-RAG library for scientific literature: three-phase pipeline (LLM keyword search -> vector + LLM re-ranking with contextual summarization 'RCS' -> grounded answer), citation-graph traversal, Semantic Scholar / Crossref / Unpaywall / OpenAlex / clinical-trials sources, local PDF corpus via tantivy, LiteLLM (any model incl. local). `pip install paper-qa>=5`, Python 3.11+.",
+          "maturity": "Mature, active OSS (v5+). Benchmark claims ('superhuman', SOTA on RAG-QA Arena science, tops LitQA2) are real but from the authors on their own MCQ-biology benchmark - treat 'superhuman' as narrow, medium confidence.",
+          "verdict": "CONDITIONAL",
+          "why": "The ONE framework here that earns its place, because it is NOT a generic many-agent orchestrator - it is a purpose-built reader+evidence-gatherer with citation traversal and contradiction detection, i.e. the exact 'scale of reading' muscle Persona's swarm needs, already benchmarked and provenance-friendly. Conditional, not blind ADOPT, because: (1) its built-in contradiction detection OVERLAPS Persona's membrane/belief-store - scope it to reader-only or you create two sources of truth; keep Persona as the arbiter of believing; (2) 'superhuman' is LitQA2 MCQ from the same lab, so per CLAUDE.md do not design around the claim without your own eval; (3) RCS reranking is compute-heavy - caching is mandatory. Use it to REPLACE hand-rolled read+extract in the swarm, not the self or the membrane.",
+          "integration_cost": "Medium - pip install, point its retriever at your cached Europe PMC corpus, wire LiteLLM to your model; the harder cost is drawing the line so it feeds evidence INTO the membrane rather than deciding truth itself."
+        },
+        {
+          "name": "STORM / Co-STORM (stanford-oval, DSPy)",
+          "what": "Two-stage report generator: discovers multiple perspectives on a topic, simulates perspective-driven writer<->expert Q&A grounded on sources to build a citation graph and outline, then writes a Wikipedia-style report. Co-STORM adds a human-in-the-loop shared 'mind map' and collaborative discourse.",
+          "maturity": "Mature research code, widely used, DSPy-based. High confidence it works; well-known weakness: outputs are broad-but-shallow, neutrality/coverage over depth.",
+          "verdict": "CONDITIONAL",
+          "why": "Mine the MECHANISM, do not adopt the package. Two ideas are directly useful to Persona: (a) perspective-driven question generation to drive what the swarm reads (better coverage than a single query expansion), and (b) the grounded citation-graph outline, which maps onto Persona's dependency-graph 'what does the field rest on' screen. Co-STORM's human-steered mind map aligns with Persona's human-as-resolver + legibility ethos. But the deliverable (a neutral Wikipedia article) is the opposite of Persona's goal (an opinionated, evolving, falsifiable belief-state), and adopting it means a DSPy buy-in on top of your lean stdlib backend. Re-implement the two mechanisms in ~tens of lines; skip the framework.",
+          "integration_cost": "Low if you copy the mechanism; Medium-High if you adopt STORM+DSPy wholesale (new framework, compilation model, and an output format you would fight)."
+        },
+        {
+          "name": "Google DeepMind AI co-scientist (Gemini 2.0)",
+          "what": "Many-agent 'generate -> debate -> rank (Elo tournament) -> evolve' loop for hypothesis generation, with asynchronous task execution and test-time-compute scaling. Reported wet-lab-confirmed wins (AML drug repurposing, liver-fibrosis epigenetic targets).",
+          "maturity": "Research prototype, closed (not released, Gemini-only). Low external confidence: wet-lab 'validations' are a handful of anecdotes from the authors, not independently replicated; expert-novelty ratings are on 15 goals.",
+          "verdict": "CONDITIONAL",
+          "why": "Overlaps Persona's intellectual engine (contradiction -> hypothesis -> value queue). Steal ONE idea: rank candidate hypotheses by an Elo/tournament so the value queue surfaces the highest-leverage experiment - a clean, cheap addition. But the many-agent debate machinery is precisely what Persona's DPI finding and the MAST taxonomy warn against: it is the ~10x-cost, low-marginal-gain pattern. And it is closed, so nothing here is directly integratable. Adopt the tournament-ranking concept; skip the agent swarm-of-critics implementation. Rate the celebrated results with skepticism - they are cherry-picked and unreplicated.",
+          "integration_cost": "Idea-only: Low (a scoring/ranking function over the hypothesis queue). Full system: N/A (not released)."
+        },
+        {
+          "name": "Agentic RAG patterns (single-agent reflection/tool-use vs multi-agent) - the design space, per 2025 surveys",
+          "what": "Taxonomy of retrieval patterns: single-agent + tool-use, self-correcting/reflective RAG, corrective/adaptive/graph RAG, and multi-agent-with-specialized-retrievers. Surveys note multi-agent collaboration is 'less predictable' than reflection/tool-use, and agentic RAG costs 2-5x the LLM calls of static RAG.",
+          "maturity": "Well-established patterns; survey-level synthesis, high confidence on the qualitative guidance.",
+          "verdict": "ADOPT",
+          "why": "This reinforces Persona's lean bet with independent evidence: reflection + tool-use + self-correction on a SINGLE strong agent are the mature, reliable patterns, while multi-agent collaboration is the unpredictable one. 67% of enterprise RAG deployments reportedly failed accuracy bars on complex queries, and cost is 2-5x - so the right move is a strong single reader with iterative query expansion and a verification/reflection step (which PaperQA2 already embodies) rather than more agents. Use the corrective/self-check pattern as the guard before anything writes into the belief-state.",
+          "integration_cost": "Low - these are patterns you fold into the existing read/verify loop, not a dependency."
+        },
+        {
+          "name": "Open deep-research clones (LangChain open_deep_research / LangGraph, HuggingFace smolagents)",
+          "what": "OSS reimplementations of Deep Research. LangChain: LangGraph supervisor-researcher graph, section-by-section parallel plan (RACE ~0.43). smolagents: 'code agents' that act by writing Python; open_deep_research hits ~55% GAIA vs OpenAI's 67%.",
+          "maturity": "Active but churny (LangGraph especially); framework-heavy. Medium confidence, moving targets.",
+          "verdict": "SKIP",
+          "why": "Persona already has a working lean orchestrator; adopting LangGraph/LangChain means an abstraction tax and dependency churn to buy a supervisor-researcher graph you already have, and it re-imports the generic multi-agent overhead your DPI finding rejected. One exception worth cherry-picking (not adopting): smolagents' code-as-action pattern is a good fit for Persona's 'first-pass reanalysis' step where an agent must write and run analysis code on a located dataset - lift that idea, not the framework. Do not rip out a working backend to sit on someone else's graph engine.",
+          "integration_cost": "High to adopt (framework migration + lock-in); Low to borrow the smolagents code-agent idea for the reanalysis loop only."
+        },
+        {
+          "name": "GPT-Researcher (assafelovic, planner-executor-publisher)",
+          "what": "Popular (~28k star) autonomous web-research agent: planner generates questions, parallel executors gather, publisher writes a report. Any-LLM.",
+          "maturity": "Mature OSS, but generic web research; documented hallucination and shallow/biased-source failure modes.",
+          "verdict": "SKIP",
+          "why": "Redundant with Persona's loop (planner-executor already exists) and worse for the domain: it optimizes for a polished web-sourced report, not a provenance-typed, contradiction-driven belief-state, and it lacks scientific-source specialization and citation verification. Its own listed failure modes (hallucination, selective/biased web sources) are exactly what would poison Persona's belief-store. Nothing here beats PaperQA2 for scientific reading or Persona's own engine for the acting loop.",
+          "integration_cost": "N/A - not worth integrating."
+        },
+        {
+          "name": "Hosted Deep Research products (OpenAI Deep Research, Gemini/Google Deep Research)",
+          "what": "Closed, hosted deep-research agents that browse and produce cited long-form reports. State of the art on GAIA-style browsing.",
+          "maturity": "Mature products; closed weights/orchestration, no self-hosting, no belief-state hooks.",
+          "verdict": "SKIP",
+          "why": "Not integratable as infrastructure: you cannot host them, cannot control provenance typing, cannot let Persona's membrane arbitrate, and cannot cache their internals for a reproducible demo. Value is purely as a UX/quality BENCHMARK - a bar to beat on 'reads at scale, cites correctly' and a reference for the report-legibility UI, nothing to build on.",
+          "integration_cost": "N/A - reference/benchmark only."
+        }
+      ],
+      "recommendation": "Keep Persona's lean stdlib orchestrator as-is: it already IS the Anthropic orchestrator-worker pattern (self/engine = lead, disposable swarm = parallel readers, provenance layer = citation pass), which the evidence validates specifically for breadth-first reading and warns against for interdependent reasoning - matching Persona's own DPI finding. Do NOT adopt LangGraph/LangChain, DSPy, GPT-Researcher, or any many-agent debate/consensus stack; MAST's 14 failure modes + the 15x token cost + your DPI result all say more agents != better. Make exactly ONE framework adoption: PaperQA2 (Apache-2.0) as the swarm's read/evidence primitive (citation-traversal RAG over your cached Europe PMC/OpenAlex corpus), while keeping Persona's membrane and belief-store as the sole arbiter of what to believe - scale-of-reading from PaperQA2, discipline-of-believing stays yours. Then hand-roll two small mechanisms internally (~tens of lines each, no new deps): STORM's perspective-driven question generation to broaden what the swarm reads, and the AI co-scientist Elo/tournament to rank hypotheses in the value queue. Net stack: raw Anthropic SDK + your purpose-built orchestrator + PaperQA2 as the reader + two borrowed mechanisms. That gives you the cutting edge where it pays (domain-specialized reading, calibrated hypothesis ranking) without importing the many-agent overhead you already proved is a loss.",
+      "discriminating_experiment": "Three-arm reader bake-off over one fixed corpus. Take ~25-30 biomedical claims with known ground-truth support/contradiction (LitQA2-style, or hand-seed from your Europe PMC cache), freeze the corpus, and run: (A) Persona's current lean swarm reader; (B) PaperQA2 pointed at the same corpus; (C) a single strong Claude agent with tool-use + a reflection/self-check pass (the agentic-RAG 'mature pattern' baseline). Seed everything, >=20 runs, report mean +/- 95% CI on three metrics: grounded-answer accuracy (correct support vs contradiction), hallucinated-citation rate (cited span actually exists and says what is claimed), and tokens/$ per claim. Decision rule stated up front: adopt PaperQA2 only if it beats BOTH baselines on grounding accuracy AND hallucinated-cite rate by a margin that justifies its higher call-count; if the single-agent+reflection arm (C) matches it, keep lean and just add the reflection guard. This one experiment discriminates 'adopt PaperQA2' vs 'keep lean' and re-tests the DPI finding on the actual reading task instead of trusting anyone's benchmark.",
+      "risks": [
+        "Framework lock-in / abstraction tax: adopting LangGraph/DSPy/smolagents bolts a heavy, churny dependency onto a working lean backend and is expensive to reverse; the borrowed-mechanism route avoids this but requires the discipline to NOT import the whole framework 'for convenience'.",
+        "Two-sources-of-truth: PaperQA2 ships its own contradiction detection that overlaps Persona's membrane/belief-store. If not scoped to reader-only, you get double-counting and ambiguous arbitration. Contract it as an evidence-gatherer that feeds the membrane; the membrane stays the sole judge.",
+        "Believing claimed SOTA without your own eval (violates CLAUDE.md 'never assume SOTA'): 'superhuman' PaperQA2 is narrow MCQ biology from the authors' own LitQA2; the co-scientist wet-lab wins are a handful of unreplicated anecdotes. Run the discriminating experiment before designing around either.",
+        "Re-importing many-agent overhead: copying Deep Research clones or the co-scientist swarm wholesale re-introduces the exact ~10x-cost / low-gain pattern your DPI finding and MAST (14 failure modes: role drift, step repetition, unverified outputs) already reject. Add agents only to parallelize independent READS, never interdependent reasoning.",
+        "Citation/tool-output hallucination poisoning the belief-state: deep-research agents hallucinate citations and even imagine tool outputs (EnIGMA failure mode). A silent wrong number written as a belief is the worst bug in this system - a hard citation-verification gate (span exists AND supports the claim) must sit before any READ->belief promotion.",
+        "Cost/latency of reading at scale: agentic RAG is 2-5x the LLM calls of static RAG and PaperQA2's RCS reranking is compute-heavy. Without the aggressive caching already in Persona's plan, the economics and the live demo both break - pre-cache Europe PMC/OpenAlex lookups and any reranking results."
+      ]
+    }
+  ],
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Research"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "tech:orchestration",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a1527a383a6a3f147",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661446,
+      "queuedAt": 1783529661426,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Durable orchestration substrate for an always-on synthetic …",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529966713,
+      "tokens": 84376,
+      "toolCalls": 18,
+      "durationMs": 305267,
+      "resultPreview": "{\"domain\":\"Durable orchestration substrate for an always-on synthetic researcher that fans out to hundreds of parallel bounded readers (I/O-bound Claude + Europe PMC calls) and must checkpoint/resume across crashes — while keeping reasoning single-agent.\",\"tools\":[{\"name\":\"Purpose-built asyncio orchestrator (asyncio.Semaphore + SQLite read-ledger)\",\"what\":\"Bounded fan-out with asyncio.gather + Sem…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "tech:agent_frameworks",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a37b3a025f813164f",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661448,
+      "queuedAt": 1783529661426,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Agent frameworks vs raw Anthropic SDK for Persona's bounded…",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529897525,
+      "tokens": 72749,
+      "toolCalls": 13,
+      "durationMs": 236077,
+      "resultPreview": "{\"domain\":\"Agent frameworks vs raw Anthropic SDK for Persona's bounded, single-job, READ-ONLY reader/extractor/cross-checker swarm (the \\\"hands\\\"), distinct from the outer acting loop (Hypothesizer/Tester/Reflector).\",\"tools\":[{\"name\":\"Raw Anthropic SDK + tool use + Structured Outputs + Batch API\",\"what\":\"Direct Messages API with strict-JSON constrained decoding (Structured Outputs now GA, no beta…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "tech:scale_cost",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "acadcf995e3f5dd2e",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661449,
+      "queuedAt": 1783529661427,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Running hundreds of parallel LLM agents affordably and reli…",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529965298,
+      "tokens": 379290,
+      "toolCalls": 8,
+      "durationMs": 303849,
+      "resultPreview": "{\"domain\":\"Running hundreds of parallel LLM agents affordably and reliably — the read-at-scale swarm plus rate/cost/backpressure control — for Persona\",\"tools\":[{\"name\":\"Anthropic Message Batches API\",\"what\":\"Native async bulk endpoint (client.messages.batches.create): submit up to 100k requests per batch, 50% off all token usage, results typically <1h (max 24h), keyed by custom_id (results arrive…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "tech:rag_embeddings",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "af92bd20cc5dc0449",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661450,
+      "queuedAt": 1783529661427,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Retrieval / RAG / embeddings at literature scale (millions …",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529962598,
+      "tokens": 72546,
+      "toolCalls": 11,
+      "durationMs": 301148,
+      "resultPreview": "{\"domain\":\"Retrieval / RAG / embeddings at literature scale (millions of biomedical abstracts) for Persona, a solo/small always-on synthetic researcher\",\"recommendation\":\"Lean, mostly-embedded, single-pipeline stack (consistent with Persona's DPI/anti-framework finding): (1) SPARSE = reuse Europe PMC / PubMed E-utilities as the BM25 side; do NOT rebuild a Lucene index over the firehose. Only add r…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "tech:extraction_finetuning",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a7e2a87cfe613139b",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661451,
+      "queuedAt": 1783529661427,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Turning abstracts into structured claims + inferential-depe…",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529898901,
+      "tokens": 388106,
+      "toolCalls": 12,
+      "durationMs": 237450,
+      "resultPreview": "{\"domain\":\"Turning abstracts into structured claims + inferential-dependency edges (presupposes/derives-from), and whether to fine-tune vs LLM few-shot + prompt caching\",\"tools\":[{\"name\":\"Anthropic structured outputs / strict tool use (messages.parse / output_config.format)\",\"what\":\"Constrain Claude's output to a JSON Schema (or strict:true tool) so each abstract returns a validated claim tuple (e…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "tech:temporal_kg_viz",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a3a7bc5d114963894",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661451,
+      "queuedAt": 1783529661427,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Temporal knowledge/idea graph substrate (belief evolution, …",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529987179,
+      "tokens": 69931,
+      "toolCalls": 11,
+      "durationMs": 325727,
+      "resultPreview": "{\"domain\":\"Temporal knowledge/idea graph substrate (belief evolution, spawn, contradiction, collapse) + large interactive graph visualization (10k-100k+ nodes) for Persona, a persistent single-'self' synthetic researcher with an existing lean stdlib backend (FastAPI+React). Prior Persona findings bias against heavy multi-agent/framework dependencies (~10x cost for little gain).\",\"tools\":[{\"name\":\"…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "tech:observability",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "ad1d166e108e44fd1",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661452,
+      "queuedAt": 1783529661427,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Observability, tracing & cost tracking for a swarm of hundr…",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529896232,
+      "tokens": 68790,
+      "toolCalls": 10,
+      "durationMs": 234780,
+      "resultPreview": "{\"domain\":\"Observability, tracing & cost tracking for a swarm of hundreds of concurrent bounded agents (per-agent traces, token/cost, live run trees, self-hostable dashboard). Persona stack: lean stdlib backend, raw Anthropic SDK for the swarm, FastAPI + React UI already in place.\",\"tools\":[{\"name\":\"OpenTelemetry GenAI + OpenInference instrumentation (openinference-instrumentation-anthropic)\",\"wha…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "tech:many_agent_systems",
+      "phaseIndex": 1,
+      "phaseTitle": "Research",
+      "agentId": "a533557c090f4ff63",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1783529661453,
+      "queuedAt": 1783529661427,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "State-of-the-art many-agent / deep-research systems for bio…",
+      "promptPreview": "Read-only research scout. Today is July 2026. Use WebSearch/WebFetch; also use context7 (resolve-library-id then query-docs) for library docs when evaluating a specific framework. Do NOT write files or run code. Be CRITICAL and engineering-honest: Persona already has a working lean stdlib backend (belief-store, adaptive membrane validated on sim, loops, engine, FastAPI+React UI) and its own prior …",
+      "lastProgressAt": 1783529894684,
+      "tokens": 70937,
+      "toolCalls": 13,
+      "durationMs": 233231,
+      "resultPreview": "{\"domain\":\"State-of-the-art many-agent / deep-research systems for biomedical literature analysis (2025-2026)\",\"tools\":[{\"name\":\"Anthropic orchestrator-worker research pattern (the pattern, not a product)\",\"what\":\"Lead agent plans and decomposes a breadth-first query, spawns 3-5 parallel subagents each with its own context window and one bounded objective, then a separate pass synthesizes and atta…"
+    }
+  ],
+  "totalTokens": 1206725,
+  "totalToolCalls": 96
+}
