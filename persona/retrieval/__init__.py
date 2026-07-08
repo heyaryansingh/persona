@@ -5,5 +5,6 @@ over a numpy working set. For scale/quality the plan (planning/VISION_AND_ROADMA
 swaps in MedCPT + FAISS + NCBI's precomputed 37M-abstract embeddings behind the same API.
 """
 from .retriever import Embedder, Retriever
+from .index import PersistentIndex
 
-__all__ = ["Embedder", "Retriever"]
+__all__ = ["Embedder", "Retriever", "PersistentIndex"]

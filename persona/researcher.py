@@ -125,16 +125,33 @@ class Researcher:
         from .graph import build_idea_graph
         return build_idea_graph(self.me.store)
 
+    @property
+    def index(self):
+        """Lazily-built PERSISTENT vector index — the corpus accumulates across ticks/restarts
+        (v3 T2.2), so retrieval improves the more Persona reads instead of re-embedding a fresh 40."""
+        if getattr(self, "_index", None) is None:
+            from .retrieval import PersistentIndex
+            self._index = PersistentIndex(Path(self.me.root) / "index")
+        return self._index
+
     def retrieve(self, question: str, fetch: int = 40, k: int = 10, mode: str = "hybrid") -> list:
-        """Pull the k most relevant papers on any question (v2, P4): fetch a broad candidate
-        set, then rerank by hybrid semantic+lexical relevance. Lets Persona read on demand."""
-        from .retrieval import Retriever
+        """Fetch fresh candidates, ADD them to the persistent index, then retrieve top-k over the
+        WHOLE accumulated corpus (dense). Lets Persona read on demand and remember what it read."""
         docs = self.adapter.search(question, limit=fetch)
-        if not docs:
-            return []
-        hits = Retriever().index(docs).retrieve(question, k=k, mode=mode)
-        self.me.notebook(f"retrieved {len(hits)}/{len(docs)} papers most relevant to \"{question[:48]}\"")
+        added = self.index.add(docs)
+        hits = self.index.search(question, k=k)
+        self.me.notebook(f"retrieved {len(hits)} of {self.index.size()} indexed papers for "
+                         f"\"{question[:48]}\" (+{added} new)")
         return hits
+
+    def corroborate(self, statement: str, k: int = 8) -> dict:
+        """Retrieval-based cross-check (v3 T2.2): how many INDEPENDENT groups (senior authors /
+        journals) in the accumulated corpus are relevant to this claim? Surfaces independent
+        corroboration the belief may not yet have counted — a real use of the index in the loop."""
+        hits = self.index.search(statement, k=k)
+        groups = {h.get("group") for h in hits if h.get("group")}
+        return {"statement": statement[:100], "n_relevant": len(hits),
+                "independent_groups": len(groups), "top": hits[:5]}
 
     async def aread(self, queries=None, limit: int = 12, on_event=None) -> dict:
         """Async, parallel, REAL swarm read (v2, P2): fan out Claude readers over the docs,
@@ -144,6 +161,10 @@ class Researcher:
         docs = []
         for q in queries:
             docs.extend(self.adapter.search(q, limit=limit))
+        try:
+            self.index.add(docs)            # accumulate the corpus (persistent index, T2.2)
+        except Exception:
+            pass                            # embedder optional — never block a read on it
         swarm = AsyncSwarm(self.membrane, concurrency=16, budget_usd=config.DAILY_BUDGET_USD)
         summary = await swarm.read_many(docs, on_event=on_event)
         rep = summary.pop("report")
@@ -165,14 +186,20 @@ class Researcher:
         self.tag_dependencies()        # real Claude tagger if key -> the flagship graph lights up
         self.reflect()
         acted = None
+        corroboration = None
         if self._contradictions:                       # act on the sharpest tension
-            acted = self.self_test(self._contradictions[0].claim_key)
-        # follow curiosity: retrieve on the most recent self-spawned interest
+            ev = self._contradictions[0]
+            acted = self.self_test(ev.claim_key)
+            # retrieval as a loop cross-checker (T2.2): independent corroboration for the claim
+            corroboration = self.corroborate(ev.statement)
+            self.me.notebook(f"corroboration for {ev.claim_key}: {corroboration['independent_groups']} "
+                             f"independent group(s) across {corroboration['n_relevant']} indexed papers")
+        # follow curiosity: retrieve on the most recent self-spawned interest (accumulates corpus)
         if self.seed_interests:
             self.retrieve(self.seed_interests[-1], fetch=20, k=5)
         return {**summary, "acted_on": (self._contradictions[0].claim_key
                                         if self._contradictions else None),
-                "self_test": acted}
+                "self_test": acted, "corroboration": corroboration}
 
     def close(self):
         self.me.close()
