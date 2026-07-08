@@ -86,6 +86,17 @@ class Researcher:
                 break
         return top.__dict__ if top else {}
 
+    def retrieve(self, question: str, fetch: int = 40, k: int = 10, mode: str = "hybrid") -> list:
+        """Pull the k most relevant papers on any question (v2, P4): fetch a broad candidate
+        set, then rerank by hybrid semantic+lexical relevance. Lets Persona read on demand."""
+        from .retrieval import Retriever
+        docs = self.adapter.search(question, limit=fetch)
+        if not docs:
+            return []
+        hits = Retriever().index(docs).retrieve(question, k=k, mode=mode)
+        self.me.notebook(f"retrieved {len(hits)}/{len(docs)} papers most relevant to \"{question[:48]}\"")
+        return hits
+
     async def aread(self, queries=None, limit: int = 12, on_event=None) -> dict:
         """Async, parallel, REAL swarm read (v2, P2): fan out Claude readers over the docs,
         streaming live swarm events. Contradictions route to the human inbox."""
