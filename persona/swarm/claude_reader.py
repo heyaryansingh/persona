@@ -13,15 +13,7 @@ from typing import Optional
 
 from .. import config
 from ..ingest.base import Document
-from .reader import Candidate, claim_key, HeuristicExtractor
-
-# relation -> belief direction (+1 asserts the claim, -1 refutes/negates it)
-_RELN_DIR = {
-    "increases": +1.0, "causes": +1.0, "associated_with": +1.0, "requires": +1.0,
-    "inhibits": +1.0,   # "X inhibits Y" asserts a real (negative) mechanism -> the claim holds
-    "decreases": +1.0,  # asserts a real effect direction; membrane tracks the relation's existence
-    "no_effect": -1.0,  # a null result -> refutes the association
-}
+from .reader import Candidate, HeuristicExtractor, build_candidate, RELATION_SIGN
 
 EXTRACT_TOOL = {
     "name": "record_claims",
@@ -62,10 +54,12 @@ _SYSTEM = ("You extract falsifiable biomedical claims as structured tuples. Be p
 class ClaudeExtractor:
     """Real reader. `extract(doc) -> [Candidate]`. Reuses one client across calls."""
 
-    def __init__(self, model: Optional[str] = None, client=None, max_tokens: int = 4096):
+    def __init__(self, model: Optional[str] = None, client=None, max_tokens: int = 4096,
+                 canon=None):
         self.model = model or config.MODEL_READER
         self.max_tokens = max_tokens
         self._client = client
+        self._canon = canon                 # optional EntityCanonicalizer (shared with the async path)
         self._fallback = HeuristicExtractor()
         self.last_usage = {"in": 0, "out": 0, "cost": 0.0}
 
@@ -96,17 +90,13 @@ class ClaudeExtractor:
         group = doc.group or doc.source
         out: list[Candidate] = []
         for c in raw:
-            subj, obj = c.get("subject", "").strip(), c.get("object", "").strip()
-            reln = c.get("relation", "associated_with")
-            if not subj or not obj:
+            if not isinstance(c, dict):
                 continue
-            out.append(Candidate(
-                claim_key=claim_key(subj, obj),
-                statement=f"{subj} {reln.replace('_', ' ')} {obj}",
-                direction=_RELN_DIR.get(reln, +1.0),
-                group=group, doc_id=doc.doc_id, provenance="READ",
-                confidence=float(c.get("confidence", 0.6)),
-                meta={"subject": subj, "object": obj, "relation": reln,
-                      "population": c.get("population"), "year": doc.year},
-            ))
+            cand = build_candidate(c.get("subject"), c.get("object"),
+                                   c.get("relation", "associated_with"), group, doc.doc_id,
+                                   confidence=c.get("confidence", 0.6), canon=self._canon,
+                                   population=c.get("population"))
+            if cand:
+                cand.meta["year"] = doc.year
+                out.append(cand)
         return out

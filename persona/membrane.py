@@ -63,13 +63,17 @@ class Membrane:
         Persisting immediately makes the membrane crash-safe: a restart recomputes beliefs
         from accumulated evidence and loses nothing held."""
         self.store.add_observation(cand.claim_key, cand.statement, cand.direction,
-                                   cand.group, cand.doc_id, cand.confidence)
+                                   cand.group, cand.doc_id, cand.confidence,
+                                   relation=cand.meta.get("relation", ""),
+                                   population=cand.meta.get("population"))
 
     @staticmethod
     def _to_cands(rows) -> list:
         return [Candidate(claim_key=r["claim_key"], statement=r["statement"],
                           direction=r["direction"], group=r["grp"], doc_id=r["doc_id"],
-                          confidence=r["confidence"]) for r in rows]
+                          confidence=r["confidence"],
+                          meta={"relation": r.get("relation", ""), "population": r.get("population")})
+                for r in rows]
 
     # ------------------------------------------------- E10: poisoning detector
     def _detect_poisoning(self, key: str, cands: list, dominant_dir: float) -> bool:

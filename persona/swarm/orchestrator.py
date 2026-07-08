@@ -18,8 +18,8 @@ from datetime import datetime, timezone
 
 from .. import config
 from ..membrane import Membrane
-from .claude_reader import EXTRACT_TOOL, _SYSTEM, _RELN_DIR
-from .reader import Candidate, claim_key
+from .claude_reader import EXTRACT_TOOL, _SYSTEM
+from .reader import Candidate, build_candidate
 
 
 def _now() -> str:
@@ -54,29 +54,24 @@ class ReadLedger:
 
 
 def candidates_from_claims(doc, raw: list, canon=None) -> list[Candidate]:
+    """Build membrane Candidates from raw Claude claim dicts — via the SHARED build_candidate
+    (same effect-sign + canonicalization as every other extractor path)."""
     group = doc.group or doc.source
     out = []
     for c in raw:
         if not isinstance(c, dict):
             continue
-        subj, obj = str(c.get("subject") or "").strip(), str(c.get("object") or "").strip()
-        reln = str(c.get("relation") or "associated_with")
-        if not subj or not obj:
-            continue
         try:
             conf = float(c.get("confidence", 0.6))
         except (TypeError, ValueError):
             conf = 0.6
-        # canonicalize entities so equivalent claims from different papers converge
-        if canon is not None:
-            subj, obj = canon.canon(subj), canon.canon(obj)
-        out.append(Candidate(
-            claim_key=claim_key(subj, obj),
-            statement=f"{subj} {reln.replace('_', ' ')} {obj}",
-            direction=_RELN_DIR.get(reln, +1.0), group=group, doc_id=doc.doc_id,
-            provenance="READ", confidence=conf,
-            meta={"subject": subj, "object": obj, "relation": reln, "year": doc.year},
-        ))
+        cand = build_candidate(c.get("subject"), c.get("object"),
+                               c.get("relation", "associated_with"), group, doc.doc_id,
+                               confidence=conf, canon=canon, population=c.get("population"))
+        if cand is None:
+            continue
+        cand.meta["year"] = doc.year
+        out.append(cand)
     return out
 
 
