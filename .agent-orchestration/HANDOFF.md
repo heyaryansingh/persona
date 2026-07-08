@@ -23,14 +23,18 @@ Persistent persona / source-agnostic / always-on reading swarm · full impl (+2n
 ## Build sequence status (PHASE0_PLAN §6)
 - [x] 0 — reproduction (PASS; crossover to the digit; Confound A refined)
 - [x] 1 — belief-store + living-doc self + live source-agnostic ingestion
-- [x] 2 — reader/extractor swarm + adaptive membrane (E10 GO; E8/E12 need API key; E14 next)
-- [~] 3 — engine (trajectory/dependency/experiment_value) + dashboard + argument-state (gate E5)
-- [ ] 4 — hypothesizer + dataset-scout + Claude Science self-test, human-gated (gate E15)
-- [ ] 5 — handoff inbox + anchoring; dependency graph (gate E9/E11/E6)
-- [ ] 6 — experiment-value queue; mini-review; self-spawned interest (gate E7/E13)
-- [ ] 7 — always-on autonomous run
-- [ ] 8 — stretch: silence / cross-field / fragility (gate H3.5/H3.6/H3.3)
-- [ ] 9 — second researcher; polish; fallback recording
+- [x] 2 — reader/extractor swarm + adaptive membrane (E10 GO, E14 GO; E8/E12 need API key)
+- [x] 3 — engine (trajectory/dependency/experiment_value) + dashboard + argument-state (E5 pending real data)
+- [x] 4 — hypothesizer + dataset-scout + self-test (live GEO; reanalysis replay-labelled), human-gated
+- [x] 5 — handoff inbox + anchoring; dependency graph as candidate edges (E9 GO; E11/E6 pending)
+- [x] 6 — experiment-value queue; mini-review; self-spawned interest (E13 GO; E7 pending)
+- [x] 7 — always-on autonomous run (self-spawned interest visible)
+- [x] 8 — stretch: silence / cross-field (honest baselines) / fragility (in dependency.py)
+- [x] 9 — second researcher (a lab; disagreement = signal); UI verified live
+
+**All build steps done.** Sim-testable gates GO (E9/E10/E13/E14) + reproduction PASS.
+Resource-gated experiments (E5/E6/E7/E8/E11/E12/E15) remain pre-registered stubs — need
+real outcome data / expert annotations / an API key. 52 tests green; UI driven end-to-end.
 
 ## Validation rule
 Every increment: real test (assert-based or driven end-to-end) → run it → commit. Unproven sub-choice → sandbox experiment under `experiments/` first (≥20 seeds, mean±95%CI).

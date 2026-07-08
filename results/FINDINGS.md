@@ -84,3 +84,19 @@ Set sizes: `|human|=9, |victims|=12` → **human-confirmed are 75% of "victims."
 - The correlated-poison threat model is **confirmed real and current** (MINJA >95% memory-injection; PoisonedRAG one passage). → E8 adds a MINJA-style injection to the oracle.
 - "Anchoring" is home-grown terminology; the field frames it as **provenance/trust-tiered write-policy** + poisoning-defense reranker, and reports *no single defense is robust* — so anchoring is necessary but not sufficient.
 - All of the above is still a **boolean-channel sim**. The promotion gate to "architecture we ship" is **E8** (real Claude extraction). Until E8, treat the crossover as well-motivated, not validated on the real regime.
+
+## New validated gates (build phase; drive the real shipped code)
+All 50 seeds, mean ± 95% CI. Each experiment drives the actual `persona.membrane.Membrane`
+/ `persona.loops.outer` — validating shipped code, not a re-implementation.
+
+| Gate | Result | Meaning |
+|---|---|---|
+| **E10** adaptive switch (`exp_e10_adaptive_switch.py`) | detect 1.000, false-strict 0.000, retention 1.000 | the membrane flips to strict on correlated poison, never on benign independent volume |
+| **E14** independence convergence (`exp_e14_independence.py`) | independent-commit 1.000, echo-commit 0.000 (naive-count would admit echo 1.000) | counting *independent groups*, not agreement, blocks manufactured consensus |
+| **E13** taste functional (`exp_e13_taste_functional.py`) | top-1 change 0.800, top-3 Jaccard 0.466, control identical 1.000 | disposition measurably changes the agenda — taste is not theater |
+| **E9** escape hatch (`exp_e9_human_error_hatch.py`) | wrong-anchor re-escalate 1.000, poison re-escalate 0.000, retention 1.000 | independent evidence recovers a *wrong* human anchor (Confound B) without reopening poisoning |
+
+**Still pending (need real data / annotations / an API key):** E5 (trajectory backtest),
+E6 (dependency extraction precision), E7 (VoI vs expert), E8 (real-Claude poisoning replay),
+E11 (calibration estimator), E12 (swarm vs single), E15 (contradiction-trigger precision).
+Pre-registered as stubs under `experiments/`.
