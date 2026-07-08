@@ -34,9 +34,10 @@ def researcher() -> Researcher:
         _R = Researcher(root="runs/api_self", name="Ada",
                         seed_interests=["neuroinflammation", "microglia", "tau"],
                         adapter=EuropePMCAdapter(cache=DiskCache(FIXTURES)))
-        if not _R.beliefs():                 # seed with one tick so the UI has data
+        if not _R.beliefs():                 # seed a few ticks so beliefs accrue history
             try:
-                _R.tick(queries=[CACHED_QUERY])
+                for _ in range(3):           # -> non-trivial trajectories on the argument screen
+                    _R.tick(queries=[CACHED_QUERY])
             except Exception:
                 pass
     return _R

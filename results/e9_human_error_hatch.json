@@ -1,0 +1,14 @@
+{
+  "wrong_anchor_reescalate_rate": [
+    1.0,
+    0.0
+  ],
+  "poison_reescalate_rate": [
+    0.0,
+    0.0
+  ],
+  "poison_retention": [
+    1.0,
+    0.0
+  ]
+}

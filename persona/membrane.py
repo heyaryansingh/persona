@@ -45,13 +45,15 @@ class HarvestReport:
 class Membrane:
     def __init__(self, store: BeliefStore, *, fast_quorum: int = 2, strict_quorum: int = 3,
                  confidence_floor: float = 0.5, window: int = 40,
-                 poison_min_volume: int = 6, poison_indep_ratio: float = 0.4):
+                 poison_min_volume: int = 6, poison_indep_ratio: float = 0.4,
+                 escape_quorum: int = 4):
         self.store = store
         self.fast_quorum = fast_quorum
         self.strict_quorum = strict_quorum
         self.confidence_floor = confidence_floor
         self.poison_min_volume = poison_min_volume
         self.poison_indep_ratio = poison_indep_ratio
+        self.escape_quorum = escape_quorum   # independent groups needed to CHALLENGE an anchor (E9)
         self._buf: dict[str, deque[Candidate]] = defaultdict(lambda: deque(maxlen=window))
         self.strict_mode: set[str] = set()      # claim_keys currently under strict policy
         self.backpressure: float = 1.0           # fan-out scale the orchestrator reads (<=1)
@@ -113,6 +115,21 @@ class Membrane:
             if ref_groups >= 1 and sup_groups >= 1:
                 report.contradictions.append(self._type_contradiction(
                     key, sup, ref, sup_groups, ref_groups))
+
+            # escape hatch (E9): independent, sustained contrary evidence against a HUMAN
+            # anchor RE-ESCALATES to a human — it never silently overwrites (the store guard
+            # still holds), and correlated poison (few groups) can't reach escape_quorum.
+            existing = self.store.get_claim(key)
+            if existing is not None and existing.anchor:
+                contrary_groups = len({c.group for c in buf if c.direction * existing.logit < 0})
+                if contrary_groups >= self.escape_quorum:
+                    report.contradictions.append(ContradictionEvent(
+                        key, existing.statement, "anchor-challenge",
+                        support_groups=sup_groups, refute_groups=contrary_groups,
+                        detail="independent evidence challenges a human-anchored belief — re-escalate"))
+                    if key not in self.strict_mode:
+                        self.strict_mode.add(key)
+                        report.strict_claims.append(key)
 
             quorum = self._quorum_for(key)
             mean_conf = (sum(c.confidence for c in sup) / len(sup)) if sup else 0.0
