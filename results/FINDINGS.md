@@ -212,3 +212,20 @@ il6/il1 merges; deterministic shortest-alphabetical representative).
 The tradeoff is deliberate and correct-first: perfect precision (never fabricate convergence),
 0.89 recall (rules miss a few rare variants — the safe direction). This supersedes the v2
 threshold=0.72 (unvalidated) with threshold=0.80 gating the *optional* embedding path only.
+
+---
+
+## v3 T1.3 — contradiction typing from context; poison detection for NEW beliefs
+
+Typing no longer uses group counts alone. Now that observations persist `population`,
+`_type_contradiction` types by the extracted context (BioDivergence 2026: most apparent
+contradictions are context, not conflict): opposite effects in DIFFERENT populations →
+`context-divergence`; in the SAME population → `true-refutation`. Group counts remain the
+fallback when population is unstated.
+
+Poison detection extended beyond attacks on established beliefs to catch **fabrication of a
+NEW belief** — a coordinated push of many candidates from very few independent groups. Thresholds
+derived by sweep (`experiments/exp_poison_thresholds.py`, 30 seeds/scenario): **poison_new_volume=6,
+poison_new_ratio=0.25** gives perfect separation — attack + fabricate flag rate 1.00, benign-new +
+benign-small 0.00. (The commit gate already blocks such low-independence claims; this adds
+strict-mode backpressure + a human flag, i.e. observability of the attack pattern.)

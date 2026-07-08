@@ -46,13 +46,18 @@ class Membrane:
     def __init__(self, store: BeliefStore, *, fast_quorum: int = 2, strict_quorum: int = 3,
                  confidence_floor: float = 0.5, window: int = 40,
                  poison_min_volume: int = 6, poison_indep_ratio: float = 0.4,
+                 poison_new_ratio: float = 0.25, poison_new_volume: int = 6,
                  escape_quorum: int = 4):
+        # poison_new_* derived by sweep in experiments/exp_poison_thresholds.py: (6, 0.25) gives
+        # perfect separation (attack+fabricate flag=1.00, benign_new+benign_small=0.00).
         self.store = store
         self.fast_quorum = fast_quorum
         self.strict_quorum = strict_quorum
         self.confidence_floor = confidence_floor
         self.poison_min_volume = poison_min_volume
         self.poison_indep_ratio = poison_indep_ratio
+        self.poison_new_ratio = poison_new_ratio      # stricter bar for fabricating a NEW belief
+        self.poison_new_volume = poison_new_volume
         self.escape_quorum = escape_quorum   # independent groups needed to CHALLENGE an anchor (E9)
         self.strict_mode: set[str] = set()      # claim_keys currently under strict policy
         self.backpressure: float = 1.0           # fan-out scale the orchestrator reads (<=1)
@@ -88,11 +93,18 @@ class Membrane:
             return False
         groups = {c.group for c in same_dir}
         independence_ratio = len(groups) / len(same_dir)
-        if independence_ratio > self.poison_indep_ratio:
-            return False                          # genuinely many independent sources
         existing = self.store.get_claim(key)
-        # only a *signature* if it opposes an already-established belief
-        if existing is not None and existing.logit * dominant_dir < 0 and abs(existing.logit) >= 2:
+        # (a) attack on an ESTABLISHED belief: high volume, low independence, opposes the anchor
+        if independence_ratio <= self.poison_indep_ratio:
+            if existing is not None and existing.logit * dominant_dir < 0 and abs(existing.logit) >= 2:
+                return True
+        # (b) FABRICATION of a NEW belief (v3 T1.3): a coordinated push of many candidates from
+        # very few groups, with no established belief yet — manufacture-by-volume. Stricter bar
+        # (lower ratio, higher volume) so a single legitimate large study isn't flagged. The
+        # group-based quorum already blocks the COMMIT; this adds strict-mode + a human flag.
+        not_established = existing is None or abs(existing.logit) < 2
+        if (not_established and len(same_dir) >= self.poison_new_volume
+                and independence_ratio <= self.poison_new_ratio):
             return True
         return False
 
@@ -156,9 +168,24 @@ class Membrane:
         return report
 
     def _type_contradiction(self, key, sup, ref, sup_groups, ref_groups) -> ContradictionEvent:
+        """Type the contradiction from the EXTRACTED CONTEXT, not just group counts (v3 T1.3).
+        BioDivergence 2026: most apparent contradictions are context-divergence — the effect is
+        real but flips with population/assay. So when both sides report a population, we type by
+        whether they studied the SAME population (genuine disagreement) or DIFFERENT ones (context)."""
         stmt = sup[0].statement if sup else (ref[0].statement if ref else key)
+        sup_pops = {c.meta.get("population") for c in sup if c.meta.get("population")}
+        ref_pops = {c.meta.get("population") for c in ref if c.meta.get("population")}
+        if sup_pops and ref_pops:
+            if sup_pops.isdisjoint(ref_pops):
+                return ContradictionEvent(key, stmt, "context-divergence", sup_groups, ref_groups,
+                    f"opposite effects in DIFFERENT populations ({sorted(sup_pops)} vs "
+                    f"{sorted(ref_pops)}) — likely context, not conflict")
+            return ContradictionEvent(key, stmt, "true-refutation", sup_groups, ref_groups,
+                f"opposite effects in the SAME population(s) ({sorted(sup_pops & ref_pops)}) — "
+                f"genuine disagreement")
+        # population unknown -> fall back to the independence-count heuristic
         if sup_groups >= 2 and ref_groups >= 2:
-            kind, detail = "context-divergence", "both sides independently supported"
+            kind, detail = "context-divergence", "both sides independently supported (population unstated)"
         elif min(sup_groups, ref_groups) == 1 and max(sup_groups, ref_groups) >= 2:
             kind, detail = "true-refutation", "one side single-source; likely weaker"
         else:
