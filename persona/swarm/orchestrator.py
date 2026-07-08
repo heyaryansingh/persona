@@ -1,10 +1,14 @@
 """Async swarm orchestrator (v2, P2): bounded parallel fan-out of real Claude reads with
-backpressure, a hard budget cap, and crash-resume — the "hundreds of parallel readers".
+backpressure, a persistent daily budget, and crash-resume.
 
 Design (from planning/TECH_RESEARCH_V2.json, orchestration domain): no heavyweight engine.
-- asyncio.Semaphore(N) bounds concurrency (I/O-bound Claude calls).
+- asyncio.Semaphore(N) bounds concurrency (default 16 I/O-bound Claude calls in flight; raise
+  `concurrency` up to the account's rate limit — it is NOT "hundreds" out of the box).
 - AIMD backoff on 429/529 (multiplicative decay on success, additive increase on throttle).
-- Hard USD budget cap (config.DAILY_BUDGET_USD): stop issuing calls past it.
+- PERSISTENT daily USD budget (persona.budget.DailyBudget, SQLite by UTC date): spend
+  accumulates across ticks/swarms/restarts and resets at UTC midnight — not a per-tick counter.
+- Optional Sonnet/Opus escalation: a doc whose Haiku read is AMBIGUOUS (no claims from a
+  substantive abstract, or all claims below the confidence floor) is re-read once by the reasoner.
 - Crash-resume: a SQLite read-ledger (doc_id -> done) skips already-read docs on restart;
   combined with the membrane's per-doc idempotent commit, re-runs never double-count.
 
@@ -79,7 +83,8 @@ def candidates_from_claims(doc, raw: list, canon=None) -> list[Candidate]:
 class AsyncSwarm:
     def __init__(self, membrane: Membrane, *, concurrency: int = 16, model: str | None = None,
                  budget_usd: float | None = None, max_tokens: int = 4096, extract_fn=None,
-                 canonicalize: bool = True):
+                 canonicalize: bool = True, escalate: bool = False,
+                 reasoner_model: str | None = None, confidence_floor: float = 0.5):
         self.membrane = membrane
         self.store = membrane.store
         self.ledger = ReadLedger(self.store)
@@ -90,6 +95,12 @@ class AsyncSwarm:
             self.canon = None
         self.model = model or config.MODEL_READER
         self.budget = budget_usd if budget_usd is not None else config.DAILY_BUDGET_USD
+        from ..budget import DailyBudget
+        self.daily = DailyBudget(self.store, self.budget)      # persistent, UTC-daily
+        self.escalate = escalate
+        self.reasoner_model = reasoner_model or config.MODEL_REASONER
+        self.confidence_floor = confidence_floor
+        self.escalations = 0
         self.max_tokens = max_tokens
         # extract_fn(doc) -> list[Candidate] (async): injectable for deterministic/offline
         # tests (the crash-resume bake-off); None -> real Claude path.
@@ -115,38 +126,58 @@ class AsyncSwarm:
                 self._emit({"type": "read", "doc_id": doc.doc_id, "ok": True,
                             "n_claims": len(cands), "group": doc.group})
                 return (doc.doc_id, cands)
-            if self.spent >= self.budget:
-                return (doc.doc_id, None)                  # budget exhausted -> resume later
+            if not self.daily.can_spend():
+                return (doc.doc_id, None)                  # daily budget exhausted -> resume later
             if self.backoff:
                 await asyncio.sleep(self.backoff)
             try:
-                resp = await self._client.messages.create(
-                    model=self.model, max_tokens=self.max_tokens,
-                    system=[{"type": "text", "text": _SYSTEM,
-                             "cache_control": {"type": "ephemeral"}}],
-                    tools=[EXTRACT_TOOL], tool_choice={"type": "tool", "name": "record_claims"},
-                    messages=[{"role": "user",
-                               "content": f"Title: {doc.title}\n\nText: {doc.text}\n\nExtract the claims."}])
-                self.backoff = max(0.0, self.backoff * 0.5)     # AIMD: success -> decay
+                cands = await self._read_with(doc, self.model)
             except Exception:
                 self.backoff = min(30.0, self.backoff + 2.0)    # throttle/error -> back off
                 self.errors += 1
                 self._emit({"type": "read", "doc_id": doc.doc_id, "ok": False, "group": doc.group})
                 return (doc.doc_id, None)                        # not marked done -> retried next run
-            u = resp.usage
-            self.spent += config.est_cost_usd(
-                self.model, u.input_tokens, u.output_tokens,
-                cache_read=getattr(u, "cache_read_input_tokens", 0) or 0,
-                cache_write=getattr(u, "cache_creation_input_tokens", 0) or 0)
-            raw = []
-            for b in resp.content:
-                if b.type == "tool_use":
-                    raw = b.input.get("claims", []) or []
-            cands = candidates_from_claims(doc, raw, self.canon)
+            self.backoff = max(0.0, self.backoff * 0.5)         # AIMD: success -> decay
+            # escalate an AMBIGUOUS Haiku read to the reasoner once (T2.3)
+            if self.escalate and self._ambiguous(doc, cands) and self.daily.can_spend():
+                try:
+                    strong = await self._read_with(doc, self.reasoner_model)
+                    self.escalations += 1
+                    self._emit({"type": "escalate", "doc_id": doc.doc_id, "to": self.reasoner_model,
+                                "n_claims": len(strong)})
+                    cands = strong or cands
+                except Exception:
+                    pass
             self._emit({"type": "read", "doc_id": doc.doc_id, "ok": True,
                         "n_claims": len(cands), "group": doc.group,
                         "title": (doc.title or "")[:70]})
             return (doc.doc_id, cands)
+
+    def _ambiguous(self, doc, cands) -> bool:
+        """Signal a Haiku read that warrants a stronger re-read: nothing extracted from a
+        substantive abstract, or every claim below the confidence floor."""
+        if len(doc.text or "") >= 200 and not cands:
+            return True
+        return bool(cands) and all(c.confidence < self.confidence_floor for c in cands)
+
+    async def _read_with(self, doc, model) -> list:
+        resp = await self._client.messages.create(
+            model=model, max_tokens=self.max_tokens,
+            system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
+            tools=[EXTRACT_TOOL], tool_choice={"type": "tool", "name": "record_claims"},
+            messages=[{"role": "user",
+                       "content": f"Title: {doc.title}\n\nText: {doc.text}\n\nExtract the claims."}])
+        u = resp.usage
+        cost = config.est_cost_usd(model, u.input_tokens, u.output_tokens,
+                                   cache_read=getattr(u, "cache_read_input_tokens", 0) or 0,
+                                   cache_write=getattr(u, "cache_creation_input_tokens", 0) or 0)
+        self.spent += cost
+        self.daily.add(cost)             # persistent daily accounting
+        raw = []
+        for b in resp.content:
+            if b.type == "tool_use":
+                raw = b.input.get("claims", []) or []
+        return candidates_from_claims(doc, raw, self.canon)
 
     async def read_many(self, docs, *, on_event=None) -> dict:
         """Fan out reads over docs (skipping ledger-done); commit sequentially; mark done.
@@ -181,5 +212,7 @@ class AsyncSwarm:
         self.ledger.mark_many([doc_id for doc_id, cands in results if cands is not None])
         return {"read": read, "committed": len(rep.committed), "held": len(rep.held),
                 "contradictions": len(rep.contradictions), "strict": len(rep.strict_claims),
-                "spent_usd": round(self.spent, 4), "errors": self.errors,
+                "spent_usd": round(self.spent, 4), "spent_today_usd": round(self.daily.spent_today(), 4),
+                "budget_remaining_usd": round(self.daily.remaining(), 4),
+                "escalations": self.escalations, "errors": self.errors,
                 "ledger_total": self.ledger.count(), "report": rep}

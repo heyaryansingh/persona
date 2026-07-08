@@ -247,3 +247,18 @@ Two cost levers were proposed. Measured honestly:
 
 Net: the earlier "~2x cheaper via caching+batch" claim resolves to "~2x cheaper via Batch";
 caching is inapplicable at this prompt size and is not counted.
+
+---
+
+## v3 T2.3 — persistent daily budget + model escalation + honest concurrency
+
+- **Daily budget** (`persona/budget.py`): was an in-memory `AsyncSwarm.spent` counter that reset
+  every tick and forgot spend on restart (could blow far past the cap over a day). Now a SQLite
+  ledger keyed by UTC date — spend accumulates across ticks/swarms/restarts and resets at UTC
+  midnight. Soft cap (concurrent reads near the ceiling can overshoot by ~concurrency; documented).
+- **Escalation:** an AMBIGUOUS Haiku read (no claims from a substantive abstract, or all claims
+  below the confidence floor) is re-read once by the reasoner (Sonnet). Off by default; tracked
+  via `escalations` in the swarm summary.
+- **Concurrency honesty:** the docstring claimed "hundreds of parallel readers"; the real default
+  is a Semaphore of 16, raisable up to the account rate limit. Docstring corrected rather than
+  overclaimed. Crash-resume invariant preserved (byte-identical, no double-commit).
