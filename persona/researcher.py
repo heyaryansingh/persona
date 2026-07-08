@@ -202,7 +202,19 @@ class Researcher:
         return rank_experiments(self.me.store, candidates, load_bearing(self.me.store))
 
     def handoffs(self) -> list[dict]:
-        return [d.__dict__ for d in self.inbox.open_items()]
+        """Open dossiers, ranked by escalation priority (uncertainty × stakes) so the human
+        sees the highest-leverage judgment calls first (P7, decision-theoretic escalation)."""
+        from .calibrate import uncertainty
+        lb = load_bearing(self.me.store)
+        items = []
+        for d in self.inbox.open_items():
+            c = self.me.store.get_claim(d.claim_key)
+            p = c.calibrated_p if c else 0.5
+            stakes = max(0.05, lb.get(d.claim_key, 0.1))
+            items.append({**d.__dict__, "calibrated_p": round(p, 3),
+                          "priority": round(uncertainty(p) * stakes, 4)})
+        items.sort(key=lambda x: x["priority"], reverse=True)
+        return items
 
     def resolve_handoff(self, claim_key: str, explanation: str, truth: int) -> dict:
         c = self.inbox.resolve(claim_key, explanation, truth)
