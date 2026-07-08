@@ -121,7 +121,9 @@ class AsyncSwarm:
                 await asyncio.sleep(self.backoff)
             try:
                 resp = await self._client.messages.create(
-                    model=self.model, max_tokens=self.max_tokens, system=_SYSTEM,
+                    model=self.model, max_tokens=self.max_tokens,
+                    system=[{"type": "text", "text": _SYSTEM,
+                             "cache_control": {"type": "ephemeral"}}],
                     tools=[EXTRACT_TOOL], tool_choice={"type": "tool", "name": "record_claims"},
                     messages=[{"role": "user",
                                "content": f"Title: {doc.title}\n\nText: {doc.text}\n\nExtract the claims."}])
@@ -132,7 +134,10 @@ class AsyncSwarm:
                 self._emit({"type": "read", "doc_id": doc.doc_id, "ok": False, "group": doc.group})
                 return (doc.doc_id, None)                        # not marked done -> retried next run
             u = resp.usage
-            self.spent += config.est_cost_usd(self.model, u.input_tokens, u.output_tokens)
+            self.spent += config.est_cost_usd(
+                self.model, u.input_tokens, u.output_tokens,
+                cache_read=getattr(u, "cache_read_input_tokens", 0) or 0,
+                cache_write=getattr(u, "cache_creation_input_tokens", 0) or 0)
             raw = []
             for b in resp.content:
                 if b.type == "tool_use":

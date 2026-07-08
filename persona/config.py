@@ -47,6 +47,12 @@ def anthropic_client():
     return Anthropic(api_key=ANTHROPIC_API_KEY)
 
 
-def est_cost_usd(model: str, in_tokens: int, out_tokens: int) -> float:
+def est_cost_usd(model: str, in_tokens: int, out_tokens: int, *, cache_read: int = 0,
+                 cache_write: int = 0, batch: bool = False) -> float:
+    """Cost with prompt-caching + Batch adjustments (Anthropic pricing): cached-read input is
+    ~0.1x, cache-write ~1.25x, and the Batch API is ~0.5x the whole call. `in_tokens` should be
+    the NON-cached input; pass cache_read/cache_write separately."""
     p = PRICE_PER_MTOK.get(model, {"in": 1.0, "out": 5.0})
-    return (in_tokens * p["in"] + out_tokens * p["out"]) / 1_000_000
+    cost = (in_tokens * p["in"] + out_tokens * p["out"]
+            + cache_read * p["in"] * 0.1 + cache_write * p["in"] * 1.25) / 1_000_000
+    return cost * (0.5 if batch else 1.0)

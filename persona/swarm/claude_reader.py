@@ -76,13 +76,18 @@ class ClaudeExtractor:
         if not text:
             return []
         resp = client.messages.create(
-            model=self.model, max_tokens=self.max_tokens, system=_SYSTEM,
+            model=self.model, max_tokens=self.max_tokens,
+            system=[{"type": "text", "text": _SYSTEM, "cache_control": {"type": "ephemeral"}}],
             tools=[EXTRACT_TOOL], tool_choice={"type": "tool", "name": "record_claims"},
             messages=[{"role": "user", "content": text + "\n\nExtract the claims."}],
         )
         u = resp.usage
-        self.last_usage = {"in": u.input_tokens, "out": u.output_tokens,
-                           "cost": config.est_cost_usd(self.model, u.input_tokens, u.output_tokens)}
+        cr = getattr(u, "cache_read_input_tokens", 0) or 0
+        cw = getattr(u, "cache_creation_input_tokens", 0) or 0
+        self.last_usage = {"in": u.input_tokens, "out": u.output_tokens, "cache_read": cr,
+                           "cache_write": cw,
+                           "cost": config.est_cost_usd(self.model, u.input_tokens, u.output_tokens,
+                                                       cache_read=cr, cache_write=cw)}
         raw = []
         for block in resp.content:
             if block.type == "tool_use":

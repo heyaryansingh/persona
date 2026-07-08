@@ -229,3 +229,21 @@ derived by sweep (`experiments/exp_poison_thresholds.py`, 30 seeds/scenario): **
 poison_new_ratio=0.25** gives perfect separation — attack + fabricate flag rate 1.00, benign-new +
 benign-small 0.00. (The commit gate already blocks such low-independence claims; this adds
 strict-mode backpressure + a human flag, i.e. observability of the attack pattern.)
+
+---
+
+## v3 T2.1 — economics: Batch API is the lever; prompt caching is a no-op for abstracts
+
+Two cost levers were proposed. Measured honestly:
+- **Prompt caching:** NO-OP for single-abstract extraction. The stable prefix (system + tools)
+  is ~300 tokens; a full read totals ~1000 input tokens — below Haiku's 2048-token cache
+  minimum. A real read confirmed `cache_read=0, cache_write=0`. The reader is now caching-READY
+  (`cache_control` on the system block, cache-token accounting) so a future large few-shot prefix
+  would benefit, but for short abstracts it changes nothing. (Don't assume a technique helps —
+  measure it. CLAUDE.md §1.)
+- **Batch API:** the real ~2x lever. `persona/swarm/batch_reader.py` (BatchReader) runs the same
+  extractor semantics through the Message Batches API at ~0.5x price for the always-on background
+  sweep (interactive AsyncSwarm stays for live reads). `est_cost_usd(..., batch=True)` prices it.
+
+Net: the earlier "~2x cheaper via caching+batch" claim resolves to "~2x cheaper via Batch";
+caching is inapplicable at this prompt size and is not counted.
