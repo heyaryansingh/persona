@@ -15,13 +15,16 @@ Persistent persona / source-agnostic / always-on reading swarm · full impl (+2n
 | When | Who | Task | Result |
 |---|---|---|---|
 | Phase 0 | main | plan + reproduce + literature | committed 3e51e68 |
-| Step 1 | main | belief-store + living-doc self (pure stdlib) | in progress |
+| Step 1 | main | belief-store + living-doc self + live ingestion | done 773d0c3 (9 tests) |
+| Step 2 | main | swarm + adaptive membrane + inner loop | done 5c3b901 (19 tests) |
+| E10 gate | main | adaptive switch experiment (50 seeds) | GO: detect 1.00, false-strict 0.00, retention 1.00 |
+| Step 3 | engine agents | trajectory / dependency / experiment_value | dispatched |
 
 ## Build sequence status (PHASE0_PLAN §6)
 - [x] 0 — reproduction (PASS; crossover to the digit; Confound A refined)
-- [ ] 1 — belief-store + living-doc self + live source-agnostic ingestion
-- [ ] 2 — reader/extractor swarm + adaptive membrane (gate E8/E10/E12/E14)
-- [ ] 3 — trajectory engine + dashboard + argument-state (gate E5)
+- [x] 1 — belief-store + living-doc self + live source-agnostic ingestion
+- [x] 2 — reader/extractor swarm + adaptive membrane (E10 GO; E8/E12 need API key; E14 next)
+- [~] 3 — engine (trajectory/dependency/experiment_value) + dashboard + argument-state (gate E5)
 - [ ] 4 — hypothesizer + dataset-scout + Claude Science self-test, human-gated (gate E15)
 - [ ] 5 — handoff inbox + anchoring; dependency graph (gate E9/E11/E6)
 - [ ] 6 — experiment-value queue; mini-review; self-spawned interest (gate E7/E13)

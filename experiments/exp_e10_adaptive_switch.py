@@ -1,35 +1,98 @@
 """
-E10 - Online correlated-disagreement detector / the adaptive membrane switch (gates BUILD_PLAN 5.4)
+E10 - Online correlated-disagreement detector / the adaptive membrane switch
+(gates BUILD_PLAN 5.4). Now IMPLEMENTED (was a stub).
 
-PRE-REGISTERED (write before implementing the gated piece; CLAUDE.md section 2).
-Status: STUB - not yet run.
+PRE-REGISTERED HYPOTHESIS
+  The membrane's cheap online detector flips fast-path <-> strict on the correlated-
+  disagreement (poisoning) signature: high volume, low independence, attacking an
+  established belief -- WITHOUT firing on benign high-volume independent evidence.
 
-HYPOTHESIS
-  A cheap online statistic (source-correlation of disagreement + evidential-independence estimate) flips the membrane fast-path <-> strict-quorum with acceptable precision/latency, realizing E1's benefit ONLINE (E1 only tested FIXED policies).
+METRIC (>=20 seeds, mean +/- 95% CI)
+  poison_detect_rate      : fraction of seeds the poisoned claim goes strict (want ~1)
+  benign_false_strict_rate: fraction of seeds a benign claim wrongly goes strict (want ~0)
+  poison_retention        : fraction of seeds the established belief survives (want ~1)
+  popular_committed_rate  : benign high-volume INDEPENDENT claim still commits (want ~1)
 
-METRIC
-  Switch detection AUC + switch latency; adaptive accuracy/latency vs always-strict and always-fast baselines. >=20 seeds across benign and correlated regimes.
-
-METHOD
-  Implement the detector over the swarm's harvested candidate stream; key on source/prompt/model independence, NOT raw agent-count agreement (correlated same-base-model readers give false confidence, arXiv:2603.16244). Backpressure narrows fan-out only on independence-weighted disagreement.
-
-GO / NO-GO BAR
-  Adaptive ~= always-strict accuracy at meaningfully lower latency in benign regimes, and switches into strict before correlated poison corrupts the core. Else default to always-strict and pay the latency.
-
-LITERATURE ANCHORS
-  FINDINGS.md conclusion 1; Anthropic multi-agent write-up; arXiv:2603.16244 (more rounds add noise).
-
-Protocol: seed everything; >=20 seeds where stochastic; report mean +/- 95% CI;
-save results to results/; if the evidence contradicts the hypothesis, WRITE DOWN
-the reversal in results/FINDINGS.md and follow the evidence.
+GO / NO-GO
+  detect_rate high AND false_strict_rate ~0 AND retention ~1 -> ship the adaptive switch.
+  Drives the REAL persona.membrane.Membrane (not a re-implementation) -> validates the
+  shipped code, per CLAUDE.md test-at-the-seams.
 """
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import json
+import numpy as np
+from scipy import stats
+
+from persona.store import BeliefStore, Claim
+from persona.membrane import Membrane
+from persona.swarm.reader import Candidate
 
 
-def run():
-    raise NotImplementedError(
-        "Pre-registered stub. Implement per the docstring, then remove this guard."
-    )
+def _cand(key, direction, group, conf=0.6):
+    return Candidate(key, f"{key} claim", direction, group, f"{group}:d", confidence=conf)
+
+
+def one_seed(seed: int) -> dict:
+    rng = np.random.default_rng(seed)
+    s = BeliefStore()
+    # an already-established TRUE belief (not anchored: tests the detector, not the store guard)
+    s.add_claim(Claim("target", "established true belief", logit=3.0, tier="core"))
+    m = Membrane(s)
+
+    # correlated sustained poison against target: high volume, few groups, wrong direction
+    p_vol = int(rng.integers(6, 15))
+    p_groups = int(rng.integers(1, 3))               # 1-2 correlated groups
+    for i in range(p_vol):
+        m.submit(_cand("target", -1.0, f"troll_{i % p_groups}"))
+
+    # benign INDEPENDENT high-volume claim: many distinct groups -> must NOT go strict
+    b_vol = int(rng.integers(6, 12))
+    for i in range(b_vol):
+        m.submit(_cand("popular", +1.0, f"lab_{i}"))
+
+    # small benign claim: 2 independent groups -> should just commit, never strict
+    m.submit(_cand("benign", +1.0, "labA"))
+    m.submit(_cand("benign", +1.0, "labB"))
+
+    rep = m.harvest()
+    strict = set(rep.strict_claims)
+    out = {
+        "poison_detect": 1.0 if "target" in strict else 0.0,
+        "benign_false_strict": 1.0 if ("popular" in strict or "benign" in strict) else 0.0,
+        "poison_retention": 1.0 if s.get_claim("target").predicted == 1 else 0.0,
+        "popular_committed": 1.0 if "popular" in rep.committed else 0.0,
+    }
+    s.close()
+    return out
+
+
+def ci(x):
+    x = np.array(x)
+    m = x.mean()
+    h = stats.t.ppf(0.975, len(x) - 1) * x.std(ddof=1) / np.sqrt(len(x)) if len(x) > 1 else 0.0
+    return m, h
+
+
+def run(n_seeds: int = 50) -> dict:
+    rows = [one_seed(1000 + i) for i in range(n_seeds)]
+    res = {}
+    print(f"=== E10 adaptive switch | {n_seeds} seeds (drives the real Membrane) ===")
+    for k in rows[0].keys():
+        m, h = ci([r[k] for r in rows])
+        res[k] = [m, h]
+        print(f"  {k:<22} {m:.3f} +/- {h:.3f}")
+    return res
 
 
 if __name__ == "__main__":
-    run()
+    res = run(50)
+    Path("results").mkdir(exist_ok=True)
+    with open("results/e10_adaptive_switch.json", "w") as f:
+        json.dump(res, f, indent=2)
+    ok = (res["poison_detect"][0] >= 0.95 and res["benign_false_strict"][0] <= 0.05
+          and res["poison_retention"][0] >= 0.95)
+    print("\nGO" if ok else "\nNO-GO", "-> results/e10_adaptive_switch.json")

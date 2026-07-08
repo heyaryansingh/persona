@@ -1,0 +1,18 @@
+{
+  "poison_detect": [
+    1.0,
+    0.0
+  ],
+  "benign_false_strict": [
+    0.0,
+    0.0
+  ],
+  "poison_retention": [
+    1.0,
+    0.0
+  ],
+  "popular_committed": [
+    1.0,
+    0.0
+  ]
+}
