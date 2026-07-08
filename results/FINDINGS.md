@@ -142,3 +142,32 @@ but overall=0.637) that a genetic-only rule would miss. Both bands are therefore
 and the OR of them is justified. Honest caveat: Open Targets' fuzzy entity search can resolve a
 non-gene phrase to *some* target, but such spurious matches fall in the inconclusive/refute band
 (low score), so they don't manufacture a fake "supports".
+
+---
+
+## v3 T0.5 — the inferential-dependency graph exists (E6, honestly gated)
+
+Audit #5: extraction emitted no `derives-from`/`presupposes` edges, so `load_bearing`
+returned `{}` on real data and VoI was 0 for everything — the flagship graph (BUILD_PLAN 3.2)
+was never built. It is now: a dependency-tagger pass proposes CANDIDATE edges between
+co-mentioning committed claims (heuristic offline; Claude reasoner with a key).
+
+**E6** (`experiments/exp_e6_dependency.py`, gold DAG of 12 biomedical claims → 20 co-mention
+pairs, 11 gold edges):
+
+| tagger | pairs | acc | Cohen κ | edge precision | edge recall | load_bearing Spearman |
+|---|---|---|---|---|---|---|
+| heuristic (offline) | 20 | 0.45 | 0.03 | 0.50 | 0.36 | **0.38** |
+| claude (reasoner)   | 20 | 0.45 | 0.06 | 0.50 | 0.18 | **0.50** |
+
+**Read (honest):** per-edge direction agreement is weak (κ≈0) — neither tagger reliably
+gets individual edge *direction* right, and the Claude tagger is conservative (low recall,
+which on real data is the safer failure). BUT the metric that actually feeds VoI —
+`load_bearing`, PageRank over the (noisy) edges — shows a **moderate positive** rank
+correlation with the gold foundational ordering (Spearman 0.38–0.50). So the graph is a
+legitimate hypothesis-*ranker*, not ground truth.
+
+**Verdict:** E6 is NOT passed for autonomy. Edges stay `CANDIDATE`/`INFERRED` and the
+dependency + idea-graph views keep their "E6 gate not passed" labels; these edges rank where
+a human should *look*, they don't assert dependency as fact. This is the predicted
+human-in-the-loop downgrade, now quantified rather than assumed.

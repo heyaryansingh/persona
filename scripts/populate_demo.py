@@ -24,8 +24,10 @@ async def main():
         s = await r.aread(queries=["microglia AND neuroinflammation AND alzheimer"], limit=n)
         print(f"read {s['read']} → committed {s['committed']}, held {s['held']}, "
               f"{s['contradictions']} contradiction(s); ${s['spent_usd']:.3f}")
+        n_dep = r.tag_dependencies()     # build the flagship inferential-dependency graph (T0.5)
         g = r.idea_graph()
-        print(f"idea graph: {len(g['nodes'])} nodes, {len(g['edges'])} edges")
+        print(f"idea graph: {len(g['nodes'])} nodes, {len(g['edges'])} edges "
+              f"({n_dep} candidate dependency edges tagged)")
         print("top beliefs (by independent sources):")
         claims = sorted(r.me.store.core_claims(),
                         key=lambda c: -r.me.store.independent_source_count(c.claim_id))

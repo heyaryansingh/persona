@@ -17,13 +17,15 @@ ITERS = 50
 
 
 def _derives_from_edges(store):
-    """All valid derives-from edges in the store as (src, dst, confidence)."""
+    """All valid dependency edges (derives-from + presupposes) as (src, dst, confidence).
+    Both relations mean the same thing structurally: src depends on dst (dst is more foundational)."""
     edges = []
     for c in store.claims(valid_only=True):
-        edges.extend(
-            (e["src"], e["dst"], e["confidence"])
-            for e in store.edges_from(c.claim_id, "derives-from")
-        )
+        for rel in ("derives-from", "presupposes"):
+            edges.extend(
+                (e["src"], e["dst"], e["confidence"])
+                for e in store.edges_from(c.claim_id, rel)
+            )
     return edges
 
 

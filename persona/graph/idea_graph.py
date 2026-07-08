@@ -60,13 +60,14 @@ def build_idea_graph(store, max_nodes: int = 400) -> dict:
                     break
         if len(edges) >= _MAX_EDGES:
             break
-    # any real derives-from candidate edges in the store
+    # any real inferential-dependency candidate edges in the store (the flagship graph)
     node_set = set(ids)
     for cid in ids:
-        for e in store.edges_from(cid, "derives-from"):
-            if e["dst"] in node_set:
-                edges.append({"source": e["src"], "target": e["dst"], "kind": "derives-from",
-                              "candidate": True, "confidence": e["confidence"]})
+        for rel in ("derives-from", "presupposes", "generalizes"):
+            for e in store.edges_from(cid, rel):
+                if e["dst"] in node_set:
+                    edges.append({"source": e["src"], "target": e["dst"], "kind": rel,
+                                  "candidate": True, "confidence": e["confidence"]})
 
     # timeline for the scrubber
     timeline = []

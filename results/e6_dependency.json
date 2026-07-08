@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "tagger": "heuristic (offline)",
+      "accuracy": 0.45,
+      "kappa": 0.027,
+      "precision": 0.5,
+      "recall": 0.364,
+      "spearman_loadbearing": 0.383,
+      "n_pairs": 20
+    },
+    {
+      "tagger": "claude (reasoner)",
+      "accuracy": 0.45,
+      "kappa": 0.06,
+      "precision": 0.5,
+      "recall": 0.182,
+      "spearman_loadbearing": 0.5,
+      "n_pairs": 20
+    }
+  ],
+  "verdict": "edges are WEAK -> keep human-in-the-loop (E6 not passed for autonomy)"
+}

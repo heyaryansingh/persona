@@ -69,6 +69,8 @@ class Researcher:
         self._contradictions = summary.contradiction_events
         for ev in summary.contradiction_events:
             self.inbox.add_event(ev)
+        from .swarm.dependency_tagger import HeuristicDependencyTagger
+        self.tag_dependencies(tagger=HeuristicDependencyTagger())   # deterministic, free per tick
         self.me.consolidate()
         return {"docs_read": summary.docs_read, "candidates": summary.candidates,
                 "committed": summary.committed, "held": summary.held,
@@ -105,6 +107,18 @@ class Researcher:
                             "stakes": round(stakes, 4)})
         out.sort(key=lambda d: d["uncertainty"] * d["stakes"], reverse=True)
         return out
+
+    def tag_dependencies(self, tagger=None, max_pairs: int = 80) -> int:
+        """Run the inferential-dependency tagger over committed claims -> candidate
+        derives-from/presupposes edges (T0.5). This is what makes load_bearing / VoI / the idea
+        graph light up. Heuristic (free, deterministic) by default in tick(); Claude in the
+        autonomous cycle. Returns the number of NEW candidate edges added."""
+        from .swarm.dependency_tagger import tag_dependencies as _tag
+        n = _tag(self.me.store, tagger, max_pairs=max_pairs)
+        if n:
+            self.me.notebook(f"tagged {n} candidate inferential-dependency edge(s) "
+                             f"(derives-from/presupposes — CANDIDATE, human-auditable)")
+        return n
 
     def idea_graph(self) -> dict:
         """The idea-evolution graph: temporal network of claims (P5)."""
@@ -148,6 +162,7 @@ class Researcher:
         interest → act unbidden by self-testing a flagged contradiction (real first-pass) →
         follow curiosity by retrieving on the newest interest. Initiative, end to end."""
         summary = await self.aread(limit=limit, on_event=on_event)
+        self.tag_dependencies()        # real Claude tagger if key -> the flagship graph lights up
         self.reflect()
         acted = None
         if self._contradictions:                       # act on the sharpest tension
