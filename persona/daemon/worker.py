@@ -49,11 +49,12 @@ async def _reflect(task, queue) -> str:
 
 @handler("observe")
 async def _observe(task, queue) -> str:
-    """Reader slot. P0 records the intent honestly; P1 replaces this with a real full-text read
-    (fetch → clean → extract claims → membrane)."""
+    """Reader: fetch a real paper for this interest and extract structured claims (P1).
+    Runs the blocking fetch+LLM off the event loop so other workers keep going."""
+    import asyncio
+    from ..reading import reader
     interest = task.params.get("interest", task.prompt)
-    log().emit("thought",
-               f"want to read on “{interest}”, but the full-text reader isn't wired yet (P1). "
-               f"recording the intent.", actor="reader", parent_id=task.parent_id,
-               interest=interest)
-    return f"observe(stub): {interest}"
+    res = await asyncio.to_thread(reader.read_interest, interest, parent_id=task.parent_id)
+    if res.get("read"):
+        return f"observe: read {res.get('slug')} ({res.get('n_claims',0)} claims, ${res.get('cost',0):.4f})"
+    return f"observe: {res.get('reason', res.get('error','no-read'))}"
