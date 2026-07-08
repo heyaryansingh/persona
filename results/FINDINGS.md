@@ -262,3 +262,14 @@ caching is inapplicable at this prompt size and is not counted.
 - **Concurrency honesty:** the docstring claimed "hundreds of parallel readers"; the real default
   is a Semaphore of 16, raisable up to the account rate limit. Docstring corrected rather than
   overclaimed. Crash-resume invariant preserved (byte-identical, no double-commit).
+
+---
+
+## v3 T4 (a) — cross-field alignment: embeddings bridge vocabulary, Jaccard can't
+
+`engine/cross_field.similarity` was lexical Jaccard, which scores same-mechanism / different-
+vocabulary pairs ~0 (its one job — bridging subfields — it couldn't do). Now embedding cosine
+(MiniLM) by default, Jaccard fallback. `experiments/exp_cross_field.py` (5 synonymous disjoint-
+vocab pairs vs 5 unrelated): embedding synonymous mean **0.509** vs unrelated **0.016**
+(separation +0.493, separates 10/10 at thr 0.20); Jaccard scores every synonymous pair **0.000**.
+The vocabulary-bridging claim (BUILD_PLAN 3.6) is now real and validated.
