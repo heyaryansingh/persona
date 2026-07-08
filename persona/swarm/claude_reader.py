@@ -87,7 +87,8 @@ class ClaudeExtractor:
         for block in resp.content:
             if block.type == "tool_use":
                 raw = block.input.get("claims", []) or []
-        group = doc.group or doc.source
+        from ..ingest.independence import independence_group
+        group = independence_group(doc)
         out: list[Candidate] = []
         for c in raw:
             if not isinstance(c, dict):

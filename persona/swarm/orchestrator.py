@@ -56,7 +56,8 @@ class ReadLedger:
 def candidates_from_claims(doc, raw: list, canon=None) -> list[Candidate]:
     """Build membrane Candidates from raw Claude claim dicts — via the SHARED build_candidate
     (same effect-sign + canonicalization as every other extractor path)."""
-    group = doc.group or doc.source
+    from ..ingest.independence import independence_group
+    group = independence_group(doc)
     out = []
     for c in raw:
         if not isinstance(c, dict):

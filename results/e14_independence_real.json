@@ -1,0 +1,11 @@
+{
+  "n_docs": 180,
+  "distinct_journals": 103,
+  "distinct_senior_authors": 166,
+  "journals_hosting_multiple_labs": 27,
+  "labs_spanning_multiple_journals": 7,
+  "worst_undercount_journal_labs": 9,
+  "worst_echo_lab": "shi j",
+  "worst_echo_journal_span": 2,
+  "verdict": "PASS: journal-grouping is miscalibrated BOTH ways (collapses independent labs AND splits one lab's echo); senior-author grouping fixes both"
+}

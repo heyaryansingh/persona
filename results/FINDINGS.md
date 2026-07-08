@@ -171,3 +171,25 @@ legitimate hypothesis-*ranker*, not ground truth.
 dependency + idea-graph views keep their "E6 gate not passed" labels; these edges rank where
 a human should *look*, they don't assert dependency as fact. This is the predicted
 human-in-the-loop downgrade, now quantified rather than assumed.
+
+---
+
+## v3 T1.1 — evidential independence: senior-author, not journal (E14 made real)
+
+Audit #4: convergence counted distinct JOURNALS. `exp_e14_independence.py` already proved the
+membrane gate counts distinct *groups* (not raw agreement) on synthetic labels; the open
+question was whether the group KEY is right. `exp_e14_independence_real.py` answers it on 180
+real Europe PMC papers (3 Alzheimer's queries):
+
+- **Under-count:** 27 journals each host ≥2 independent labs. Worst: *Alzheimer's & Dementia*
+  collapses **9 distinct labs into a single "independent source"** — journal-grouping erases
+  most real independence in a popular venue.
+- **Over-count (echo):** 7 labs publish across ≥2 journals. Worst: one senior author spans 2
+  journals → journal-grouping credits that single lab with 2 "independent" votes.
+
+Journal is therefore wrong in **both** directions. Independence is now keyed on the **senior
+(last) author** (`persona/ingest/independence.py`, `independence_group()`), the cheapest
+high-signal lab proxy — cross-batch stable and deterministic. It splits co-journal labs and
+merges a lab's cross-journal echo. Last-name collisions between real labs *under*-count (the
+safe, harder-to-converge direction for an anti-slop membrane). Author-set-overlap and
+citation-graph screens remain a future refinement; senior-author is the load-bearing fix.

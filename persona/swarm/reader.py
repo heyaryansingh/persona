@@ -106,8 +106,9 @@ class HeuristicExtractor:
         ])]
 
     def extract(self, doc: Document) -> list[Candidate]:
+        from ..ingest.independence import independence_group
         text = f"{doc.title}. {doc.text}"
-        group = doc.group or doc.source
+        group = independence_group(doc)
         out: list[Candidate] = []
         for sent in re.split(r"(?<=[.!?])\s+", text):
             low = sent.lower()
