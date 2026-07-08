@@ -19,3 +19,6 @@ Thumbs.db
 
 # demo runs
 runs/
+
+# v4 runtime mind (has/gets its own git for artifact versioning; not part of main repo)
+persona-workspace/

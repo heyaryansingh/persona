@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Persona — a mind at work</title>
+<style>
+  :root{
+    --bg:#0c0d10; --panel:#111319; --line:#1e212b; --ink:#c9cdd6; --dim:#6b7180;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --live:#4fd0a0; --human:#e07a4f; --spawn:#8a9cff; --think:#c9cdd6; --err:#e5544b; --claim:#e6c86e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px}
+  body{display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.02em}
+  header .dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 10px var(--live);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  header .status{color:var(--dim);margin-left:auto;font-size:11.5px}
+  .seed{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);align-items:center}
+  .seed input{flex:1;background:#0a0b0e;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:7px 10px;border-radius:5px}
+  .seed button{background:#191c24;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);padding:7px 14px;border-radius:5px;cursor:pointer}
+  .seed button:hover{border-color:var(--spawn);color:#fff}
+  .seed label{color:var(--dim);font-size:11px}
+  main{flex:1;overflow-y:auto;padding:8px 0 40px}
+  .row{display:flex;gap:12px;padding:3px 18px;line-height:1.5;border-left:2px solid transparent}
+  .row:hover{background:#0f1116}
+  .row .t{color:#4a4f5c;flex-shrink:0;font-size:11px;padding-top:1px}
+  .row .tag{flex-shrink:0;width:78px;text-transform:uppercase;font-size:10px;letter-spacing:.06em;padding-top:1px}
+  .row .msg{flex:1;white-space:pre-wrap;word-break:break-word}
+  .row .actor{color:var(--dim);font-size:11px}
+  .row.child{padding-left:40px}
+  .think .tag{color:var(--think)} .think{border-left-color:#2a2e38}
+  .spawn .tag{color:var(--spawn)} .spawn .msg{color:#aab4ff} .spawn{border-left-color:var(--spawn)}
+  .schedule .tag,.lease .tag,.boot .tag{color:var(--dim)} .schedule .msg,.lease .msg{color:var(--dim)}
+  .error .tag,.error .msg{color:var(--err)} .error{border-left-color:var(--err)}
+  .claim .tag{color:var(--claim)}
+  .seedev .tag{color:var(--human)} .seedev .msg{color:var(--human)}
+  .boot .msg{color:var(--live)}
+  footer{padding:6px 18px;border-top:1px solid var(--line);color:var(--dim);font-size:11px;background:var(--panel)}
+</style>
+</head>
+<body>
+  <header>
+    <span class="dot"></span>
+    <h1>PERSONA</h1>
+    <span class="status" id="status">connecting…</span>
+  </header>
+  <div class="seed">
+    <label>seed interests</label>
+    <input id="interests" placeholder="e.g. protein folding, superconductivity, ant colony optimization" />
+    <button id="seedbtn">spawn / seed</button>
+  </div>
+  <main id="stream"></main>
+  <footer id="foot">live thought stream — the daemon is always active; watch it think.</footer>
+
+<script>
+const TYPE_CLASS = {thought:"think",spawn:"spawn",schedule:"schedule",lease:"lease",boot:"boot",
+  error:"error",claim:"claim",belief_update:"claim",seed:"seedev",shutdown:"boot",read:"think",
+  tool:"think",escalate:"seedev"};
+const stream = document.getElementById("stream");
+const statusEl = document.getElementById("status");
+const MAX_ROWS = 1200;
+
+function fmtTime(iso){ try{ return new Date(iso).toLocaleTimeString([], {hour12:false}); }catch{ return ""; } }
+function addEvent(e){
+  const div = document.createElement("div");
+  div.className = "row " + (TYPE_CLASS[e.type] || "think") + (e.parent_id ? " child" : "");
+  const near = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 80;
+  div.innerHTML =
+    `<span class="t">${fmtTime(e.ts)}</span>`+
+    `<span class="tag">${e.type}</span>`+
+    `<span class="msg">${escapeHtml(e.message)} <span class="actor">· ${escapeHtml(e.actor||"")}</span></span>`;
+  stream.appendChild(div);
+  while (stream.childNodes.length > MAX_ROWS) stream.removeChild(stream.firstChild);
+  if (near) stream.scrollTop = stream.scrollHeight;
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+const es = new EventSource("/api/stream");
+es.onmessage = (m)=>{ try{ addEvent(JSON.parse(m.data)); }catch{} };
+es.onopen = ()=> statusEl.textContent = "● live";
+es.onerror = ()=> statusEl.textContent = "reconnecting…";
+
+async function refreshStatus(){
+  try{
+    const s = await (await fetch("/api/status")).json();
+    const q = s.queue||{};
+    statusEl.textContent = `● live · ${s.workers} workers · queue ${q.pending||0} pending / ${q.done||0} done`
+      + (s.seeded ? "" : " · not seeded");
+  }catch{}
+}
+setInterval(refreshStatus, 2000); refreshStatus();
+
+document.getElementById("seedbtn").onclick = async ()=>{
+  const v = document.getElementById("interests").value;
+  if(!v.trim()) return;
+  await fetch("/api/seed",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({interests:v})});
+  document.getElementById("interests").value = "";
+};
+</script>
+</body>
+</html>

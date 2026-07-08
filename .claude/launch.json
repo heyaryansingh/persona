@@ -2,16 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "ui",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "ui", "run", "dev"],
-      "autoPort": true,
-      "port": 5173
-    },
-    {
-      "name": "persona-offline",
+      "name": "persona-v4",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["scripts/serve_offline.py"],
+      "runtimeArgs": ["-m", "persona", "--port", "8137"],
       "port": 8137
     }
   ]

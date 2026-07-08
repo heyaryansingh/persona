@@ -1,1 +1,1 @@
-"""HTTP/SSE API exposing the Researcher to the UI (BUILD_PLAN §6). See app.py."""
+"""FastAPI surface: runs the daemon, streams the live-thought events, serves the UI."""

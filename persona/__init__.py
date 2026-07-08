@@ -1,12 +1,8 @@
-"""Persona — a persistent synthetic researcher.
+"""Persona v4 — an always-on, blank-slate autonomous researcher.
 
-Package layout (see planning/PHASE0_PLAN.md §10.1):
-  store        bi-temporal, provenance-typed belief-graph (this milestone)
-  self_state   living-doc self: identity/agenda/beliefs/notebook/errors (this milestone)
-  swarm        bounded read-only agents (next)
-  membrane     adaptive commit policy + typed contradiction (next)
-  loops        inner/outer/initiative/delegation/self_test/artifact (next)
-  engine       trajectory/dependency/fragility/experiment_value/silence/cross_field (next)
+Rebuilt ground-up (see planning/ + the approved v4 plan). The design: a small durable SELF on
+disk (persona-workspace/self/*.md), a never-idle daemon that continuously spawns fresh-context
+sub-agents to read at scale and do real work, a membrane that admits only convergent independent
+evidence into a bi-temporal knowledge graph, and a live-thought UI you can watch it think in.
 """
-
-__version__ = "0.0.1"
+__version__ = "4.0.0"
