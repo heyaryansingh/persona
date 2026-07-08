@@ -29,9 +29,10 @@ def test_loop_closes_and_is_human_gated():
     # no write without human sign-off
     assert apply_result_with_signoff(s, res, human_ok=False, truth=1) is None
     assert s.get_claim("k") is None
-    # with sign-off -> written as TESTED and anchored
+    # with sign-off -> written and anchored; a REPLAY result is HUMAN_CONFIRMED (not TESTED,
+    # since no data was computed — provenance honesty, v3 T0.3)
     c = apply_result_with_signoff(s, res, human_ok=True, truth=1)
-    assert c.provenance_state == "TESTED" and c.anchor
+    assert c.provenance_state == "HUMAN_CONFIRMED" and c.anchor
     s.close()
 
 
