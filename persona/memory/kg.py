@@ -1,0 +1,171 @@
+"""Temporal knowledge graph over FalkorDB (v4 P2).
+
+The authoritative structured belief store. Direct Cypher (not Graphiti's LLM-extraction path —
+we extract ourselves, cheaply; see the v4 plan's experiment #1). Implements the epistemic ideas
+the rebuild keeps:
+- **Claim identity = (subject, relation, object, effect_sign).** Opposing signs on the same
+  (subject, object) pair do NOT merge — they get a CONTRADICTS edge.
+- **Independence by lab** (senior affiliation), not raw source count — citation echo can't inflate.
+- **Provenance-typed** (READ/INFERRED/TESTED/HUMAN_CONFIRMED) with an anchor flag so cheap
+  evidence can't overwrite verified knowledge.
+- **Bi-temporal**: `ingest_time` (when observed) + `valid_from/valid_to` (when true).
+
+Nodes: Entity{name}, Claim{claim_id, subject, object, relation, effect_sign, pair_key,
+support_count, independent_source_count, confidence, provenance, anchored, ingest_time,
+valid_from, valid_to}, Source{slug, lab, title, year}.
+Edges: (Claim)-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(Entity), (Claim)-[:SUPPORTED_BY]->(Source),
+(Claim)-[:CONTRADICTS]->(Claim).
+"""
+from __future__ import annotations
+
+import hashlib
+import os
+from datetime import datetime, timezone
+
+from .. import config
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def pair_key(subject: str, obj: str) -> str:
+    s = " ".join((subject or "").lower().split())
+    o = " ".join((obj or "").lower().split())
+    return "pr_" + hashlib.sha1(f"{s}|{o}".encode()).hexdigest()[:12]
+
+
+def lab_of(affiliations: list, slug: str) -> str:
+    """Independence unit: the senior/first affiliation, else the source itself."""
+    if affiliations:
+        return "lab:" + " ".join(str(affiliations[0]).lower().split())
+    return "src:" + slug
+
+
+class KG:
+    def __init__(self, host: str = None, port: int = None, name: str = None):
+        from falkordb import FalkorDB
+        self.host = host or os.environ.get("PERSONA_FALKOR_HOST", "127.0.0.1")
+        self.port = int(port or os.environ.get("PERSONA_FALKOR_PORT", "6379"))
+        self.name = name or os.environ.get("PERSONA_KG_NAME", "persona")
+        self.db = FalkorDB(host=self.host, port=self.port)
+        self.g = self.db.select_graph(self.name)
+        self._init()
+
+    def _q(self, cypher: str, params: dict = None):
+        return self.g.query(cypher, params or {})
+
+    def _init(self):
+        for label, prop in (("Entity", "name"), ("Claim", "claim_id"), ("Source", "slug"),
+                            ("Claim", "pair_key")):
+            try:
+                self._q(f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")
+            except Exception:
+                pass   # already exists
+
+    # ---------------------------------------------------------------- writes
+    def upsert_source(self, meta: dict) -> None:
+        self._q(
+            "MERGE (s:Source {slug:$slug}) "
+            "ON CREATE SET s.title=$title, s.year=$year, s.lab=$lab, s.affiliations=$affs",
+            {"slug": meta["slug"], "title": (meta.get("title") or "")[:200],
+             "year": meta.get("year") or 0,
+             "lab": lab_of(meta.get("affiliations") or [], meta["slug"]),
+             "affs": meta.get("affiliations") or []})
+
+    def add_claim(self, rec: dict, source_slug: str) -> None:
+        """Add one observation of a claim from one source; (re)compute support + independence."""
+        subj, obj = rec["subject"], rec["object"]
+        pk = pair_key(subj, obj)
+        params = {"cid": rec["claim_id"], "subj": subj, "obj": obj,
+                  "rel": rec.get("relation", ""), "sign": rec.get("effect_sign", "na"),
+                  "pk": pk, "conf": float(rec.get("confidence", 0.6) or 0.6),
+                  "prov": rec.get("provenance", "READ"), "now": _now(), "slug": source_slug}
+        self._q(
+            """
+            MERGE (subj:Entity {name:$subj})
+            MERGE (obj:Entity {name:$obj})
+            MERGE (c:Claim {claim_id:$cid})
+              ON CREATE SET c.subject=$subj, c.object=$obj, c.relation=$rel, c.effect_sign=$sign,
+                            c.pair_key=$pk, c.provenance=$prov, c.anchored=false,
+                            c.ingest_time=$now, c.valid_from=$now, c.valid_to=null,
+                            c.conf_sum=$conf, c.support_count=0, c.independent_source_count=0,
+                            c.confidence=$conf
+              ON MATCH SET c.conf_sum = c.conf_sum + $conf
+            MERGE (c)-[:ABOUT_SUBJECT]->(subj)
+            MERGE (c)-[:ABOUT_OBJECT]->(obj)
+            WITH c
+            MATCH (s:Source {slug:$slug})
+            MERGE (c)-[:SUPPORTED_BY]->(s)
+            """, params)
+        # recompute support + independence (distinct labs) + running-mean confidence
+        self._q(
+            """
+            MATCH (c:Claim {claim_id:$cid})-[:SUPPORTED_BY]->(s:Source)
+            WITH c, count(s) AS n, count(DISTINCT s.lab) AS labs
+            SET c.support_count = n, c.independent_source_count = labs,
+                c.confidence = c.conf_sum / n
+            """, {"cid": rec["claim_id"]})
+
+    def link_contradictions(self, pair_key_val: str) -> int:
+        """Any two claims on the same (subject,object) pair with opposite signs contradict."""
+        r = self._q(
+            """
+            MATCH (a:Claim {pair_key:$pk}), (b:Claim {pair_key:$pk})
+            WHERE a.effect_sign='+' AND b.effect_sign='-'
+            MERGE (a)-[:CONTRADICTS]->(b)
+            MERGE (b)-[:CONTRADICTS]->(a)
+            RETURN count(*) AS n
+            """, {"pk": pair_key_val})
+        return int(r.result_set[0][0]) if r.result_set else 0
+
+    def anchor(self, claim_id: str, provenance: str, truth: bool) -> None:
+        """Human/tested sign-off pins a belief (anchor write-policy)."""
+        self._q(
+            "MATCH (c:Claim {claim_id:$cid}) SET c.anchored=true, c.provenance=$prov, "
+            "c.valid_to = CASE WHEN $truth THEN null ELSE $now END",
+            {"cid": claim_id, "prov": provenance, "truth": truth, "now": _now()})
+
+    # ---------------------------------------------------------------- reads
+    def stats(self) -> dict:
+        r = self._q("MATCH (c:Claim) RETURN count(c)")
+        e = self._q("MATCH (n:Entity) RETURN count(n)")
+        x = self._q("MATCH (:Claim)-[r:CONTRADICTS]->(:Claim) RETURN count(r)")
+        return {"claims": r.result_set[0][0], "entities": e.result_set[0][0],
+                "contradiction_edges": x.result_set[0][0]}
+
+    def beliefs(self, min_independent: int = 2, min_conf: float = 0.5, limit: int = 200) -> list:
+        r = self._q(
+            """
+            MATCH (c:Claim)
+            WHERE c.independent_source_count >= $k AND c.confidence >= $mc AND c.valid_to IS NULL
+            RETURN c.claim_id, c.subject, c.relation, c.object, c.effect_sign,
+                   c.independent_source_count, c.confidence, c.provenance, c.anchored
+            ORDER BY c.independent_source_count DESC, c.confidence DESC LIMIT $lim
+            """, {"k": min_independent, "mc": min_conf, "lim": limit})
+        cols = ["claim_id", "subject", "relation", "object", "effect_sign",
+                "independent_sources", "confidence", "provenance", "anchored"]
+        return [dict(zip(cols, row)) for row in r.result_set]
+
+    def contradictions(self, limit: int = 100) -> list:
+        r = self._q(
+            """
+            MATCH (a:Claim)-[:CONTRADICTS]->(b:Claim)
+            WHERE a.effect_sign='+' AND b.effect_sign='-'
+            RETURN a.subject, a.object, a.independent_source_count, b.independent_source_count,
+                   a.claim_id, b.claim_id LIMIT $lim
+            """, {"lim": limit})
+        cols = ["subject", "object", "pos_sources", "neg_sources", "pos_claim", "neg_claim"]
+        return [dict(zip(cols, row)) for row in r.result_set]
+
+    def graph_snapshot(self, limit: int = 2000) -> dict:
+        """Nodes+edges for the UI (entities + claim topology)."""
+        nodes = self._q(
+            "MATCH (e:Entity) RETURN e.name LIMIT $lim", {"lim": limit}).result_set
+        edges = self._q(
+            """MATCH (c:Claim)-[:ABOUT_SUBJECT]->(s:Entity), (c)-[:ABOUT_OBJECT]->(o:Entity)
+               RETURN s.name, o.name, c.effect_sign, c.independent_source_count, c.confidence
+               LIMIT $lim""", {"lim": limit}).result_set
+        return {"nodes": [{"id": n[0]} for n in nodes],
+                "edges": [{"source": e[0], "target": e[1], "sign": e[2],
+                           "independent_sources": e[3], "confidence": e[4]} for e in edges]}

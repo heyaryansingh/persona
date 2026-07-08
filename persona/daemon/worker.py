@@ -44,7 +44,19 @@ async def _reflect(task, queue) -> str:
         log().emit("spawn", f"queued a reader for “{name}”", actor="self",
                    parent_id=ev, interest=name)
         spawned += 1
+    queue.enqueue("harvest", priority=3, parent_id=ev)   # digest new reads into the belief graph
     return f"reflect: spawned {spawned} reader task(s)"
+
+
+@handler("harvest")
+async def _harvest(task, queue) -> str:
+    """Digest new reads: claims.jsonl -> membrane -> temporal KG (beliefs + contradictions)."""
+    import asyncio
+    from ..memory import membrane
+    res = await asyncio.to_thread(membrane.harvest, 2, task.parent_id)
+    if not res.get("ok"):
+        return f"harvest: {res.get('reason')}"
+    return f"harvest: +{res['ingested']} sources, {res['beliefs']} beliefs, {res['new_contradictions']} new contradiction(s)"
 
 
 @handler("observe")

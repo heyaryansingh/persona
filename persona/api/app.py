@@ -49,6 +49,17 @@ def events(after: int = 0, limit: int = 500):
     return {"events": log().since(after, limit), "latest": log().latest_id()}
 
 
+@app.get("/api/kg")
+def kg():
+    """Knowledge-graph stats + beliefs + contradictions + a snapshot for the graph view."""
+    from ..memory.membrane import get_kg
+    g = get_kg()
+    if g is None:
+        return {"available": False}
+    return {"available": True, "stats": g.stats(), "beliefs": g.beliefs(min_independent=1),
+            "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
+
+
 @app.get("/api/self")
 def get_self():
     return {"seeded": selfmind.is_seeded(), "interests": selfmind.interests(),
