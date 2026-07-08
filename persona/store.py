@@ -249,6 +249,12 @@ class BeliefStore:
             "SELECT COUNT(DISTINCT grp) AS n FROM sources WHERE claim_id=?", (claim_id,)
         ).fetchone()["n"]
 
+    def sources(self, claim_id: str) -> list:
+        """All sources for a claim as dict(ref, group)."""
+        return [{"ref": r["ref"], "group": r["grp"]} for r in self._db.execute(
+            "SELECT ref, grp FROM sources WHERE claim_id=? ORDER BY source_id", (claim_id,)
+        ).fetchall()]
+
     # ----------------------------------------------------------------- edges
     def add_edge(self, src: str, dst: str, relation: str, confidence: float = 0.5) -> None:
         if relation not in RELATIONS:
