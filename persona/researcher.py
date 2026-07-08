@@ -86,6 +86,11 @@ class Researcher:
                 break
         return top.__dict__ if top else {}
 
+    def idea_graph(self) -> dict:
+        """The idea-evolution graph: temporal network of claims (P5)."""
+        from .graph import build_idea_graph
+        return build_idea_graph(self.me.store)
+
     def retrieve(self, question: str, fetch: int = 40, k: int = 10, mode: str = "hybrid") -> list:
         """Pull the k most relevant papers on any question (v2, P4): fetch a broad candidate
         set, then rerank by hybrid semantic+lexical relevance. Lets Persona read on demand."""

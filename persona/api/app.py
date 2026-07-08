@@ -72,6 +72,11 @@ def dependency():
     return researcher().dependency_graph()
 
 
+@app.get("/api/idea-graph")
+def idea_graph():
+    return researcher().idea_graph()
+
+
 @app.get("/api/experiments")
 def experiments():
     r = researcher()
