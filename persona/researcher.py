@@ -28,7 +28,8 @@ class Researcher:
                  seed_interests: Optional[list[str]] = None,
                  adapter: Optional[SourceAdapter] = None,
                  extractor: Optional[Extractor] = None,
-                 weights: Optional[TasteWeights] = None):
+                 weights: Optional[TasteWeights] = None,
+                 fast_quorum: Optional[int] = None, confidence_floor: Optional[float] = None):
         self.me = Self(root).hydrate()
         self.name = name
         self.disposition = disposition
@@ -36,7 +37,13 @@ class Researcher:
         self.weights = weights or TasteWeights()
         self.adapter = adapter or EuropePMCAdapter(cache=DiskCache("tests/fixtures/ingest"))
         self.extractor = extractor or HeuristicExtractor(entities=self.seed_interests)
-        self.membrane = Membrane(self.me.store)
+        # disposition -> membrane strictness: a PURE skeptic demands more independent
+        # convergence; a balanced/exploratory disposition commits on the normal quorum.
+        d = disposition.lower()
+        pure_skeptic = "skeptic" in d and "explor" not in d
+        fq = fast_quorum if fast_quorum is not None else (3 if pure_skeptic else 2)
+        floor = confidence_floor if confidence_floor is not None else (0.6 if pure_skeptic else 0.5)
+        self.membrane = Membrane(self.me.store, fast_quorum=fq, confidence_floor=floor)
         self.inbox = HandoffInbox(self.me.store)
         self._last = None
         self._contradictions = []
@@ -62,6 +69,21 @@ class Researcher:
         return {"docs_read": summary.docs_read, "candidates": summary.candidates,
                 "committed": summary.committed, "held": summary.held,
                 "contradictions": summary.contradictions, "strict": summary.strict}
+
+    def reflect(self) -> dict:
+        """Outer loop (BUILD_PLAN 2.2/2.3): recompute agenda, act unbidden, spawn interests.
+        Narrates initiative to the notebook. Returns the top agenda item."""
+        agenda = build_agenda(self.me.store, self._contradictions, self._interests(), self.weights)
+        top = agenda[0] if agenda else None
+        if top:
+            self.me.notebook(f"reflected → top of agenda: [{top.kind}] {top.target} ({top.why})")
+        # self-spawn an interest where the graph is most alive (uncertain + load-bearing + moving)
+        for i in propose_interests(self.me.store, top_k=1):
+            if i.name.lower() not in [s.lower() for s in self.seed_interests]:
+                self.seed_interests.append(i.name)
+                self.me.notebook(f"spawned interest: {i.name} (weight {i.weight}) — {i.reason}")
+                break
+        return top.__dict__ if top else {}
 
     def close(self):
         self.me.close()

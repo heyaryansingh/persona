@@ -9,9 +9,13 @@ passes, forecasts render DESCRIPTIVE and dependency edges render as CANDIDATE, n
 from .trajectory import Trajectory, trajectory, state_of_argument
 from .dependency import load_bearing, fragility_cascade
 from .experiment_value import ExperimentCandidate, value_of_information, cost_tier, rank_experiments
+from .silence import entity_year_counts, abandonment_score, detect_abandoned
+from .cross_field import mechanism_tokens, similarity, align
 
 __all__ = [
     "Trajectory", "trajectory", "state_of_argument",
     "load_bearing", "fragility_cascade",
     "ExperimentCandidate", "value_of_information", "cost_tier", "rank_experiments",
+    "entity_year_counts", "abandonment_score", "detect_abandoned",
+    "mechanism_tokens", "similarity", "align",
 ]
