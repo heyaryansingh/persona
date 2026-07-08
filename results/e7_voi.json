@@ -1,0 +1,125 @@
+{
+  "rows": [
+    {
+      "pair": [
+        "APOE",
+        "Alzheimer disease"
+      ],
+      "genetic": 0.8570305637566988,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "LDLR",
+        "familial hypercholesterolemia"
+      ],
+      "genetic": 0.941467962255402,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "BRCA1",
+        "breast carcinoma"
+      ],
+      "genetic": 0.9213780461793171,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "CFTR",
+        "cystic fibrosis"
+      ],
+      "genetic": 0.9678771377226557,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "HTT",
+        "Huntington disease"
+      ],
+      "genetic": 0.7961401426623895,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "PCSK9",
+        "hypercholesterolemia"
+      ],
+      "genetic": 0.9233009416638073,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "IL23R",
+        "inflammatory bowel disease"
+      ],
+      "genetic": 0.9188546307898854,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "HBB",
+        "beta thalassemia"
+      ],
+      "genetic": 0.9388727178186385,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "LRRK2",
+        "Parkinson disease"
+      ],
+      "genetic": 0.7955137028211429,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "SOD1",
+        "amyotrophic lateral sclerosis"
+      ],
+      "genetic": 0.9441536739016473,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "TREM2",
+        "Alzheimer disease"
+      ],
+      "genetic": 0.8582148201474947,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    },
+    {
+      "pair": [
+        "SNCA",
+        "Parkinson disease"
+      ],
+      "genetic": 0.8558567379685676,
+      "load_bearing": 0.0,
+      "calibrated_p": 0.6899744811276125,
+      "voi": 0.0
+    }
+  ],
+  "verdict": "ILL-POSED / DESCRIPTIVE: a flat set of gene-disease associations has no inferential hierarchy, so load_bearing is empty and VoI is 0 \u2014 the VoI-vs-genetic-prior comparison conflates two different objects (structural centrality vs evidence strength). VoI is validated STRUCTURALLY by E6 (load_bearing Spearman 0.38-0.50 vs gold foundational rank), not by the OT prior, and cannot be promoted to 'predicts experimental payoff' without outcome data. Honest reversal: E7 as originally framed is not a valid test."
+}

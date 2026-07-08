@@ -273,3 +273,26 @@ vocabulary pairs ~0 (its one job — bridging subfields — it couldn't do). Now
 vocab pairs vs 5 unrelated): embedding synonymous mean **0.509** vs unrelated **0.016**
 (separation +0.493, separates 10/10 at thr 0.20); Jaccard scores every synonymous pair **0.000**.
 The vocabulary-bridging claim (BUILD_PLAN 3.6) is now real and validated.
+
+---
+
+## v3 T4 (b) — E5 & E7: descriptive engine stays descriptive (honest gates, on real data)
+
+**E7 (VoI vs Open Targets genetic prior)** — `experiments/exp_e7_voi.py`, 12 gene-disease claims,
+all resolving to real OT genetic scores. Finding: the comparison is **ill-posed**. VoI = load_bearing
+× uncertainty operates on the INFERENTIAL-dependency hierarchy of mechanistic claims; a flat set of
+gene-disease *associations* are siblings with no hierarchy, so `load_bearing` is empty and VoI is 0
+for all — there is no meaningful correlation to report (reporting one would be an artifact). VoI is
+validated STRUCTURALLY by E6 (load_bearing Spearman 0.38–0.50 vs gold foundational rank), not by the
+genetic prior, and cannot be promoted to "predicts experimental payoff" without experimental-outcome
+data. Honest reversal: E7 as originally framed is not a valid test.
+
+**E5 (trajectory vs strong static baseline)** — `experiments/exp_e5_trajectory.py`, 397 real dated
+Europe PMC papers replayed in year order (heuristic reader), cutoff 2022. Finding: **INCONCLUSIVE →
+stays DESCRIPTIVE**. Only 1 of 32 committed beliefs had converged *by the cutoff* with a defined
+trajectory (the corpus is back-loaded to 2023–24), far below the ≥8 needed for a stable estimate.
+The trajectory forecast therefore stays honestly labelled "descriptive (E5 gate not passed)" on the
+argument screen. Passing E5 needs a richer real-Claude corpus spanning more years; not gold-plated.
+
+Net: both engine "predictive" claims remain **descriptive with evidence attached** — exactly the
+plan's allowed outcome, and consistent with what the UI already tells the user.
