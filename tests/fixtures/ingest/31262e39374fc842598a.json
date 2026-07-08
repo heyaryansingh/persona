@@ -1,0 +1,173 @@
+{
+  "cached_at": 1783532184.609401,
+  "value": [
+    {
+      "doc_id": "MED:42377782",
+      "title": "Neuroinflammation and Tauopathies.",
+      "text": "Alzheimer's disease (AD) and related Tauopathies are neurodegenerative disorders characterized by the accumulation of hyperphosphorylated Tau protein in neurofibrillary tangles and frequently accompanied by amyloid-\u03b2 (A\u03b2) pathology.<sup>1</sup> While Tau aggregation has long been considered a primary driver of neurodegeneration, growing evidence highlights neuroinflammation as a central and early contributor to disease onset and progression. This review combines current knowledge on the molecular and cellular mechanisms linking Tau pathology to chronic neuroinflammatory signaling, with a particular focus on microglia- and astrocyte-mediated responses. We discuss how dysregulated kinase-phosphatase balance, impaired proteostasis, and oxidative stress promote Tau hyperphosphorylation and aggregation, and how these processes are amplified by innate immune pathways, including TREM2-DAP12, toll-like receptors, GPCR signaling, the PI3K-Akt/PTEN axis, Wnt/\u03b2-catenin signaling, and the NOD-like receptor family pyrin domain-containing 3 (NLRP3) inflammasome. Special emphasis is placed on the transition from early protective glial responses to chronic inflammation, which fosters prion-like propagation of Tau and accelerates synaptic dysfunction and neuronal loss. Finally, we evaluate emerging therapeutic strategies aimed at modulating neuroinflammatory pathways and restoring signaling homeostasis, highlighting their potential to slow or halt disease progression. Collectively, this review positions neuroinflammation as a critical mechanistic link between Tau pathology and neurodegeneration, underscoring its relevance as a therapeutic target in AD and other Tauopathies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11033-026-12253-4",
+      "year": 2026,
+      "group": "Molecular biology reports",
+      "meta": {
+        "authors": "Zeenny MN, Salame I, Maatouk L, Akoury E.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1247643",
+      "title": "Microglial Dysregulation Underlying Neuroinflammatory Pathogenesis in Alzheimer\u2019s Disease and Related Dementias",
+      "text": "Neuroinflammation is considered as one of the core pathogenic factors of neurodegeneration in Alzheimer disease (AD) and related dementias (RD). It is also associated with other two hallmarks of AD dementia, i.e., amyloid beta (Ab) and neurofibrillary tangles (NFT), and increasingly considered as the third hallmark of AD. Abnormality in microglial pathway plays a crucial role in the neuroinflammation of AD and RD. Microglia dysfunction is linked to many neuroinflammatory signaling pathways towards the progress of developing neurodegeneration resulting to cognitive deficits or dementia. Currently, several therapeutic approaches aim to target inflammatory regulators for AD treatment, and microglia is considered as one of the vital targets. In this article we intend to highlight and discuss various microglia mediated signaling pathways that link to chronic neuroinflammation and cognitive dysfunction/dementia in AD and other diseases. This could help us to understand the degree of microglial association with the disease pathophysiology through analyzing various studies in last few decades including the latest reports. We also aim to highlight the pathways that are more and less conclusively established and determine possible pathways which may help in further exploration and narrowing down or expanding the area of studies that requires further research. AD and RD are one of the most leading causes of death in the world and there is no appropriate drug available for cure or prevention of the disease. Further research is an absolute requirement for better understanding the mechanisms underlying the disease pathophysiology and better planning of basic/therapeutic research and clinical trials. We also provide up-to-date clinical trials that used inflammatory targeting drugs and discuss the failures and promising drug targets.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.20944/preprints202606.0446.v1",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Singh AS, Naqvi A, Takhellambam Chanu M.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42365367",
+      "title": "Csf1r-mediated depletion of myeloid cells prevents dopaminergic neuron loss during chronic colitis.",
+      "text": "Inflammatory bowel disease (IBD) predisposes to neuropsychiatric comorbidity and increases the risk of Parkinson's Disease (PD). Although the gut-immune-brain axis was proposed as a link between IBD and PD and a driver of PD immunopathogenesis, the regional pattern and single-cell landscape of the brain immune response during colitis and its contribution to PD pathology remain poorly defined. Here, we observe a loss of dopaminergic neurons and synuclein pathology in the substantia nigra pars compacta of adult mice with chronic colitis. By confocal microscopy and integrated multi-omics, we reveal a complex midbrain-specific immune response to chronic colitis. Single-cell mapping of the midbrain immune landscape showed an inflammatory shift of microglial clusters including an expansion of interferon-response microglia, CD8<sup>+</sup> T cell extravasation, and increased numbers of vessel-associated neutrophils. Selective myeloid cell depletion using a colony stimulating factor 1 receptor (Csf1r) inhibitor after colitis onset reduced midbrain microglia by 67% and led to a complete rescue of dopaminergic neuron loss, without affecting mucosal pathology or T cell and neutrophil migration to the midbrain. Collectively, within the complex midbrain immune response to chronic colitis, we demonstrate a causal role of Csf1r-dependent myeloid cells for dopaminergic neurodegeneration. Thus, Csf1r inhibition in IBD may not locally ameliorate colitis, but provide neuroprotection to dopaminergic neurons.These results reveal a novel cellular link between chronic gut-derived peripheral inflammation and midbrain vulnerability and thereby substantially enhance our understanding of the risk for PD related to the gut-immune-brain axis.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1186/s12974-026-03926-9",
+      "year": 2026,
+      "group": "Journal of neuroinflammation",
+      "meta": {
+        "authors": "Kutscherauer RK, Andert M, Stolzer I, Neumaier EE, Dedden M, Kielkowski P, Xiang W, Grotemeyer A, Prinz M, Masuda T, Knobeloch KP, Rothhammer V, Zundler S, Schlachetzki JCM, Winkler J, G\u00fcnther C, S\u00fc\u00df P.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42237690",
+      "title": "Deletion of Robo4 worsens neuroinflammation in a mouse model of Alzheimer's disease.",
+      "text": "Declines in vascular integrity are potential contributors to Alzheimer's disease (AD) as these result in increased blood-brain barrier permeability and, consequently, accelerate neuroinflammation and cognitive impairment. Roundabout guidance receptor 4 (Robo4) is primarily expressed in endothelial cells and stabilizes the vasculature, thereby potentially protecting the brain in AD. To study the effect of Robo4 on neuroinflammation and cognitive function in the context of AD, we compared Robo4 knockout and wild-type mice crossed with mice with and without AD mutations (APP/tau) from heterogeneous age and sex groups. We found that knockout of Robo4 led to greater astrocyte activation, as demonstrated by GFAP content, but this effect depended on the brain region studied. The knockout of Robo4 also led to greater activated microglia, as assessed by Iba1 content, but only in the presence of AD-related mutations. We found that AD mutations, but not Robo4 mutations, were associated with cognitive dysfunction, as measured by a nest-building test. Lastly, there was a non-statistically significant trend toward Robo4 deletion being associated with greater arterial stiffness. In summary, these results demonstrate that Robo4 impacts neuroinflammation and arterial stiffness; however, the impact on neuroinflammation is dependent on the presence/absence of AD-related mutations and the brain region examined.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.14814/phy2.70950",
+      "year": 2026,
+      "group": "Physiological reports",
+      "meta": {
+        "authors": "Cullen AE, Winder NR, Lee B, Krishna Kumaran S, Arora N, Wolf JR, Henson GD, Woltjer RL, Walker AE.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42123994",
+      "title": "Long-Chain Fatty Acids as Drivers of Neuroinflammation in Neurodegeneration: Mechanistic Links to Lipid Peroxidation, Ferroptosis, and Mitochondrial Dysfunction.",
+      "text": "<b>Background:</b> Neurodegenerative diseases (NDs) are mainly considered disorders marked by severe immunometabolic imbalance, characterized by ongoing neuroinflammation and glial activation. While mitochondrial dysfunction and oxidative stress are well-known features, the upstream metabolic factors linking these pathological processes remain poorly understood. <b>Methods:</b> In this review, we examined recent preclinical and clinical studies exploring the connections between lipid metabolism, glial immunometabolism, and regulated cell death pathways. Our focus was on how long-chain fatty acids (LCFAs) facilitate communication among mitochondria, reactive oxygen species (ROS), and ferroptosis in Alzheimer's disease (AD), Parkinson's disease (PD), and amyotrophic lateral sclerosis (ALS). <b>Results</b>: New evidence shifts LCFAs from merely being passive indicators of cellular damage to active, upstream regulators of the neuroimmune response. Existing research shows that excess LCFA intake can overload astrocytic mitochondrial oxidative phosphorylation, leading to abnormal lipid droplet buildup and reactive astrogliosis. This lipid-driven reactivity promotes microglial polarization toward a persistent pro-inflammatory state. Notably, high levels of specific LCFAs, especially arachidonic acid, increase ROS production and lipid peroxidation. This lipotoxic environment ultimately triggers ferroptosis, an iron-dependent form of cell death shared across multiple NDs. <b>Conclusions:</b> The harmful interaction among mitochondrial dysfunction, lipid peroxidation, and ferroptosis is driven by an imbalance in LCFA levels. Addressing current challenges, such as the complex effects of polyunsaturated fatty acid supplementation, requires advanced techniques like single-cell multi-omics and artificial intelligence. Understanding this intricate lipidomic-transcriptomic crosstalk is crucial for moving toward personalized neuroimmunometabolism and developing new treatments to prevent ferroptosis.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3390/nu18091392",
+      "year": 2026,
+      "group": "Nutrients",
+      "meta": {
+        "authors": "Christodoulou RC, Lorentzen L, Eller D, Vassiliou E.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42184948",
+      "title": "Platelet factor 4 prevents neuroinflammation and neurodegeneration in Parkinson's disease model via regulating protocadherin gamma/Pyk2 pathway.",
+      "text": "Recent studies have reported that platelet factor 4 (PF4), also known as platelet-derived exokine CXCL4, is a critical factor in rejuvenating brain ageing and cognitive impairment by attenuating neuroinflammation. Our transcriptomic analysis indicated that 3 protocadherin gamma (Pcdhg) members (Pcdhga10, Pcdhgb4, and Pcdhgb5) were prominently upregulated by PF4 overexpression. This study aims to investigate whether PF4 plays a protective role in the pathogenesis of Parkinson's disease models and explore its underlying molecular mechanism by regulating Pcdhg and its downstream Pyk2. Pcdhg interacts and blocks Pyk2 autophosphorylation (p-Pyk2) and activation. Present study indicated that MPTP treatment decreased Pcdhg while increased p-Pyk2, p-NF-kB, IL-1\u03b2, TNF, and phosphorylated-synuclein in Substantia nigra pars compacta (SNc). Both systemic administration of PF4 via the tail vein and local overexpression of lentiviral PF4 administration increased Pcdhg, decreased p-Pyk2, p-NF-kB, IL-1\u03b2, TNF, and p-synuclein. PF4 also ameliorated the compromised behavioral activity, neuroinflammation, and neurodegeneration in MPTP injected mice PD model. This study also showed that Pcdhg induced by PF4 was mainly expressed in microglia, whereas Pyk2 was expressed in neurons and microglia. Pcdhg was a transmembrane cell adhesion molecule and microglial Pcdhg may contact neurons through extracellular matrix and activate neuronal Pyk2 activation. This study also showed that Pcdhg induced by PF4 was mainly expressed in microglia, whereas Pyk2 was expressed in neurons and microglia. Pcdhg was a transmembrane cell adhesion molecule and microglial Pcdhg may contact neurons through extracellular matrix and activate neuronal Pyk2 activation. Pyk2 inhibitor PF-562271 administration decreased Pyk2, restored the compromised behavioral activity, neuroinflammation, and dopaminergic cell death in MPTP-injected mice. This study demonstrates that blood-borne PF4 prevents neuroinflammation and neurodegeneration in PD models by inducing Pcdhg expression and subsequently blocking Pyk2 activation. This finding highlights that Pcdhg/Pyk2 axis was a key protective molecular mechanism of PF4 in PD and the Pcdhg-Pyk2 pathway could serve as a potential drug target for PD interventions.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.bbi.2026.106832",
+      "year": 2026,
+      "group": "Brain, behavior, and immunity",
+      "meta": {
+        "authors": "Huang P, Liu X, Yang R, Zhang Y, Ye Q, Lin N, Huang E.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42410071",
+      "title": "The Protective Effects of Small-Molecule Compound 0242 Against LPS-Induced Neuroinflammation and in P301S Tau Transgenic Mice.",
+      "text": "Neuroinflammation and tau pathology are central drivers of Alzheimer's disease (AD) progression, necessitating multi-target therapeutic strategies. Here, we evaluated the efficacy and mechanisms of 0242, a novel small-molecule derivative optimized from the berberine scaffold. In lipopolysaccharide (LPS)-stimulated BV-2 microglia, 0242 treatment significantly inhibited cell activation and nitric oxide release without cytotoxicity, while downregulating the mRNA levels of pro-inflammatory cytokines IL-1\u03b2 and TNF-\u03b1. Transcriptomic profiling revealed that 0242 modulated LPS-induced inflammatory gene signatures by enriched core signaling cascades, including NF-\u03baB, TLR, and JAK-STAT and upregulating cytoprotective genes such as ceruloplasmin (Cp) and Bcl2a1b. In vivo, oral administration of 0242 attenuated hippocampal astrocyte and microglial activation in an LPS-induced acute neuroinflammatory mouse model. Furthermore, in female P301S tau transgenic mice, 0242 treatment significantly improved spontaneous locomotor activity and recognition memory. Histological and biochemical analyses confirmed that 0242 suppressed hippocampal glial activation and reduced total tau protein levels in the prefrontal cortex. Collectively, these findings suggest that 0242 may exert potent anti-neuroinflammatory effects by modulating multiple immune signaling cascades and uniquely alleviates tau pathology in AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11064-026-04834-3",
+      "year": 2026,
+      "group": "Neurochemical research",
+      "meta": {
+        "authors": "Suo X, Wan P, Yu J, Zhu X, Tian C, Li S, Sun G, Liu H, Liu S, Geng M, Tian J, Yang W, Zhang Y.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42308924",
+      "title": "D-chiro-inositol modulates brain insulin-related signaling and reduces amyloid burden, neuroinflammation and cognitive decline in preclinical models of Alzheimer's disease.",
+      "text": "Brain metabolic dysregulation and insulin-related signaling are increasingly recognized as contributing factors in Alzheimer's disease (AD) pathogenesis, disrupting amyloid-beta (A\u03b2) proteostasis and exacerbating neuroinflammation, and synaptic failure. However, current therapies yield inconsistent results due to a singular focus on specific targets, bioavailability and safety risks. D-chiro-inositol (DCI) is a natural compound with insulin-mimetic properties that has previously shown promising anti-inflammatory and neuroprotective results. This study investigated the neuroprotective efficacy of DCI using a tripartite approach: physiologically relevant primary neurons derived from App<sup>NL-G-F</sup> knock-in mice, human hAPPswe SH-SY5Y cells, and the aggressive 5xFAD mouse model of AD. Toxicity, pharmacokinetic and pharmacodynamic profiling established DCI's safety and its ability to acutely improve systemic glucose handling. In vitro, DCI enhanced basal AKT and insulin receptor activation and modulated glycogen synthase kinase-3 beta (GSK-3\u03b2) activation, a kinase linked to amyloid precursor protein (APP) processing. This modulation was accompanied by reduced secretion of toxic A\u03b242 species, preservation of neuronal integrity as determined by MAP2 immunostaining, and decreased overall APP protein levels. In vivo, chronic oral DCI administration significantly reduced hippocampal amyloid burden and promoted a shift in microglia from a reactive to a surveilling phenotype, with stronger effects in females. Notably, while DCI resolved microglial reactivity, astrogliosis remained largely unaffected, suggesting a cell-specific immunometabolic mechanism. These improvements translated into rescued recognition memory and normalized disinhibited risk-assessment behavior, indicative of restored hippocampal function. Collectively, DCI acts as a multi-modal agent by modulating insulin-related signaling, downregulating amyloid burden and attenuating neuroinflammation, making it an orally bioavailable candidate for AD therapy.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.biopha.2026.119629",
+      "year": 2026,
+      "group": "Biomedicine & pharmacotherapy = Biomedecine & pharmacotherapie",
+      "meta": {
+        "authors": "Pacheco-S\u00e1nchez B, L\u00f3pez-Gambero AJ, Gavito AL, Rivera P, Su\u00e1rez J, Sanjuan C, Nilsson P, Tambaro S, de Fonseca FR.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1258980",
+      "title": "TSPO PET binding  <i>in vivo</i>  reflects increased phagocytic microglia at  <i>post mortem</i>  in people with frontotemporal dementia",
+      "text": "Brain inflammation is a key feature of frontotemporal dementia (FTD). TSPO PET is widely used as an  in vivo proxy for neuroinflammation, but whether the elevated signal reflects microglial, astrocytic, or vascular pathology is controversial. We paired  ante mortem [  11 C]PK11195 TSPO PET with  post mortem neuropathology in 10 individuals with FTD (5 FTLD-tau, 5 FTLD-TDP) and 5 controls, combining CD68 immunohistochemistry across 17 regions, multiplex immunofluorescence pairing TSPO with microglial/macrophagic (IBA1, CD68), astrocytic (GFAP) and endothelial (CD31) markers, and three-dimensional single-cell reconstruction. CD68 burden was elevated in FTD, concentrated in white matter, and correlated with regional TSPO PET binding across pathologies (\u03b2 = 8.40,  P < 0.001). Only the CD68\u2013TSPO co-localised fraction tracked the PET signal, with no TSPO upregulation per-cell. The elevated TSPO PET signal in FTD likely reflects an increased burden of lysosome-enriched CD68+ microglia, supporting TSPO PET as a microglial-burden biomarker in both FTLD-tau and FTLD-TDP.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.64898/2026.06.22.26356176",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Vontobel DS, Lai KO, Bacioglu M, Nolan G, Maddison DC, Adamski A, Goddard J, Shapiro NL, Crook H, Fryer T, Hong Y, Wijesinghe S, Aigbirhio F, Avezov E, Allinson KSJ, Quaegebeur A, O\u2019Brien JT, Rowe JB, Spillantini MG, Malpetti M.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42353177",
+      "title": "\u03b2-Amyloid (A\u03b2) and Human Cathelicidin LL-37: Two Sides of the Same Coin?",
+      "text": "Physiologically produced circulating \u03b2-amyloid (A\u03b2) exerts critical physiological functions. Although A\u03b2 is a key player in Alzheimer's disease (AD), it may initially be beneficial at the onset of infection. As an evolutionary conserved antimicrobial peptide (AMP), A\u03b2 contributes to innate immune defense against pathogens. Host defense peptides such as A\u03b2 and human cathelicidin (LL-37) not only kill pathogens through their antimicrobial activity but also exhibit high affinity for bacterial lipopolysaccharides (LPSs) and membrane receptors. LL-37, which is upregulated in the brain, binds to A\u03b2, modulating its aggregation; A\u03b2 and LL-37 are protective under physiological conditions, but during chronic infection or dysregulation, their interaction becomes toxic and contributes to AD pathology. Similarly to A\u03b2, LL-37 can induce neuroinflammation by stimulating human microglia to release inflammatory cytokines, such as TNF-\u03b1 and IL-6. Neuroinflammation is essential for protecting the brain from pathogens-when prolonged, it drives pathological processes underlying AD, Parkinson's disease (PD), and other neurodegenerative disorders.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3390/ijms27125460",
+      "year": 2026,
+      "group": "International journal of molecular sciences",
+      "meta": {
+        "authors": "Asti AL.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42166973",
+      "title": "Epimedium brevicornu flavonoids alleviate neuroinflammation and Alzheimer's disease pathology via immune-related pathways.",
+      "text": "<h4>Background</h4>With global population aging, Alzheimer's disease (AD) has become a critical clinical challenge. This multifactorial neurodegenerative disorder is characterized by amyloid-\u03b2 aggregation, tau hyperphosphorylation, and neuroinflammation. The lack of effective disease-modifying therapies highlights the urgent need for multi-target strategies. Epimedium brevicornu flavonoids (EF), derived from a traditional medicinal plant used to support cognitive function, exhibit significant neuroprotective potential; however, the underlying mechanisms remain to be fully elucidated.<h4>Purpose</h4>To investigate the neuroprotective effects and underlying mechanisms of EF against lipopolysaccharide (LPS)-induced neuroinflammation and Alzheimer's disease-related pathology.<h4>Methods</h4>EF were extracted and quantitatively analyzed. Mice were pretreated with EF for 14 days before LPS injection (1.0 mg/kg). Behavioral performance was assessed using the Open field, Y-maze, and Morris water maze tests. EF components in extract, serum, and brain were characterized by UHPLC-QTOF-MS/MS. Network pharmacology and molecular docking were employed to predict active compounds, targets, and signaling pathways. ELISA, Western blot, and immunofluorescence were conducted to evaluate cytokine levels, microglial and astrocytic activation, A\u03b2<sub>42</sub> deposition, tau phosphorylation, and NeuN<sup>+</sup> neuronal density. The involvement of PI3K/AKT and cGAS-STING pathways was further validated. In BV2 microglia, NO release and iNOS/Iba1 as well as CD206/Iba1 expression were examined to verify anti-inflammatory effects of EF in vitro.<h4>Results</h4>A total of 127 components in EF were identified, among which 45 and 38 were detected in serum and brain, respectively. The key compounds showed favorable target binding (<-6.2 kcal/mol). EF markedly improved cognition performance in LPS-treated mice, suppressed systemic inflammation and neuroinflammation, inhibited glial activation, reduced APP/BACE1/A\u03b2<sub>42</sub> expression and tau phosphorylation, and preserved neuronal integrity. Mechanistically, EF inhibited PI3K/AKT and cGAS-STING signaling pathways in vivo and promoted M2 polarization in BV2 microglia in vitro.<h4>Conclusion</h4>EF confers neuroprotection against LPS-induced cognitive impairment, a process linked to the modulation of neuroinflammation, A\u03b2 generation, and tau phosphorylation, and associated with PI3K/AKT and cGAS-STING signaling pathways. These findings highlight EF as a promising multi-target candidate for mitigating inflammation-driven AD-relevant pathological features.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.phymed.2026.158299",
+      "year": 2026,
+      "group": "Phytomedicine : international journal of phytotherapy and phytopharmacology",
+      "meta": {
+        "authors": "Li S, Xiao D, Yusufu R, Huang F, Feng Y, Abudureyimu A, Zhao J, Jiang H, Wei F.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42384283",
+      "title": "The protective role of melatonin on the brain in a rat model of Alzheimer's disease.",
+      "text": "Alzheimer's disease is an age-related neurodegenerative disorder characterized by progressive cognitive decline and multiple biochemical and structural abnormalities in the brain. Accumulating evidence suggests that aluminum exposure may contribute to neurodegenerative process including those observed in AD and was linked to neuronal damage and cognitive impairment. Melatonin (Mel) is a neurohormone that regulates circadian rhythm and possesses antioxidant, anti-inflammatory and neuroprotective properties. The current study investigated the potential protective roles of Mel in a rat model of AD induced by aluminum chloride (AlCl<sub>3</sub>). Forty adult male rats were divided into 4 experimental groups: a control group, an AlCl3-treated group, an AlCl<sub>3</sub>+Mel-treated group, and a Mel-only group. AlCl<sub>3</sub> was administered orally for four weeks. Cognitive performance and spatial learning were assessed using Morris water maze test. Plasma levels of the pro inflammatory cytokines; interleukin-6 (IL-6) and tumor necrosis factor alpha (TNF-\u03b1) were measured using enzyme linked immunosorbent assay. Histopathological examination of the frontal cortex was performed using hematoxylin and eosin staining, and immunohistochemistry was conducted using the neuronal marker NeuN, microglial marker Iba1, and inflammatory markers IL-6 and TNF-\u03b1. Mel treatment significantly improved learning and memory performance in the Morris water maze test. It also reduced plasma levels of IL-6 and TNF-\u03b1. Using immunohistochemistry, Mel increased NeuN expression, while reducing Iba1, IL-6 and TNF-\u03b1 expression. These findings showed that Mel attenuated frontal cortical neurodegeneration and neuroinflammation in this model of AD, suggesting that Mel may represent a promising neuroprotective therapeutic strategy for AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11011-026-01915-8",
+      "year": 2026,
+      "group": "Metabolic brain disease",
+      "meta": {
+        "authors": "Mostafa SS, Mohammed RA, Abbas AY, Othman MA.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    }
+  ]
+}

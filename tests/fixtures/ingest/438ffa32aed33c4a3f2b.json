@@ -1,0 +1,173 @@
+{
+  "cached_at": 1783532185.5394132,
+  "value": [
+    {
+      "doc_id": "MED:42338576",
+      "title": "Exploring the gut-brain axis: dietary influences on Alzheimer's disease pathogenesis.",
+      "text": "Alzheimer's disease (AD) is one of the most diagnosed neurodegenerative disorders worldwide and presents a significant challenge for both affected individuals and their caregivers. Alzheimer's disease is characterized by the accumulation of amyloid plaques and dysfunctional tau protein in the brain, along with the final development of dementia. Recently, in addition to the strongly developing ischemic etiology of AD, it is suggested that the gut and oral microbiota may also participate in the development of this disease. This involvement may stem from an unbalanced diet and the consumption of foods containing harmful chemical additives. An unhealthy diet can compromise the integrity of the gut barrier, facilitating the translocation of bacterial pathogens and leading to a pro-inflammatory T-cell response mediated by innate immune cells. This inflammatory response can disrupt systemic homeostasis and may contribute to neuroinflammation. The brain and gut interact through a complex network known as the \"gut-brain-microbiota axis,\" and emerging studies suggest that the intestinal microbiota and their metabolites may play a significant role in the pathogenesis of Alzheimer's disease. Moreover, these inflammatory mediators and microbial metabolites can reach the brain via the gut-brain axis, potentially exacerbating neurodegenerative processes. Preclinical and limited clinical evidence indicates that low-fiber diets are associated with alterations in intestinal microbiota composition, which may contribute to the onset and progression of Alzheimer's disease. This review aims to explore the potential connections between AD and the gut microbiome, emphasizing the significance of dietary factors in shaping these relationships. A comprehensive understanding of the interactions between the human microbiome and the brain, particularly in the context of diet and its ingredients, may enhance our understanding of AD etiology and inform the development of preventative strategies, through dietary modifications or therapeutic interventions. This area of research holds promise for identifying novel approaches to prevent or slow the progression of AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3389/frmbi.2026.1639904",
+      "year": 2026,
+      "group": "Frontiers in microbiomes",
+      "meta": {
+        "authors": "Mansour SR, Khalaf MA, Moustafa MA, Moustafa MA, Moustafa AA.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42377782",
+      "title": "Neuroinflammation and Tauopathies.",
+      "text": "Alzheimer's disease (AD) and related Tauopathies are neurodegenerative disorders characterized by the accumulation of hyperphosphorylated Tau protein in neurofibrillary tangles and frequently accompanied by amyloid-\u03b2 (A\u03b2) pathology.<sup>1</sup> While Tau aggregation has long been considered a primary driver of neurodegeneration, growing evidence highlights neuroinflammation as a central and early contributor to disease onset and progression. This review combines current knowledge on the molecular and cellular mechanisms linking Tau pathology to chronic neuroinflammatory signaling, with a particular focus on microglia- and astrocyte-mediated responses. We discuss how dysregulated kinase-phosphatase balance, impaired proteostasis, and oxidative stress promote Tau hyperphosphorylation and aggregation, and how these processes are amplified by innate immune pathways, including TREM2-DAP12, toll-like receptors, GPCR signaling, the PI3K-Akt/PTEN axis, Wnt/\u03b2-catenin signaling, and the NOD-like receptor family pyrin domain-containing 3 (NLRP3) inflammasome. Special emphasis is placed on the transition from early protective glial responses to chronic inflammation, which fosters prion-like propagation of Tau and accelerates synaptic dysfunction and neuronal loss. Finally, we evaluate emerging therapeutic strategies aimed at modulating neuroinflammatory pathways and restoring signaling homeostasis, highlighting their potential to slow or halt disease progression. Collectively, this review positions neuroinflammation as a critical mechanistic link between Tau pathology and neurodegeneration, underscoring its relevance as a therapeutic target in AD and other Tauopathies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11033-026-12253-4",
+      "year": 2026,
+      "group": "Molecular biology reports",
+      "meta": {
+        "authors": "Zeenny MN, Salame I, Maatouk L, Akoury E.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42196628",
+      "title": "Molecular Mechanisms Underlying Alzheimer's Disease Pathogenesis: Comprehensive Overview.",
+      "text": "Alzheimer's disease (AD) is a progressive, multifactorial neurodegenerative disorder ranking first as cause of dementia in the elderly. It is characterized by the progressive deterioration of the central nervous system, leading to impaired cognitive function and reduced ability to perform daily activities. Pathological hallmarks of AD include the accumulation of \u03b2-amyloid plaques and neurofibrillary tangles which ultimately cause neuronal death and synaptic loss. The vast majority of AD cases are sporadic, with aging representing the primary non-modifiable risk factor contributing to disease susceptibility and progression. However, several factors encompassing genetic predisposition, systemic inflammation, chronic diseases, infections, traumatic brain injury, lifestyle factors, and environmental exposures may affect AD onset. This work aims to describe and discuss the main molecular pathways involved in AD pathophysiology and to examine how these mechanisms cross-interact in promoting neurodegeneration and disease progression.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3390/ijms27104651",
+      "year": 2026,
+      "group": "International journal of molecular sciences",
+      "meta": {
+        "authors": "Lo Vecchio F, la Torre A, Gravina C, D'Onofrio G, Greco A.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:41975625",
+      "title": "Somatostatinergic and dopaminergic systems in Alzheimer's disease: Mechanistic insights and therapeutic opportunities beyond plaques and tangles.",
+      "text": "Alzheimer's disease therapeutic development has largely focused on amyloid-\u03b2 and tau pathologies, with limited clinical success. This review extends beyond the canonical amyloid/tau paradigm by examining the roles of somatostatin and dopamine neuromodulatory systems, which undergo early degeneration in Alzheimer's disease and contribute mechanistically to disease progression. Somatostatin deficiency impairs amyloid-\u03b2 clearance by downregulating neprilysin activity and disrupts inhibitory network homeostasis. Somatostatin binds amyloid-\u03b2 oligomers and attenuates tau hyperphosphorylation via kinase modulation and cytoskeletal stabilization. Dopaminergic deficits, particularly in ventral tegmental and cortical projections, disrupt synaptic plasticity, memory encoding, network oscillations, and neurogenesis. Dopamine receptor activation promotes amyloid-\u03b2 clearance, enhances autophagy, and modulates tau phosphorylation. The intersection of somatostatin and dopamine pathways through receptor heteromerization and intersecting intracellular cascades delineates a promising therapeutic axis. Preclinical evidence demonstrates that somatostatin and dopamine receptor agonists mitigate amyloid and tau pathologies and preserve cognitive function, attesting the need for integrative therapeutic strategies targeting neural network dysfunction in Alzheimer's disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.4103/nrr.nrr-d-25-01038",
+      "year": 2026,
+      "group": "Neural regeneration research",
+      "meta": {
+        "authors": "Singh S, Kumar U.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:41856254",
+      "title": "Tau phosphorylation homeostasis: Mechanisms, targets, and therapeutic implications in Alzheimer's disease.",
+      "text": "Neurofibrillary tangles, composed of excessively phosphorylated tau, are a core neuropathological hallmark of Alzheimer's disease (AD). However, therapeutic strategies aimed at directly clearing neurofibrillary tangles have demonstrated limited clinical efficacy, shifting the research focus towards the fundamental underlying mechanism- the dysregulation of tau phosphorylation. Evidence indicates that tau physiological phosphorylation is indispensable for microtubule stability and normal neuronal function, while its aberrant hyperphosphorylation drives neurodegeneration. Consequently, restoring tau phosphorylation homeostasis, rather than merely eliminating the pathological protein, has emerged as a promising therapeutic paradigm. This review systematically delineates the physiological functions and pathological mechanisms of tau phosphorylation, highlighting its central role in AD pathogenesis. We summarize recent advances in drug development targeting key kinases and phosphatases, and discuss the diagnostic value and application prospects of tau phosphorylation biomarkers. Ultimately, this study aims to provide a theoretical framework for novel precision treatment strategies in AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.arr.2026.103097",
+      "year": 2026,
+      "group": "Ageing research reviews",
+      "meta": {
+        "authors": "Lu S, Qiu S, Guan Y, Zhang A, Zhao Q.",
+        "cited_by": 1,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42145047",
+      "title": "Multi-Target-Directed Ligands (MTDLs) as Potential Therapeutic Candidates Targeting Multiple Pathogenic Factor of Alzheimer's Disease.",
+      "text": "<h4>Background</h4>Alzheimer's disease (AD) is the most common cause of dementia and a chronic neurodegenerative disorder in older adults. AD is not driven by a single factor but by the interaction of multiple pathological processes, including amyloid-\u03b2 (A\u03b2) accumulation, tau hyperphosphorylation, and chronic neuroinflammation. A\u03b2 aggregates into plaques that disrupt neuronal signaling, while hyperphosphorylated tau forms neurofibrillary tangles, leading to neuronal loss. These processes act synergistically to amplify toxicity. Persistent activation of microglia and astrocytes further promotes neuroinflammation, worsening A\u03b2 and tau pathology.<h4>Current limitations</h4>Single-target therapies directed at A\u03b2 or tau have shown limited clinical success and failed to alter disease progression, underscoring the complexity of AD.<h4>Objectives</h4>In response, multi-target-directed ligands (MTDLs) have emerged as a promising strategy. By simultaneously modulating several disease pathways, MTDLs can inhibit A\u03b2 aggregation, reduce tau phosphorylation, and exert antioxidant and anti-inflammatory effects. This review summarizes recent progress on MTDLs, highlighting their mechanisms of action, representative drug candidates, and outcomes from preclinical and clinical studies.<h4>Conclusions</h4>Multi-target strategies have the potential to achieve more effective and disease-modifying outcomes than conventional approaches. A critical evaluation of their opportunities and challenges may guide future therapeutic development and the advancement of precision medicine for Alzheimer's disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/cns.70919",
+      "year": 2026,
+      "group": "CNS neuroscience & therapeutics",
+      "meta": {
+        "authors": "Jung J, Kim Y, Cirunduzi AC, Yoon S, Bang S, Yang SH.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42313219",
+      "title": "Alzheimer's Disease and MERC Dysfunction: Integrating Mechanisms, Biomarkers, and Therapeutic Strategies.",
+      "text": "Alzheimer's disease (AD) is the most prevalent neurodegenerative disorder, characterized by progressive cognitive decline, memory loss, and neuronal dysfunction. The pathological hallmarks are characterized by extracellular amyloid-\u03b2 (A\u03b2) plaques, intracellular tau tangles, neuroinflammation, and synaptic failure. However, these only partially explain disease onset and progression. Recent evidence highlights mitochondria-endoplasmic reticulum contact sites (MERCs) as crucial hubs of cellular homeostasis, integrating calcium exchange, lipid metabolism, redox balance, and autophagy regulation. Dysregulation of MERC signaling is emerging as a central contributor to AD pathogenesis. MERCs orchestrate processes that intersect with amyloidogenic processing, tau hyperphosphorylation, mitochondrial dysfunction, and impaired clearance of protein aggregates. Aberrant tethering protein expression, disrupted calcium transfer, and altered lipid trafficking at MERCs have been reported in both familial and sporadic AD models, underscoring their pathogenic relevance. Moreover, MERCs influence neuroinflammatory cascades and synaptic remodeling, bridging molecular alterations with clinical manifestations. This review synthesizes current knowledge on MERC biology in the context of AD, highlighting molecular mechanisms, disease-specific perturubations, and therapeutic opportunities. In this review, we discussed pharmacological and genetic interventions targeting MERCs, including small molecules, natural compounds, and nanotechnology-based approaches. Taken together, this review outlines open research questions and future directions, underscoring MERC signaling as a promising frontier for therapeutic innovation in AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s12035-026-06009-1",
+      "year": 2026,
+      "group": "Molecular neurobiology",
+      "meta": {
+        "authors": "Kashif M, Majumder D.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:41797441",
+      "title": "The neuromodulatory fragility hypothesis of Alzheimer's disease pathogenesis.",
+      "text": "Sporadic Alzheimer's disease (AD) is associated with numerous risk factors, yet its precise cause remains unclear. Here, we describe a novel framework for AD pathogenesis, whereby diverse risk factors converge on neuromodulatory subcortical systems to confer AD risk or resilience. Neuromodulatory projection neurons are uniquely fragile due to their large size, sparse myelination, and high basal metabolic demands. We propose that the increased prevalence of AD in older adult populations likely reflects a universal weakness within these projection systems, which is increasingly exposed as cellular transport and maintenance mechanisms deteriorate with age. The key insight of this \"neuromodulatory fragility hypothesis\" is that neuromodulatory system dysfunction is sufficient to explain both tau hyperphosphorylation and amyloid beta plaque formation, the two pathological hallmarks of AD. We therefore predict that strengthening or preserving the endogenous functions of these systems in midlife represents the most effective strategy for preventing AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/alz.71249",
+      "year": 2026,
+      "group": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+      "meta": {
+        "authors": "Wearn A, Onuska KM, Schmitz TW, Turner GR, Spreng RN.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1251784",
+      "title": "Mechanism of Metabolic Disorder and Endothelial Dysfunction in Alzheimer\u2019s Disease",
+      "text": "Alzheimer\u2019s disease (AD) remains the most common cause of dementia worldwide and one of the greatest health challenges of the twenty-first century. Traditionally viewed as a neurodegenerative disorder defined by amyloid-\u03b2 plaques and tau tangles, recent evidence implicates systemic metabolic dysfunction and endothelial injury as key drivers of the disease progression. Insulin resistance, dyslipidemia, and chronic hyperglycemia impair neuronal glucose utilization and insulin signaling, leading to mitochondrial dysfunction, oxidative stress, and tau hyperphosphorylation. Concurrently, abnormal lipid metabolism and the presence of the apolipoprotein E4 allele accelerate amyloidogenic processing, while advanced glycation end-products (AGEs) formed during hyperglycemia activate RAGE-mediated inflammatory pathways that amplify neuronal injury. Endothelial dysfunction further compounds these effects by reducing nitric oxide (NO) bioavailability, disrupting the blood\u2013brain barrier, and diminishing cerebral perfusion inhibiting amyloid clearance and intensifying neuroinflammation. These interconnected metabolic and vascular abnormalities establish a \u201cmetabolic\u2013vascular\u2013neurodegenerative axis\u201d that links systemic disease to progressive neuronal degeneration. Understanding this integrative framework shifts the perspective of AD from a purely brain-centered disorder to a systemic, multi-organ pathology. Emerging therapeutic strategies that combine metabolic regulation, endothelial protection, and anti-inflammatory approaches offer a more comprehensive path toward prevention and disease modification. Future research and clinical interventions can achieve a sustained neuroprotection by addressing the metabolic and vascular roots of AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.12688/f1000research.172489.2",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Sunday BY, Terkimbi SD, Hidalgo I, Bunu UO, Idehen C.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:41995061",
+      "title": "Machine Learning-Driven Ensemble Screening of Multitarget Kinase Inhibitors for Tauopathy-Associated Neurodegeneration Using All-Atom and Steered MD Simulations.",
+      "text": "Tauopathies arise when normal functions of the tau protein in axonal transport and neuronal maintenance are disrupted by an imbalance between kinases and phosphatases. Dysregulation of key kinases such as dual-specificity Tyrosine-Regulated Kinase 1A (DYRK1A), Tau Tubulin Kinase 1 (TTBK1), and ABL Proto-Oncogene 1, and Non-Receptor Tyrosine Kinase (ABL1) drives excessive tau phosphorylation and neurofibrillary tangle accumulation. DYRK1A regulates MAPT exon 10 splicing and phosphorylates tau at multiple Ser/Thr residues, priming it for further phosphorylation by other kinases. TTBK1 phosphorylates tau at disease-associated epitopes within the microtubule-binding domain, promoting detachment from microtubules and aggregation. ABL1 phosphorylates tau at tyrosine residues, linking tau modification with A\u03b2-induced synaptic dysfunction. These events collectively drive tau hyperphosphorylation, misfolding, and neurofibrillary pathology characteristic of tauopathies. To identify natural product-derived multitarget inhibitors for these kinases, we developed a comprehensive machine learning (ML) workflow trained on bioactivity data from ChEMBL and BindingDB. We implemented five distinct classifiers: CatBoost, Support Vector Machine (SVM), k-Nearest Neighbors (KNN), Naive Bayes, and XGBoost. Stratified sampling and SMOTE were employed to address class imbalance for DYRK1A and ABL1, while Bemis-Murcko scaffold splitting was used to ensure rigorous evaluation of the data-scarce TTBK1 data set. A soft-voting ensemble model, integrating optimized CatBoost, XGBoost, and SVM, demonstrated superior performance. This robust ensemble was deployed to screen \u223c695,000 natural compounds from the COCONUT 2.0 database. The resulting hits were refined through consensus molecular docking and deep learning-based rescoring (GNINA), leading to the identification of two high-potential lead molecules, CNP0591834.1 and CNP0484145.0. Validation using 1 \u03bcs molecular dynamics simulations confirmed their conformational stability and strong binding affinities. Steered MD further demonstrated their superior mechanical resistance to unbinding, particularly in DYRK1A and ABL1 complexes. Overall, this integrative computational framework highlights these two natural compounds as potent multitarget leads with strong potential to mitigate tau-hyperphosphorylation-driven neurodegeneration.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1021/acschemneuro.6c00097",
+      "year": 2026,
+      "group": "ACS chemical neuroscience",
+      "meta": {
+        "authors": "Choudhury A, Saeed MU, Prabha S, Hassan MI.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:41477911",
+      "title": "JWX-A1223 attenuates cognitive deficits and tau protein hyperphosphorylation via the Akt/GSK3\u03b2 pathway in APP/PS1 mice.",
+      "text": "<h4>Backgound</h4>Alzheimer's disease (AD) is a neurodegenerative disorder marked by cognitive decline, affecting memory, thinking, and behaviour. Its neuropathology includes amyloid plaques and neurofibrillary tangles in the brain.<h4>Materials</h4>Amyloid plaques consist of misfolded beta-amyloid protein, while tangles are made of hyperphosphorylated tau protein.<h4>Method</h4>After treatment with JWX-A1223, the APP/PS1 mice showed significant cognitive improvement in the Morris water maze test. They had shorter escape latency, reduced swimming distance, and longer stay time in the target quadrant, indicating enhanced spatial learning and memory.<h4>Results</h4>The treatment with JWX-A1223 also significantly reduced the phosphorylation levels of tau protein at Ser202, Ser396 and Ser404 sites in the cerebral cortex and hippocampus of mice, while increasing the phosphorylation levels at Ser473 site of Akt and Ser9 site of GSK3\u03b2.<h4>Conslusion</h4>It indicates that by regulating the activity of the Akt/GSK3\u03b2 pathway, it alleviates the excessive phosphorylation of tau protein and thereby improves cognitive impairment.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1080/13813455.2025.2610481",
+      "year": 2026,
+      "group": "Archives of physiology and biochemistry",
+      "meta": {
+        "authors": "Yu W, Zhuang D, Wang K, Qu Y.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42196249",
+      "title": "Protein Modifications and Quality Control System: Target for Alzheimer's Disease Therapy.",
+      "text": "Alzheimer's disease (AD) is a progressive neurodegenerative disorder characterized by memory loss and cognitive decline. Its main pathological features are extracellular plaques composed of aggregated amyloid-\u03b2 (A\u03b2) peptides and intracellular neurofibrillary tangles formed by hyperphosphorylated tau. The A\u03b2 hypothesis proposes that A\u03b2 accumulation is a key driver of AD, influencing tau pathology, neuroinflammation, and neurodegeneration. However, therapies that reduce A\u03b2 have shown limited clinical benefits. This suggests that the mechanisms underlying peptide-mediated modulation of AD pathology are much more complex. Both A\u03b2 and tau undergo various post-translational modifications (PTMs) that affect their structure, aggregation, and toxicity. In addition, these abnormal proteins are not efficiently cleared in AD, indicating dysfunction of the protein quality control (PQC) system that maintains proteostasis. Such abnormal PTMs and impaired PQC likely work together to drive disease progression, which may explain the limited success of A\u03b2-reduction therapies. In this review, we describe how major PTMs, including phosphorylation, ubiquitination, acetylation, glycosylation, and oxidation, regulate the pathological behavior of A\u03b2 and tau. We also discuss the role of the PQC systems in the pathology of AD. We propose that dysregulation of PTMs and PQC constitutes a convergent mechanism underlying AD pathogenesis. Therapeutic strategies targeting these processes may provide more effective and sustained disease modification than approaches focused solely on A\u03b2 reduction.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3390/ijms27104266",
+      "year": 2026,
+      "group": "International journal of molecular sciences",
+      "meta": {
+        "authors": "Sheikh AM, Yano S, Tabassum S, Bhuiya J, Nagai A.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "cached_at": 1783531930.2002778,
+  "value": [
+    {
+      "doc_id": "MED:42377782",
+      "title": "Neuroinflammation and Tauopathies.",
+      "text": "Alzheimer's disease (AD) and related Tauopathies are neurodegenerative disorders characterized by the accumulation of hyperphosphorylated Tau protein in neurofibrillary tangles and frequently accompanied by amyloid-\u03b2 (A\u03b2) pathology.<sup>1</sup> While Tau aggregation has long been considered a primary driver of neurodegeneration, growing evidence highlights neuroinflammation as a central and early contributor to disease onset and progression. This review combines current knowledge on the molecular and cellular mechanisms linking Tau pathology to chronic neuroinflammatory signaling, with a particular focus on microglia- and astrocyte-mediated responses. We discuss how dysregulated kinase-phosphatase balance, impaired proteostasis, and oxidative stress promote Tau hyperphosphorylation and aggregation, and how these processes are amplified by innate immune pathways, including TREM2-DAP12, toll-like receptors, GPCR signaling, the PI3K-Akt/PTEN axis, Wnt/\u03b2-catenin signaling, and the NOD-like receptor family pyrin domain-containing 3 (NLRP3) inflammasome. Special emphasis is placed on the transition from early protective glial responses to chronic inflammation, which fosters prion-like propagation of Tau and accelerates synaptic dysfunction and neuronal loss. Finally, we evaluate emerging therapeutic strategies aimed at modulating neuroinflammatory pathways and restoring signaling homeostasis, highlighting their potential to slow or halt disease progression. Collectively, this review positions neuroinflammation as a critical mechanistic link between Tau pathology and neurodegeneration, underscoring its relevance as a therapeutic target in AD and other Tauopathies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11033-026-12253-4",
+      "year": 2026,
+      "group": "Molecular biology reports",
+      "meta": {
+        "authors": "Zeenny MN, Salame I, Maatouk L, Akoury E.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1247643",
+      "title": "Microglial Dysregulation Underlying Neuroinflammatory Pathogenesis in Alzheimer\u2019s Disease and Related Dementias",
+      "text": "Neuroinflammation is considered as one of the core pathogenic factors of neurodegeneration in Alzheimer disease (AD) and related dementias (RD). It is also associated with other two hallmarks of AD dementia, i.e., amyloid beta (Ab) and neurofibrillary tangles (NFT), and increasingly considered as the third hallmark of AD. Abnormality in microglial pathway plays a crucial role in the neuroinflammation of AD and RD. Microglia dysfunction is linked to many neuroinflammatory signaling pathways towards the progress of developing neurodegeneration resulting to cognitive deficits or dementia. Currently, several therapeutic approaches aim to target inflammatory regulators for AD treatment, and microglia is considered as one of the vital targets. In this article we intend to highlight and discuss various microglia mediated signaling pathways that link to chronic neuroinflammation and cognitive dysfunction/dementia in AD and other diseases. This could help us to understand the degree of microglial association with the disease pathophysiology through analyzing various studies in last few decades including the latest reports. We also aim to highlight the pathways that are more and less conclusively established and determine possible pathways which may help in further exploration and narrowing down or expanding the area of studies that requires further research. AD and RD are one of the most leading causes of death in the world and there is no appropriate drug available for cure or prevention of the disease. Further research is an absolute requirement for better understanding the mechanisms underlying the disease pathophysiology and better planning of basic/therapeutic research and clinical trials. We also provide up-to-date clinical trials that used inflammatory targeting drugs and discuss the failures and promising drug targets.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.20944/preprints202606.0446.v1",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Singh AS, Naqvi A, Takhellambam Chanu M.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42365367",
+      "title": "Csf1r-mediated depletion of myeloid cells prevents dopaminergic neuron loss during chronic colitis.",
+      "text": "Inflammatory bowel disease (IBD) predisposes to neuropsychiatric comorbidity and increases the risk of Parkinson's Disease (PD). Although the gut-immune-brain axis was proposed as a link between IBD and PD and a driver of PD immunopathogenesis, the regional pattern and single-cell landscape of the brain immune response during colitis and its contribution to PD pathology remain poorly defined. Here, we observe a loss of dopaminergic neurons and synuclein pathology in the substantia nigra pars compacta of adult mice with chronic colitis. By confocal microscopy and integrated multi-omics, we reveal a complex midbrain-specific immune response to chronic colitis. Single-cell mapping of the midbrain immune landscape showed an inflammatory shift of microglial clusters including an expansion of interferon-response microglia, CD8<sup>+</sup> T cell extravasation, and increased numbers of vessel-associated neutrophils. Selective myeloid cell depletion using a colony stimulating factor 1 receptor (Csf1r) inhibitor after colitis onset reduced midbrain microglia by 67% and led to a complete rescue of dopaminergic neuron loss, without affecting mucosal pathology or T cell and neutrophil migration to the midbrain. Collectively, within the complex midbrain immune response to chronic colitis, we demonstrate a causal role of Csf1r-dependent myeloid cells for dopaminergic neurodegeneration. Thus, Csf1r inhibition in IBD may not locally ameliorate colitis, but provide neuroprotection to dopaminergic neurons.These results reveal a novel cellular link between chronic gut-derived peripheral inflammation and midbrain vulnerability and thereby substantially enhance our understanding of the risk for PD related to the gut-immune-brain axis.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1186/s12974-026-03926-9",
+      "year": 2026,
+      "group": "Journal of neuroinflammation",
+      "meta": {
+        "authors": "Kutscherauer RK, Andert M, Stolzer I, Neumaier EE, Dedden M, Kielkowski P, Xiang W, Grotemeyer A, Prinz M, Masuda T, Knobeloch KP, Rothhammer V, Zundler S, Schlachetzki JCM, Winkler J, G\u00fcnther C, S\u00fc\u00df P.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    }
+  ]
+}

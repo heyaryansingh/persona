@@ -1,0 +1,285 @@
+{
+  "cached_at": 1783532793.1550379,
+  "value": [
+    {
+      "doc_id": "MED:42340485",
+      "title": "Tau368 improves p-tau diagnostic accuracy for FTLD-tau from FTLD-TDP.",
+      "text": "Across tauopathies-Alzheimer's disease (AD), frontotemporal lobar degeneration due to tau (FTLD-tau)-we compared cerebrospinal fluid (CSF) biomarkers of phosphorylated-tau (p-tau) p-tau181, p-tau212, tau368, total tau (t-tau), and the tau368/t-tau ratio, and tested differentiation from non-tau (FTLD-TDP, neuronal \u03b1-synuclein disease (\u03b1Syn), and controls). In AD, CSF p-tau181 and p-tau212 were significantly higher than in all other groups, including FTLD-tau, while tau368/t-tau was significantly lower. With the aim to combine tau phosphorylation biomarkers (p-tau181 and p-tau212) with biomarkers for severity of tau pathology (tau368), we made ratios between these biomarkers and examined their diagnostic accuracy in FTLD after excluding high/intermediate AD neuropathologic change (ADNC). CSF p-tau181 and p-tau212, as well as p-tau181/tau368 and p-tau212/tau368, were higher in FTLD-tau compared with non-tau groups, and the diagnostic accuracy to discriminate FTLD-tau from FTLD-TDP improved. Levels of the ratios were increased in behavioral and primary progressive aphasia variants of tauopathies when compared to FTLD-TDP. Furthermore, the biomarkers showed significant correlation with both FTLD-tau and AD tau burden at autopsy across brain regions. These results suggest unique patterns of increased relative levels of p-tau epitopes in CSF among ADNC and FTLD-tau could improve the diagnosis of tauopathies and inform inclusion criteria in clinical trial design.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s00401-026-03042-1",
+      "year": 2026,
+      "group": "Acta neuropathologica",
+      "meta": {
+        "authors": "Kac PR, Cousins KAQ, Szadziewska A, Shaw LM, Turton M, Van Deerlin VM, Harrison P, Zetterberg H, Wolk DA, McMillan CT, Galasko D, Hanrieder J, Lee EB, Kvartsberg H, Irwin DJ, Blennow K.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42363714",
+      "title": "Elimination of tau tangles and soluble aggregates with the small molecule ACI-16664 prevents neurodegeneration in vivo.",
+      "text": "<h4>Introduction</h4>Pathological tau aggregates are key therapeutic targets in Alzheimer's disease (AD), but current approaches face limitations including poor intracellular penetration, lack of selectivity for aggregated over physiological tau, or reliance on invasive administration.<h4>Methods</h4>ACI-16664, an orally available brain penetrant tau aggregation inhibitor, was identified through medicinal chemistry optimization of the Morphomer library and characterized using biochemical assays, neuronal cultures, and the Tg4510 tauopathy mouse model.<h4>Results</h4>ACI-16664 selectively bound aggregated tau with high apparent affinity, destabilized its \u03b2-sheet structures, blocked intracellular seeding by both soluble and insoluble tau, and prevented tau-induced neurotoxicity. In Tg4510 mice, ACI-16664 reduced both soluble tau aggregates and tangles, and prevented neuronal loss, synaptic degeneration, and cortical atrophy.<h4>Discussion</h4>These findings demonstrate the therapeutic value of targeting tau aggregation across its diverse pathological forms and cellular compartments, supporting the potential of this approach to benefit patients with AD and other tauopathies across disease stages.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/alz.71572",
+      "year": 2026,
+      "group": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+      "meta": {
+        "authors": "Preitner N, Dehlinger V, Rodriguez P, Fabbri K, Varisco Y, Pigni M, Lovison A, M\u00fcnzenmaier L, Piorkowska K, Fuchs A, Ait-Bouziad N, Fournier N, Jepaul S, Molette J, Gabellieri E, Darmency V, Poli S, Pfeifer A, Kosco-Vilbois M, Capotosti F.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42372723",
+      "title": "Arc mediates intercellular tau transmission via extracellular vesicles.",
+      "text": "Tau pathology spreads cell to cell, but the mechanisms of intercellular tau transmission remain unclear. We find that the neuronal gene Arc is critical for the release of tau in neuronal extracellular vesicles (EVs) via a direct protein-protein interaction. Brain EVs purified from transgenic rTg4510 mutant tau mice (rTg<sup>WT</sup>) crossed with Arc knockout mice (rTg<sup>Arc KO</sup>) contain less tau and reduced tau seeding potential. Both Arc and tau are co-packaged in mouse and human brain-derived EVs. Moreover, Arc levels in brain-derived EVs isolated from human Alzheimer's disease (AD) brains show a strong positive correlation with phosphorylated EV-tau levels. rTg<sup>Arc KO</sup> mice have increased accumulation of intracellular tau and a modest increase in cell toxicity early in disease progression. Strikingly, intercellular tau transmission is almost absent in Arc KO mice. These results show that Arc is critical for the packaging of tau in EVs, which plays a significant role in intercellular tau transmission.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.cell.2026.06.008",
+      "year": 2026,
+      "group": "Cell",
+      "meta": {
+        "authors": "Tyagi M, de Hoog E, Grega M, Sullivan KR, Walker AC, Chadha R, Northrop A, F\u00e1bi\u00e1n B, Hummer G, Fuxreiter M, Hyman BT, Shepherd JD.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42372976",
+      "title": "Molecular and environmental drivers of tau post-translational modifications and tau pathology.",
+      "text": "Tau is an intrinsically disordered protein that functions to support cytoskeletal stability by binding microtubules in neuronal axons. While tau is involved in healthy neuronal function, it can become pathogenic by forming protein aggregates leading to neurologic diseases collectively known as tauopathies, which include Alzheimer's disease, frontotemporal dementia, and chronic traumatic encephalopathy. Post-translational modifications, including phosphorylation, glycosylation, acetylation, methylation, ubiquitination, and protein truncation are molecular drivers that promote tau aggregation and subsequent disease development. There is a growing, but incomplete, understanding of the complex crosstalk that occurs among distinct modifications and how they orchestrate tau pathogenesis in concert. The drivers of tau post-translational modifications are not fully understood, but environmental factors, such as traumatic brain injuries, microbial infections, alcohol abuse, chronic stress, and heavy metal pollutants, increase risk of tau pathology formation. In this article we review the current literature describing the molecular changes that increase tau aggregation propensity, the environmental factors that promote those changes, and the multifactorial crosstalk that modulates tau pathogenesis. Our goal is to outline the biological pathways and molecular factors that drive tau pathogenesis in order to identify potential points of behavioral and/or therapeutic intervention for tauopathies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.arr.2026.103223",
+      "year": 2026,
+      "group": "Ageing research reviews",
+      "meta": {
+        "authors": "Price TM, Tucker AE, Funk KE.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42373580",
+      "title": "Evaluation of CSF and plasma tau species as fluid surrogate candidates for tau PET in prodromal to moderate Alzheimer's disease.",
+      "text": "<h4>Introduction</h4>Positron emission tomography (PET) is a valuable tool for assessing tau pathology in Alzheimer's disease (AD), but it is not widely accessible. Clarifying the relationship between fluid tau species and tau PET in AD may allow for the identification of fluid biomarkers that could serve as more accessible surrogates for tau PET.<h4>Methods</h4>Cerebrospinal fluid (CSF) and plasma tau species levels were assessed across prodromal to moderate AD subjects (CSF: n\u00a0=\u00a053, plasma: n\u00a0=\u00a0181) via immunoassays and liquid chromatography-mass spectrometry. Fluid measures were correlated with [<sup>18</sup>F]GTP1 tau PET at baseline for head-to-head comparisons across analytes.<h4>Results</h4>CSF C2N-eMTBR-tau243, tau phosphorylated at threonine 205 (p-tau205), p-tau217, and a peptide from the tau-441 microtubule-binding region (MTBR) (MTBR/243-254) exhibited the highest correlations with [<sup>18</sup>F]GTP1 standardized uptake value ratio. Plasma p-tau181 and p-tau217 demonstrated correlation rankings with tau PET similar to those observed with corresponding CSF analytes.<h4>Discussion</h4>CSF C2N-eMTBR-tau243, MTBR/243-254, p-tau205, and p-tau217 demonstrated comparable strong correlations with tau PET. These findings may guide future development of plasma biomarker surrogates for tau PET.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/alz.71604",
+      "year": 2026,
+      "group": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+      "meta": {
+        "authors": "Lee J, Olafson E, Toth B, Casavant E, Schauer S, Bittner T, Meyer MR, Verghese PB, Venkatesh V, West T, Braunstein JB, Biever A, Calderon E, Mandl M, Bayfield A, Hoogenraad CC, Teng E, Monteiro C, Anania VG, Boh\u00f3rquez SMS, Yeh FL.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42337598",
+      "title": "Clinico-biological trajectories stratified by combined tau biomarkers in preclinical Alzheimer's disease.",
+      "text": "<h4>Background</h4>Tau pathology biomarkers provide prognostic indicators of neurodegeneration and cognitive decline in Alzheimer's disease (AD), making them crucial to early patient stratification for disease-modifying interventions. Plasma p-tau217 indexes early tau pathophysiology, whereas FDA/EMA-approved [<sup>18</sup>F]flortaucipir PET (tau-PET) visual assessments indicate advanced neurofibrillary tangle pathology. Here, we identified concordant and discordant profiles based on combined plasma p-tau217 status and tau-PET visual assessments in cognitively unimpaired amyloid-\u03b2 (A\u03b2)-positive older adults and investigated whether these profiles delineate distinct longitudinal trajectories of A\u03b2 and tau accumulation, neurodegeneration, and cognitive decline.<h4>Methods</h4>We included 330 cognitively unimpaired A\u03b2-PET-positive participants (72.2\u2009\u00b1\u20094.8 years; 58% female; 48% randomized to receive solanezumab) from the A4 Study, who underwent plasma p-tau217 and tau-PET at baseline. Plasma positivity (T<sub>1</sub>\u2009+) followed A4 core criteria as previously reported (\u2265\u20090.28 U/mL), while tau-PET positivity (T<sub>2</sub>\u2009+) was determined by three expert visual readers with strong inter-rater agreement (\u03ba\u2009=\u20090.954). Participants were stratified as T<sub>1</sub>[-\u2009/\u2009+]T<sub>2</sub>[-\u2009/\u2009+] at baseline and were followed for 5.0\u2009\u00b1\u20091.7 years. Baseline and longitudinal differences in regional A\u03b2- and tau-PET SUVR, MRI-measured gray-matter (GM) volume, and cognitive performance were examined using ANCOVA and mixed-effects models. All models accounted for treatment, with additional sensitivity analyses excluding treated participants.<h4>Results</h4>At baseline, 57% were negative-concordant (T<sub>1</sub>\u2009-\u2009T<sub>2</sub>\u2009-\u2009: n\u2009=\u2009187), 24% were discordant (T<sub>1</sub>\u2009+\u2009T<sub>2</sub>\u2009-\u2009: n\u2009=\u200953; T<sub>1</sub>\u2009-\u2009T<sub>2</sub>\u2009+\u2009: n\u2009=\u200927), and 19% were positive-concordant (T<sub>1</sub>\u2009+\u2009T<sub>2</sub>\u2009+\u2009: n\u2009=\u200963). T<sub>1</sub>\u2009+\u2009T<sub>2</sub>\u2009+\u2009profile constituted the highest-risk state, showing the greatest baseline cortical A\u03b2 burden, the strongest neocortical tau progression (fronto-temporo-parietal pattern; p(FDR)\u2009<\u20090.05), marked baseline atrophy with accelerated longitudinal GM loss in overlapping regions, and the fastest cognitive decline (PACC: d\u2009=\u2009-1.84, p\u2009<\u20090.001). Consistently, T<sub>1</sub>\u2009+\u2009T<sub>2</sub>\u2009+\u2009exhibited the highest hazard of progression to more advanced clinico-biological stages over follow-up (HR<sub>Clinical</sub>\u2009=\u20093.03, HR<sub>Biological</sub>\u2009=\u20099.98; p\u2009<\u20090.001). Discordant profiles showed comparatively limited progression, suggesting earlier or low-tau states. Results were essentially unchanged after excluding treated participants.<h4>Conclusions</h4>Integrating plasma p-tau217 with tau-PET visual assessment reveals clinically meaningful tau-biomarker heterogeneity in preclinical AD. Our findings highlight the value of combining these biomarkers to refine early risk prediction and support prioritization strategies for prevention trials. The frequency of discordance also motivates refining tau-PET visual assessments beyond binary classification (e.g., ordinal/semi-quantitative staging) to better capture subtle early tau signal.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1186/s13195-026-02123-3",
+      "year": 2026,
+      "group": "Alzheimer's research & therapy",
+      "meta": {
+        "authors": "Labrador-Espinosa MA, Franzmeier N, Karagianni S, Moscoso A, Sch\u00f6ll M.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42327427",
+      "title": "Functional network contributions to longitudinal tau spread in Posterior Cortical Atrophy.",
+      "text": "In this study, we investigated longitudinal tau spreading in 23 amyloid-positive individuals with early-stage posterior cortical atrophy (PCA), a clinical syndrome typically characterized by progressive visual cognitive deficits emerging largely from underlying Alzheimer's disease-related tau deposition in posterior cortical areas. Each PCA participant underwent structural MRI and <sup>18</sup>F-Flortaucipir PET at baseline and follow-up (mean interval between baseline and follow-up PET\u2009=\u20091.17\u2009\u00b1\u20090.29 years). Using directional regression analysis (i.e., a regression-based model testing temporal directionality in tau spread), we quantified how tau epicenters (top 10% regions by baseline tau) predicted longitudinal tau accumulation. Seed-based analysis revealed evidence supporting the role of posterior cortical epicenters in the visual and dorsal attention networks (DAN), showing directional spreading of tau to anterior DAN nodes and the default mode network (DMN), with the largest effects in anterior DAN regions. Complementary graph theory analysis identified the visual network and posterior DMN as hubs of tau spread. These findings collectively suggest that longitudinal tau spread in PCA follows hierarchical progression from primary epicenters within the visual network and DAN to secondary epicenters, including the posterior DMN, possibly mediated by dynamic connectivity reorganization as primary epicenters become saturated with tau pathology.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1038/s44400-026-00101-y",
+      "year": 2026,
+      "group": "NPJ dementia",
+      "meta": {
+        "authors": "Katsumi Y, Eckbo R, McGinnis SM, Sepulcre J, Rabinovici GD, La Joie R, Dickerson BC, Putcha D.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1264664",
+      "title": "Zinc Differentially Modulates Tau Aggregation, Fibril Morphology, and Prion-like Seeding in a Construct-Dependent Manner",
+      "text": "<h4>ABSTRACT</h4>  The role of tau fibril structure in seeding and propagation of aggregation remains a central unresolved question in tauopathy biology. While non-proteinaceous cofactors are increasingly observed in patient-derived tau filaments, whether they actively determine fibril structure and function is not well understood. Here, we show that zinc, a divalent cation dysregulated in Alzheimer\u2019s disease (AD), can drive fundamentally different aggregation and seeding outcomes depending on tau sequence context. Using heparin-free conditions, we compared full-length 2N4R tau (residues 1-441) with an AD-tau fragment (residues 304-380) corresponding to the ordered fibril core. Strikingly, Zn  2+ exerted opposite effects on these constructs: it accelerated aggregation, increased fibril length, and enhanced cellular seeding for AD-tau, while slowing aggregation, shortening fibrils, and suppressing seeding for full-length tau. These findings demonstrate that cofactor effects are not intrinsic properties of the cofactor itself, but emerge from its interplay with tau sequence and conformational constraints. More broadly, our results support a model in which small-molecule cofactors act as active architects of fibril structure and function, suggesting that chemically distinct environments could generate structurally and biologically distinct tau strains in disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.64898/2026.07.01.735859",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Poirier EL, Stainton A, Simon O, Mittal SS, Varona Ortiz AB, Kim SA, Rauch JN.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42386101",
+      "title": "Investigating tau-related white matter degeneration in Alzheimer's disease using fixel-based analysis.",
+      "text": "Alzheimer's disease involves the accumulation of amyloid-\u03b2 and tau proteins, with tau-related white matter degeneration potentially contributing to cognitive impairment. This study investigated the relationship between regional tau deposition and white matter degeneration using fixel-based analysis and examined whether white matter changes mediate tau-related cognitive decline. We analyzed data from 285 participants in the Alzheimer's Disease Neuroimaging Initiative, classified based on amyloid and tau biomarker status into four groups: 141 amyloid-negative tau-negative cognitively unimpaired (A\u202f-\u202fT\u202f-\u202fCU), 58 amyloid-positive tau-negative cognitively unimpaired (A\u202f+\u202fT\u202f-\u202fCU), 49 amyloid-positive tau-positive mild cognitive impairment (A\u202f+\u202fT\u202f+\u202fMCI), and 37 amyloid-positive tau-positive dementia (A\u202f+\u202fT\u202f+\u202fDementia). Fixel-based analysis metrics included fiber density, log-transformed fiber-bundle cross-section, and their combined measure derived from diffusion MRI. These were evaluated in relation to <sup>18</sup>F-flortaucipir tau PET standardized uptake value ratios and multiple cognitive assessments. Results showed that A\u202f+\u202fT\u202f+\u202fMCI and A\u202f+\u202fT\u202f+\u202fDementia participants exhibited significantly reduced fixel-based metrics in subcortical white matter adjacent to cortical regions with high tau deposition, particularly in temporal and frontal areas (FDR-corrected p\u202f<\u202f0.05), with more widespread reductions in A\u202f+\u202fT\u202f+\u202fDementia. Mediation analysis revealed that white matter degeneration across multiple subcortical white matter regions adjacent to temporal, insular, and parietal cortices significantly and partially mediated the relationship between regional tau deposition and cognitive decline, accounting for 6.3-19.7% of the total effect. These findings suggest that tau-related white matter degeneration in regions adjacent to heavily affected cortical areas partially contributes to cognitive impairment in Alzheimer's disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.nbd.2026.107518",
+      "year": 2026,
+      "group": "Neurobiology of disease",
+      "meta": {
+        "authors": "Kitagawa T, Kamagata K, Uchida W, Takabayashi K, Andica C, Rui Z, Ozawa T, Hagiwara A, Akashi T, Sano K, Wada A, Tanaka Y, Hosoi R, Kanzawa J, Aoki S, Alzheimer's Disease Neuroimaging Initiative.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42298542",
+      "title": "Tau profiling of brain extracellular vesicles reveals PHF6 peptide as core for pathological tau seeding in Alzheimer's disease.",
+      "text": "<h4>Background</h4>Tauopathies are neurodegenerative diseases all characterized by tau lesions in the brain. Nevertheless, a clinical and pathophysiological heterogeneity is present among them. This includes the dominant tau isoform found within aggregates (3R and/or 4R tau) along with different brain regions being affected. For some tauopathies, especially in Alzheimer's disease, a specific spatio-temporal staging of tau lesions is present. This staging has been the basis for the prion-like propagation hypothesis, which describes a cell-to-cell transfer of pathological tau species resulting in new aggregates formation in recipient neurons. Human extracellular vesicles isolated from the brain-derived fluid (BD-EVs) of Alzheimer's disease patients contain seeds that contribute to this tau pathology spreading. However, the nature of these tau species responsible for this nucleation activity remains unknown. Additionally, heterogeneity in seeding activity of BD-EVs of Alzheimer's disease, progressive supranuclear palsy and Pick's disease patients is known.<h4>Methods</h4>Here, EVs were isolated from human frozen tissue (Alzheimer's disease, Progressive Supranuclear Palsy, Pick disease and non-demented controls). We used a tau immunoprecipitation followed by high-resolution mass spectrometry to define their proteomic profile and test their seeding capacity in vitro.<h4>Results</h4>We show that the tau profile present within BD-EVs is different among tauopathies. Interestingly, multiple tau peptides located in the microtubule binding region were specifically enriched in Alzheimer's disease extracellular vesicles. Of these, mainly the PHF6 (VQIVYK) containing proteins mediate tau seeding activity.<h4>Conclusions</h4>PHF6 is a driver for the higher EVs-mediated tau propagation in AD patients, revealing an interesting therapeutic target to prevent tau pathology spreading.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1186/s12929-026-01250-1",
+      "year": 2026,
+      "group": "Journal of biomedical science",
+      "meta": {
+        "authors": "Oosterlynck M, Fichter L, Leroux E, Eddarkaoui S, Bouillet T, Lefebvre C, Nguyen M, Maurage CA, Accart B, Dupr\u00e9 E, Landrieu I, Danis C, Lehmann S, Vialaret J, Bu\u00e9e L, Hirtz C, Colin M.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1260568",
+      "title": "Sexually dimorphic behavioural signatures of tau toxicity in adult  <i>Drosophila</i>",
+      "text": "Tau pathology is central to Alzheimer\u2019s disease and related tauopathies, yet mechanisms driving neuronal dysfunction and degeneration downstream of pathological changes in tau remain poorly understood.  Drosophila melanogaster models provide a genetically tractable system with an intact nervous system and short lifespan that allows investigation of mechanisms of many diseases. However, in  Drosophila , developmental expression of human tau frequently causes lethality and developmental phenotypes, limiting the study of neurodegenerative disease processes. Further, sex is rarely considered in  Drosophila studies of tau pathology despite clear sex differences being observed in many aspects of human tauopathies. Here, we used an inducible, pan-neuronal GeneSwitch system to express human tau isoforms exclusively in adulthood, enabling the dissection of tau toxicity independent of development. We combined longitudinal behavioural monitoring with lifespan and neurodegeneration analyses, and performed a targeted genetic screen to identify modifiers of tau-induced dysfunction. Adult-onset tau expression produced striking, sexually dimorphic effects on survival and behaviour. Neuronal expression of the human tau isoform with 4 microtubule binding repeats and neither alternatively spliced N-terminal exon (0N4R tau) caused pronounced neurodegeneration and reduced lifespan, which was exacerbated in flies expressing the phospho-mimetic 0N4R-Tau  E14 variant. Tau expression produced sexually dimorphic effects on survival and behaviour, with females exhibiting a greater reduction in lifespan, while the induction-dependent increase in vacuolar neurodegeneration was broadly comparable between sexes. Behaviourally, tau expression induced elevated daytime inactivity in females, whereas males exhibited hyperactivity, revealing opposing functional outcomes between sexes. A targeted genetic screen further identified modifiers of tau-dependent behavioural impairment.  APOE2 expression in glia, syndecan overexpression in neurons, and increased global expression of the chaperone heat shock protein 90 all reduced 0N4R-Tau  E14 -induced behavioural changes. Seventeen candidate perturbations enhanced the Tau  E14 -induced behavioural phenotype, including manipulations of APOE3, CLU, INPP5D/INPP5K, BIN1/Amph, synaptogyrin, LRP1, NPC1, and Hsp90 pathways. Together, these findings establish an adult-onset  Drosophila model of tauopathy that uncouples neurotoxicity from development, reveals sex as a major determinant of tau-induced behavioural outcomes in flies, and uncovers genetic modulators of tau-induced dysfunction. This work highlights the importance of incorporating sex as a biological variable and provides a platform for mechanistic and translational studies of tauopathy.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.64898/2026.06.22.733697",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Mouofo EN, Spires-Jones MP, Wang Y, Schoovaerts N, Verstreken P, Durrant CS, Catterson JH, Spires-Jones TL.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42400155",
+      "title": "Tau protein differentially affects Piezo1 and Kir2.1 channels in brain capillary endothelial cells.",
+      "text": "Accumulation of amyloid-\u03b2 (A\u03b2) peptides and Tau proteins in the brain is a hallmark of neurodegeneration. Such build-up forms A\u03b2 plaques and Tau neurofibrillary tangles, both of which are associated with synaptic loss, cognitive decline, and reduced cerebral blood flow in Alzheimer's disease (AD). Two ion channels in brain capillary endothelial cells (ECs)-the inwardly rectifying potassium channel Kir2.1 and the mechanosensitive channel Piezo1-are critical regulators of cerebral blood flow, and both display impaired activity in AD. Whether A\u03b2 and Tau affect these channels remains incompletely understood. Using patch-clamp electrophysiology and freshly isolated mouse brain capillary ECs, we examined whether A\u03b2<sub>1-40</sub> or Tau-441 directly modulate Kir2.1 or Piezo1 function. Exogenously applied A\u03b2<sub>1-40</sub> (10-100 nM) and Tau-441 (10-50 nM) had minimal effect on Kir2.1 current density, indicating that the Kir2.1 deficits observed in AD are less likely caused by direct interactions with A\u03b2 or Tau. In contrast, we previously demonstrated that nanomolar A\u03b2<sub>1-40</sub> enhanced Piezo1 function. We further show here that 50 nM Tau-441 significantly increased Piezo1 open probability, and this enhancement was abolished by the superoxide dismutase and catalase mimetic EUK-134. These data collectively suggest that altered Piezo1 function in neurodegenerative disease could involve a direct effect of A\u03b2 peptides or Tau proteins and further suggest that acute exposure to these proteins minimally impacts Kir2.1 activity. These novel findings present a new pathway through which Tau proteins could impair neurovascular function during neurodegeneration.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.bpj.2026.07.003",
+      "year": 2026,
+      "group": "Biophysical journal",
+      "meta": {
+        "authors": "Harriman T, Harraz OF.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42405829",
+      "title": "Striatal Tau Pathology Underlies Monoaminergic Disruption in Progressive Supranuclear Palsy.",
+      "text": "<h4>Purpose</h4>Progressive supranuclear palsy (PSP) is a tauopathy marked by widespread tau aggregation and prominent monoaminergic dysfunction, yet the relationship between regional tau burden and monoaminergic impairment remains unclear. In this study, we determine whether regional tau burden is associated with nigrostriatal monoaminergic dysfunction in PSP using PET imaging.<h4>Patients and methods</h4>A subset of 20 patients with PSP and monoaminergic impairment, identified by 18F-FP-DTBZ PET, was recruited and subsequently underwent 18F-APN-1607 PET to assess tau deposition. All images were spatially normalized and analyzed based on predefined volumes of interest. Erosion-based cerebral white matter was used as the reference region to calculate standardized uptake value ratios (SUVRs) for 18F-APN-1607 PET.<h4>Results</h4>The SUVRs of 18F-APN-1607 PET differed significantly between patients with PSP and healthy controls in the globus pallidus, substantia nigra, subthalamus nucleus, and red nucleus, while a significant difference in 18F-FP-DTBZ SUVRs was observed in all the striatal regions and substantia nigra. Regression analysis discovered negative associations between tau load and monoaminergic disruption in the putamen and caudate, whereas tau accumulation in the substantia nigra was not significantly associated with nigrostriatal impairment.<h4>Conclusions</h4>The pallido-nigro-luysian axis and nigrostriatal system serve as sensitive targets for detecting tau deposition and monoaminergic disruption in PSP. Local striatal tau pathology and tau burden were associated with monoaminergic disruption in PSP.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1097/rlu.0000000000006594",
+      "year": 2026,
+      "group": "Clinical nuclear medicine",
+      "meta": {
+        "authors": "Dong C, Ma JH, Qiao HW, Xu WQ, Gu ZQ, Barret O, Tamagnan GD, Mao W, Xu EH, Zhang C, Lu J, Chan P, Liu SY.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PMC:PMC13291570",
+      "title": "Inhibition of pathogenic tau signaling via blocking of the phosphatase-activating domain by novel small molecules",
+      "text": "",
+      "source": "europepmc",
+      "url": "https://europepmc.org/article/PMC/PMC13291570",
+      "year": null,
+      "group": "Frontiers in pharmacology",
+      "meta": {
+        "authors": "Nowar R, Velma G, Fu J, Kidwai A, Bauc G, Ackerman-Berrier M, Thatcher G, Brady S, Ben Aissa M.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42399565",
+      "title": "Mutation-specific neuropathologic signatures in MAPT-associated frontotemporal lobar degeneration.",
+      "text": "Autosomal-dominant frontotemporal lobar degeneration with tau pathology (FTLD-tau) is caused by pathogenic variants in the MAPT gene. Although abnormal tau aggregation is a shared endpoint, MAPT mutations produce distinct cellular phenotypes and regional patterns of tau deposition, the mutation specificity and familial consistency of which remain poorly defined. We performed a systematic neuropathologic and transcriptomic analysis of brains from clinically characterized families carrying MAPT V337M, P301L, or L284L mutations. Multiple affected members per family were examined, with interfamily comparisons for P301L. Quantitative assessment of regional tau burden, cellular morphology, and co-pathologies revealed distinct, mutation-specific signatures. The V337M mutation was characterized by predominantly neuronal tau pathology with vesicular pretangles, scattered neurofibrillary tangles, and fine neurites, with minimal glial involvement. P301L exhibited prominent astrocytic tau pathology, including globular and proximal inclusions, accompanied by neuronal pretangles. L284L produced extensive oligodendroglial tau pathology with thick fibrillar coiled bodies in gray and white matter. Additional distinguishing features included hippocampal sclerosis and TDP-43 pathology in V337M; severe cortical neuronal loss and dentate fascia tau in P301L; and extensive white matter and brainstem tau, including ventral pontine neurons, in L284L. These morphologic profiles were conserved within families and, for P301L, across unrelated families. Transcriptomic analyses suggested mutation-linked expression changes concordant with cellular pathology. These findings define reproducible, mutation-specific neuropathologic and molecular signatures of MAPT-associated FTLD-tau, emphasizing the importance of genotype-driven stratification in studies of tauopathy pathogenesis.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s00401-026-03047-w",
+      "year": 2026,
+      "group": "Acta neuropathologica",
+      "meta": {
+        "authors": "Bogdani M, Jadhav VS, Kraemer BC, Grabowski TJ, Jayadev S, Domoto-Reilly K, Liachko NF, Bird TD, Dirk Keene C, Latimer CS.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42132234",
+      "title": "Regulation of axon outgrowth during mushroom body development by acetylated \u03b1-tubulin lysine 394 and Tau.",
+      "text": "Disruptions in the microtubule cytoskeleton play a role in various neurological diseases that afflict a large fraction of the population. Microtubule function is regulated by post-translational modifications like acetylation, and one consistently identified acetylation site in mammals and Drosophila melanogaster is \u03b1-tubulin lysine 394 (K394). Our previous research demonstrated that an acetylation-blocking point mutation-K394R-causes a decrease in microtubule stability in axon terminals at the developing neuromuscular junction. Here, we asked whether K394 acetylation regulates the development of additional neuronal structures. Using the central brain mushroom body as a model, we found that K394R results in \u03b2 lobe overextension at the midline. The K394R phenotype manifests during metamorphosis and affects \u03b2 lobe growth in a cell-autonomous manner. Our data suggest that the K394R phenotype may result from changes in Tau, a microtubule-associated protein enriched in the mushroom body and known to play a critical role in regulating neuronal microtubules. Knocking-out tau resulted in defects in midline crossing similar to K394R. However, when the loss of tau was combined with K394R, \u03b2 lobe extension was normal-indicating that the loss of tau suppresses the K394R phenotype and vice versa. While overexpressing tau also resulted in a midline crossing phenotype, K394R in combination with elevated Tau resulted in a severely malformed mushroom body. Altogether, our work suggests that K394R interacts with tau to regulate axon outgrowth during mushroom body development and raises the potential of manipulating K394 acetylation to ameliorate neurological disease resulting from axonal growth defects and changes in Tau.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1093/genetics/iyag124",
+      "year": 2026,
+      "group": "Genetics",
+      "meta": {
+        "authors": "Welch CJ, Mueller LO, Trujillo SP, Wildonger J.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42411568",
+      "title": "Patient-derived forebrain cortical organoids reveal biphasic tau-MAP6-microtubule axis dysfunction in tauopathy.",
+      "text": "<h4>Introduction</h4>In frontotemporal dementia (FTD), tau detaches from axonal microtubules and forms pathological aggregates. Rather than stabilizing microtubules, tau promotes labile microtubule domains, redefining its role in neurodegeneration and underscoring the need for human models that capture temporal disease progression.<h4>Methods</h4>Human induced pluripotent stem cells carrying MAPT<sup>WT/P301L</sup>, MAPT<sup>WT/P301S</sup>, or MAPT<sup>WT/R406W</sup> mutations and isogenic controls were differentiated into forebrain cortical organoids (1 to 8 months). Tau isoforms, microtubule dynamics, MAP6 regulation, neuronal activity, tau mRNA stability, and tau pathology were analyzed using biochemical, imaging, and electrophysiological approaches, some of which were benchmarked to postmortem behavorial variant FTD cortex.<h4>Results</h4>Early-phase tau mutant organoids showed elevated tau, hyperdynamic microtubules, and neuronal hyperexcitability, partially reversible by tau reduction. Late-phase organoids exhibited insoluble tau accumulation, microtubule hyperstability, and neurodegeneration and reactive astrocytes, accompanied by opposing, phase-dependent MAP6 changes.<h4>Discussion</h4>This work reveals a biphasic tau-MAP6-microtubule mechanism driving tauopathy and establishes these organoids as a platform for phase-specific therapy.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/alz.71565",
+      "year": 2026,
+      "group": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+      "meta": {
+        "authors": "Sun X, Ramakrishnan S, Ogbolu VC, Kanaan NM, Karch CM, Baas PW, Qiang L.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42309020",
+      "title": "The time interval from amyloid to tau PET positivity varies by age, sex and APOE-\u03b54 status.",
+      "text": "<h4>Background</h4>Alzheimer's disease (AD) progression varies widely among individuals. Identifying factors influencing timing of pathology and clinical progression is crucial for optimizing early intervention trials.<h4>Objectives</h4>To investigate how the estimated age at amyloid and tau PET positivity, and the time interval between these two key events (\"amyloid-tau time interval\"), relate to symptom onset and clinical progression, and to assess the effects of APOE-\u03b54 status and sex on these associations.<h4>Design</h4>This analysis used data from the Alzheimer's Disease Neuroimaging Initiative (ADNI) and the Harvard Aging Brain Study (HABS).<h4>Setting</h4>The ADNI is a multicenter observational cohort conducted at 55 sites across the United States; The HABS is a longitudinal, single-center observational cohort.<h4>Participants</h4>This study included participants with at least one positive amyloid PET scan (ADNI n = 792; HABS n = 104) or at least one positive tau PET scan (ADNI n = 212; HABS n = 48). All participants had information on sex, APOE-\u03b54 status, and longitudinal cognitive assessments.<h4>Measurements</h4>We examined the influence of APOE-\u03b54 status, sex, and their interaction on the estimated age at biomarker positivity and the amyloid-tau time interval. Accelerated Failure Time (AFT) models were used to predict time to symptom onset (CDR > 0) based on estimated biomarker positivity age and the amyloid-tau time interval. Linear mixed-effects (LME) models evaluated differences in the rate of cognitive decline, as measured by CDR-SB, over five years following symptom onset according to estimated biomarker positivity age and amyloid-tau time interval. Additional models included interaction terms with sex or APOE-\u03b54 status.<h4>Results</h4>The amyloid-tau time interval varied markedly between individuals and was shorter in APOE-\u03b54 carriers, women, and those with older age at amyloid PET positivity. APOE-\u03b54 carriers and women became amyloid and tau PET positive at younger ages. Following amyloid PET positivity, a shorter time to tau PET positivity predicted earlier symptom onset. After symptom onset, faster cognitive decline was observed in individuals with younger ages at amyloid or tau PET positivity. The time to symptom onset following tau PET positivity, or the rate of cognitive decline after symptom onset, were not influenced by the amyloid-tau time interval.<h4>Conclusions</h4>After becoming amyloid PET positive, APOE-\u03b54 carriers, women and older individuals may have a shorter window for detection and treatment before they become tau PET positive and develop symptoms. These findings should guide the identification of individuals at highest risk of rapid AD progression, enabling more efficient participant selection for clinical trials.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.tjpad.2026.100622",
+      "year": 2026,
+      "group": "The journal of prevention of Alzheimer's disease",
+      "meta": {
+        "authors": "Mil\u00e0-Alom\u00e0 M, Hausle I, Petersen KK, Thropp P, Schindler SE, Tosun D, Alzheimer\u2019s Disease Neuroimaging Initiative.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1259796",
+      "title": "High-Throughput Screening Identifies Small-Molecule Inhibitors of the Tau-LRP1 Interaction",
+      "text": "The cellular uptake and propagation of tau are central features of tauopathies, including Alzheimer\u2019s disease, and are mediated by the endocytic receptor low-density lipoprotein receptor-related protein 1 (LRP1). While prior studies have implicated LRP1 in tau binding and internalization, the biochemical features of this interaction and its suitability for therapeutic targeting remain incompletely defined. Here, we establish a quantitative and scalable framework to interrogate the tau-LRP1 interaction and identify small-molecule modulators. We engineered and purified the LRP1 ligand-binding domain 4 (BD4), a key region mediating tau interaction, and developed multiple orthogonal assays, including fluorescence polarization, split luciferase complementation, and time-resolved FRET, to measure LRP1-BD4 interactions with tau and a known peptide ligand. Across assay formats, we observe consistent binding affinities in the nanomolar range and demonstrate competitive displacement by tau, receptor-associated protein (RAP), and a peptide ligand, supporting overlapping binding interfaces. Leveraging these platforms, we performed small molecule high-throughput screening and identified a set of candidate inhibitors of the LRP1-BD4-tau interaction. Selected compounds reduced tau uptake in a cellular assay, phenocopying competitive inhibition by tau and a peptide ligand. Together, these studies define the LRP1-BD4-tau interaction as a biochemically tractable and druggable interface and establish an integrated discovery pipeline linking mechanistic characterization to functional cellular outcomes. This work provides a foundation for the development of therapeutic strategies targeting LRP1-mediated tau uptake.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.64898/2026.06.24.733881",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Wang C, Ma C, Crotty C, Zeng F, Bobkov A, Covel JA, Rivera EK, Sergienko E, Kosik KS, Olson SH, Jackson MR, Rauch JN.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1259785",
+      "title": "Virus-mediated tau aggregate seeding in a cellular model",
+      "text": "Formation of neuronal tau protein aggregates is a defining feature of tauopathies, including Alzheimer\u2019s disease and frontotemporal dementia. Tau pathology propagates across brain regions by a cell-to-cell aggregate seeding mechanism. While epidemiological and experimental studies over the past three decades have implicated viral infections in aggregate-associated neurodegeneration, the underlying mechanisms remain unclear. Here, we show in a cell culture model that seeding competent tau aggregates are efficiently packaged into lentiviral particles and induce tau aggregation in recipient cells in a virus receptor-dependent manner. Tau aggregates interact with the viral Gag polyprotein, likely facilitating their incorporation into virions. Virus-dependent tau seeding requires protease-mediated maturation of the envelope protein to enable efficient fusion of the viral envelope with the plasma membrane of the recipient cell. Thus, tau aggregate packaging is compatible with the formation of mature, infectious virions. These findings are consistent with a possible role of viral infection in neurodegenerative disease progression and offer a robust, versatile platform to model tau propagation in cellular systems and animal models.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.64898/2026.06.25.734433",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Yuste-Checa P, Martinez-Piera RD, Herrmann-Sim F, Ronquillo-Silva LS, K\u00f6rner R, Hartl FU.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    }
+  ]
+}

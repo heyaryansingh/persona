@@ -1,0 +1,173 @@
+{
+  "cached_at": 1783532186.543978,
+  "value": [
+    {
+      "doc_id": "PPR:PPR1184198",
+      "title": "Uncovering the invisible giant: Amyloid beta plaques and their proposed association with waste removal in Alzheimer-affected human hippocampus",
+      "text": "<title>Abstract</title>  <p>According to the prevalent \u2018Amyloid Hypothesis,\u2019 the underlying cause for neurodegeneration in Alzheimer Disease (AD) is attributed to the accumulation of misfolded Amyloid \u00df and tau protein in the form of extracellular sticky plaques and neurofibrillary tangles, respectively. These protein accumulations are thought to be caused by impaired waste removal. In an alternative hypothesis, we have proposed the existence of an extensive glial canal system that is likely formed by myelinated aquaporin-4 (AQP4)-expressing tanycytes and removes cellular waste from the hippocampal formation. Here, we demonstrate that tanycyte-derived waste-internalizing receptacles are immunoreactive for A\u00df and emanate from specialized nucleus-like organelles in the following referred to as \u2018tanysomes.\u2019 Utilizing RNA-scope in situ hybridization, we demonstrate that these receptacle-forming tanysomes express RNA for AQP4 and the A\u00df-related genes, amyloid precursor protein, and presenilin-1. These findings suggest that A\u00df is likely synthesized where receptacle formation is observed and that A\u00df may play an important structural role in receptacle formation. In AD-affected hippocampus, excessive amounts of A\u00df-immunoreactive waste receptacles emerge from tanysomes and have the appearance of plaques in A\u00df-immunolabeled hippocampus. Moreover, we demonstrate that the same receptacle-forming organelles exhibit strong immunolabeling for hyperphosphorylated tau protein in AD-affected tissue. We postulate that both proteins may play important structural roles in waste uptake and that hypertrophic swelling of impaired tanycytes in AD-affected brain may be due to obstructions of this extensive interconnected glial canal system.</p>",
+      "source": "europepmc",
+      "url": "https://doi.org/10.21203/rs.3.rs-9337412/v1",
+      "year": 2026,
+      "group": "PPR",
+      "meta": {
+        "authors": "Fabian-Fine R, Roman AG, Winters MJ, Lathram KJ, Bennett CH, Kipingi LK, Br\u00e4nnare-Gran SM, Whitley AE, Paul CM, Altman LM, Carrillo IC, Joyce FM, Kragh LA, McKnight TJ, Reding CJ, Reiderer LJD, Rivera LJ, Steen HA, Weaver AL.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:40793986",
+      "title": "Spatial Mapping of Gangliosides and Proteins in Amyloid Beta Plaques at Cellular Resolution Using Mass Spectrometry Imaging and MALDI-IHC.",
+      "text": "In pharmaceutical research and development, technologies like mass spectrometry imaging (MSI) offer spatially resolved compound distributions to aid in the discovery of drug targets and development of drug candidates. Through traditional and immunohistochemical approaches centered around MSI, distributions of endogenous lipids and proteins can be mapped on the same tissue section at cellular resolution. To highlight the cellular resolution capability of the integrated MSI workflow leveraged here, an animal model of Alzheimer's disease (AD) was interrogated due to the relationship of lipid dysregulation and extracellular protein deposition in driving disease pathology, especially at the site of amyloid beta (A\u03b2) plaques. Gangliosides, A\u03b2 peptides, and microglia were imaged at 5\u2009\u03bcm spatial resolution in the brains of an APPPS1 mouse model. GM3 and GM2 gangliosides displayed plaque-associated accumulation as supported by previous studies of a range of AD models. Advanced methods for achieving cellular resolution imaging of lipids and proteins have revealed heterogeneity in molecular distributions, which appears to be influenced by the microenvironment surrounding A\u03b2 plaques. While these data could support future biological conclusions of AD, a central aim of this study was to emphasize the potential impact of an MSI workflow, which fuses spatial lipidomic and proteomic data at cellular resolution, on translational drug discovery research. This dual molecular imaging approach and data mining strategy can not only support efforts in the discovery of novel drug targets, but also in evaluating drug-target engagement when the distribution of a small molecule drug is simultaneously investigated.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/jms.5161",
+      "year": 2025,
+      "group": "Journal of mass spectrometry : JMS",
+      "meta": {
+        "authors": "Good CJ, Bowman AP, Klein C, Awwad K, Buck WR, Yang J, Wagner DS.",
+        "cited_by": 3,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:40574756",
+      "title": "Increased expression of the neuroplastin 65 protein is involved in neurofibrillary tangles and amyloid beta plaques in Alzheimer's disease.",
+      "text": "<h4>Background</h4>Alzheimer's disease (AD) is a progressive neurodegenerative disorder currently lacking effective therapeutic interventions. Pathological hallmarks of AD include intracellular neurofibrillary tangles (NFTs) and extracellular amyloid beta (A\u03b2) plaques. Neuroplastin 65 (NP65), highly expressed in the brain, has been previously shown to mitigate cognitive impairments and decrease A\u03b2 plaques in the AD mouse model, suggesting that NP65 is involved in AD neuropathology. However, direct evidence linking NP65 expression to AD pathogenesis in human brain remains absent.<h4>Aim</h4>To quantify NP65 isoform expression gradients across distinct neuroanatomical regions in the healthy brain and investigate the alterations of NP65 expression in the AD brain.<h4>Methods</h4>Immunohistochemical, immunofluorescent and western blot analyses were used to investigate NP65 expression in 19 postmortem brains (AD = 10, controls = 9). Double immunostaining with 6E10 and or phosphorylated-microtubule-associated protein tau (AT-8, a marker for NFT) markers was performed to assess NP65 colocalization with A\u03b2 plaques and NFTs.<h4>Results</h4>In controls, NP65 was highly expressed in a wide-range of brain areas. AD cases showed significantly increased NP65 immunoreactivity across multiple brain regions, including the frontal and temporal cortex, hippocampus, and cerebellum, compared to controls. Western blot analysis consistently confirmed significantly elevated NP65 expression in the hippocampus of AD patients relative to controls. Double immunostaining demonstrated partial colocalization of NP65 with NFTs and A\u03b2 plaques in AD brain tissue.<h4>Conclusion</h4>Our findings demonstrate a significant increase of NP65 protein, which colocalizes with NFTs and A\u03b2 plaques in AD brains, providing direct evidence supporting a critical role of NP65 expression in the neuropathological mechanisms of this disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.5498/wjp.v15.i6.105751",
+      "year": 2025,
+      "group": "World journal of psychiatry",
+      "meta": {
+        "authors": "Zheng YN, Wang Y, Chen L, Xu LZ, Zhang L, Wang JL, Liu J, Zhang QL, Yuan QL.",
+        "cited_by": 1,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "AGR:IND609305794",
+      "title": "Spatial Mapping of Gangliosides and Proteins in Amyloid Beta Plaques at Cellular Resolution Using Mass Spectrometry Imaging and MALDI\u2010IHC",
+      "text": "In pharmaceutical research and development, technologies like mass spectrometry imaging (MSI) offer spatially resolved compound distributions to aid in the discovery of drug targets and development of drug candidates. Through traditional and immunohistochemical approaches centered around MSI, distributions of endogenous lipids and proteins can be mapped on the same tissue section at cellular resolution. To highlight the cellular resolution capability of the integrated MSI workflow leveraged here, an animal model of Alzheimer's disease (AD) was interrogated due to the relationship of lipid dysregulation and extracellular protein deposition in driving disease pathology, especially at the site of amyloid beta (A\u03b2) plaques. Gangliosides, A\u03b2 peptides, and microglia were imaged at 5\u2009\u03bcm spatial resolution in the brains of an APPPS1 mouse model. GM3 and GM2 gangliosides displayed plaque\u2010associated accumulation as supported by previous studies of a range of AD models. Advanced methods for achieving cellular resolution imaging of lipids and proteins have revealed heterogeneity in molecular distributions, which appears to be influenced by the microenvironment surrounding A\u03b2 plaques. While these data could support future biological conclusions of AD, a central aim of this study was to emphasize the potential impact of an MSI workflow, which fuses spatial lipidomic and proteomic data at cellular resolution, on translational drug discovery research. This dual molecular imaging approach and data mining strategy can not only support efforts in the discovery of novel drug targets, but also in evaluating drug\u2010target engagement when the distribution of a small molecule drug is simultaneously investigated.",
+      "source": "europepmc",
+      "url": "https://europepmc.org/article/AGR/IND609305794",
+      "year": 2025,
+      "group": "Journal of Mass Spectrometry",
+      "meta": {
+        "authors": "Good C, Bowman A, Klein C, Awwad K, Buck W, Yang J, Wagner D.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR1004252",
+      "title": "Alzheimer disease: The proposed role of tanycytes in the formation of tau tangles and amyloid beta plaques in human brain",
+      "text": "Currently, the causes for Alzheimer Disease (AD) are thought to lie in the formation of abnormal protein deposits including tau tangles and Amyloid \u00df (A\u03b2) plaques in the human cortex. These proteins are believed to accumulate in the brain due to impaired waste removal resulting in neurodegeneration. In an alternative hypothesis we have recently proposed the existence of an aquaporin4 aqua channel (AQP4)-expressing tanycyte-derived canal network that likely internalizes waste for removal from the brain. We propose that both A\u03b2 and tau protein may play important structural roles in this canal system. In support of this hypothesis, we demonstrate the formation of waste-internalizing receptacles by AQP4-expressing myelinated tanycytes. Using RNA-scope  in situ hybridization, immunohistochemistry, ultrastructural, and histological approaches, we demonstrate receptacle differentiation in tanycyte-derived \u2018swell-bodies.\u2019 We show that these receptacles are AQP4- and A\u03b2-immunoreactive and that related gene expression is observed in \u2018swell-bodies\u2019 where receptacle differentiation is observed. Through correlative light- and electron-microscopy in human and mouse brain, we demonstrate that both A\u00df and tau protein are associated with these waste-internalizing structures [1] and likely play important roles in the waste internalization process. Based on our findings, we postulate that the functional significance of A\u00df may be structural stabilization of waste-internalizing structures and canals to prevent their collapse during the uptake process. We propose that tau protein may govern the quantitatively appropriate release of waste-internalizing structures. We postulate that AD-related A\u03b2-plaques and tau tangles likely show hypertrophic pathologies of this glial-canal-system and associated waste-internalizing receptacles.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1101/2025.04.08.647836",
+      "year": 2025,
+      "group": "PPR",
+      "meta": {
+        "authors": "Fabian-Fine R, Roman AG, Weaver AL.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PMC:PMC11709907",
+      "title": "Proteomics identification of novel proteins dysregulated in Alzheimer\u2019s Disease with potential as blood\u2010based biomarkers and related to Amyloid\u2010Beta Plaques",
+      "text": "",
+      "source": "europepmc",
+      "url": "https://europepmc.org/article/PMC/PMC11709907",
+      "year": 2024,
+      "group": "Alzheimer's & dementia : the journal of the Alzheimer's Association",
+      "meta": {
+        "authors": "Montero\u2010Calle A, Coronel R, de los R\u00edos V, Fern\u00e1ndez\u2010Ace\u00f1ero M, Pel\u00e1ez\u2010Garc\u00eda A, Mart\u00ednez\u2010Useros J, Mendes M, Liste I, Barderas R.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:38896306",
+      "title": "Co-registration of MALDI-MSI and histology demonstrates gangliosides co-localize with amyloid beta plaques in Alzheimer's disease.",
+      "text": "Alzheimer's disease (AD) is a progressive neurological condition characterized by impaired cognitive function and behavioral alterations. While AD research historically centered around mis-folded proteins, advances in mass spectrometry techniques have triggered increased exploration of the AD lipidome with lipid dysregulation emerging as a critical player in AD pathogenesis. Gangliosides are a class of glycosphingolipids enriched within the central nervous system. Previous work has suggested a shift in a-series gangliosides from complex (GM1) to simple (GM2 and GM3) species may be related to the development of neurodegenerative disease. In addition, complex gangliosides with 20 carbon sphingosine chains have been shown to increase in the aging brain. In this study, we utilized matrix-assisted laser desorption ionization mass spectrometry imaging (MALDI-MSI) to interrogate the in situ relationship of a-series gangliosides with either 18 or 20 carbon sphingosine chains (d18:1 or d20:1, respectively) in the post-mortem human AD brain. Here, we expanded upon previous literature and demonstrated a significant decrease in the GM1 d20:1 to GM1 d18:1 ratio in regions of the dentate gyrus and entorhinal cortex in AD relative to control brain tissue. Then, we demonstrated that the MALDI-MSI profile of GM3 co-localizes with histologically confirmed amyloid beta (A\u03b2) plaques and found a significant increase in both GM1 and GM3 in proximity to A\u03b2 plaques. Collectively, this study demonstrates a perturbation of the ganglioside profile in AD, and validates a pipeline for MALDI-MSI and classic histological staining in the same tissue sections. This demonstrates feasibility for integrating untargeted mass spectrometry imaging approaches into a digital pathology framework.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s00401-024-02759-1",
+      "year": 2024,
+      "group": "Acta neuropathologica",
+      "meta": {
+        "authors": "Ollen-Bittle N, Pejhan S, Pasternak SH, Keene CD, Zhang Q, Whitehead SN.",
+        "cited_by": 17,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:39291090",
+      "title": "Molecular and Therapeutic Targets for Amyloid-beta Plaques in Alzheimer's Disease: A Review Study.",
+      "text": "Alzheimer's disease (AD) is characterized by progressive loss of cognition and a gradual decrease in memory. Although AD is considered the most persistent form of dementia and a global concern, no complete cure or agents that can completely halt the progression of AD have been found. In the past years, significant progress has been made in understanding the cellular and molecular changes associated with AD, and numerous drug targets have been identified for the development of drugs for this disease. Amyloid-beta (A\u03b2) plaques and neurofibrillary tangles (NFT) are the major attributes of AD. Symptomatic relief is the only possible treatment available at present and a disease-modifying drug is of utmost importance. The development of drugs that can inhibit different targets responsible for the formation of plaques is a potential area in AD research. This review is not a complete list of all possible targets for AD but serves to highlight the targets related to A\u03b2 pathology and pathways concerned with the formation of A\u03b2 fragments. This shall serve as a prospect in the identification of A\u03b2 plaque inhibitors and pave the strategies for newer drug treatments. Nevertheless, substantial research is done in this area but to bridle, the clinical difficulty remains a concern.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.32598/bcn.2021.3522.1",
+      "year": 2024,
+      "group": "Basic and clinical neuroscience",
+      "meta": {
+        "authors": "Thomas J, Wilson S.",
+        "cited_by": 2,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:38629212",
+      "title": "Pyrene Functionalized Norbornadiene-Quadricyclane Fluorescent Photoswitches: Characterization of their Spectral Properties and Application in Imaging of Amyloid Beta Plaques.",
+      "text": "This study presents the synthesis and characterization of two fluorescent norbornadiene (NBD) photoswitches, each incorporating two conjugated pyrene units. Expanding on the limited repertoire of reported photoswitchable fluorescent NBDs, we explore their properties with a focus on applications in bioimaging of amyloid beta (A\u03b2) plaques. While the fluorescence emission of the NBD decreases upon photoisomerization, aligning with what has been previously reported, for the first time we observed luminescence after irradiation of the quadricyclane (QC) isomer. We deduce how the observed emission is induced by photoisomerization to the excited state of the parent isomer (NBD) which is then the emitting species. Thorough characterizations including NMR, UV-Vis, fluorescence, X-ray structural analysis and density functional theory (DFT) calculations provide a comprehensive understanding of these systems. Notably, one NBD-QC system exhibits exceptional durability. Additionally, these molecules serve as effective fluorescent stains targeting A\u03b2 plaques in\u2005situ, with observed NBD/QC switching within the plaques. Molecular docking simulations explore NBD interactions with amyloid, unveiling novel binding modes. These insights mark a crucial advancement in the comprehension and design of future photochromic NBDs for bioimaging applications and beyond, emphasizing their potential in studying and addressing protein aggregates.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1002/chem.202400322",
+      "year": 2024,
+      "group": "Chemistry (Weinheim an der Bergstrasse, Germany)",
+      "meta": {
+        "authors": "Ghasemi S, Shamsabadi M, Olesund A, Najera F, Erbs Hillers-Bendtsen A, Edhborg F, Aslam AS, Larsson W, Wang Z, Amombo Noa FM, Salthouse RJ, \u00d6hrstr\u00f6m L, H\u00f6lzel H, Perez-Inestrosa E, Mikkelsen KV, Hanrieder J, Albinsson B, Dreos A, Moth-Poulsen K.",
+        "cited_by": 2,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PPR:PPR811615",
+      "title": "Co-registration of MALDI-MSI and histology demonstrates gangliosides co-localize with amyloid beta plaques in Alzheimer\u2019s disease.",
+      "text": "<title>Abstract</title>  <p>Alzheimer\u2019s disease (AD) is a progressive neurological condition characterized by impaired cognitive function and behavioural alterations. While AD research historically centered around mis-folded proteins, advances in mass spectrometry techniques have triggered increased exploration of the AD lipidome with lipid dysregulation emerging as a critical player in AD pathogenesis. Gangliosides are a class of glycosphingolipids enriched within the central nervous system. Previous work has suggested a shift in a-series gangliosides from complex (GM1) to simple (GM2 and GM3) species may be related to the development of neurodegenerative disease. Additionally, complex gangliosides with 20 carbon sphingosine chains have been shown to increase in the aging brain. In this study, we utilized matrix assisted laser desorption ionization mass spectrometry imaging (MALDI-MSI) to interrogate the <italic>in situ </italic>relationship of a-series gangliosides with either 18 or 20 carbon sphingosine chains (d18:1 or d20:1 respectively) in the post-mortem human AD brain. Here, we expanded upon previous literature and demonstrated a significant decrease in the GM1 d20:1:GM1 d18:1 ratio in regions of the dentate gyrus and entorhinal cortex in AD relative to control brain tissue. Then we demonstrated that the MALDI-MSI profile of GM3 co-localizes with histologically confirmed amyloid beta (A\u03b2) plaques and found a significant increase in both GM1 and GM3 in proximity to A\u03b2 plaques. Collectively these results support past literature and demonstrate a perturbation of the ganglioside profile in AD. Moreover, this work validates a pipeline for MALDI-MSI and classic histological staining in the same tissue sections. This demonstrates feasibility for integrating untargeted mass spectrometry imaging approaches into a digital pathology framework.</p>",
+      "source": "europepmc",
+      "url": "https://doi.org/10.21203/rs.3.rs-3985371/v1",
+      "year": 2024,
+      "group": "PPR",
+      "meta": {
+        "authors": "Ollen-Bittle N, Pejhan S, Pasternak SH, Keene CD, Zhang Q, Whitehead SN.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:38731870",
+      "title": "Transcranial Magneto-Acoustic Stimulation Protects Synaptic Rehabilitation from Amyloid-Beta Plaques via Regulation of Microglial Functions.",
+      "text": "Transcranial magneto-acoustic stimulation (TMAS), which is characterized by high spatiotemporal resolution and high penetrability, is a non-invasive neuromodulation technology based on the magnetic-acoustic coupling effect. To reveal the effects of TMAS treatment on amyloid-beta (A\u03b2) plaque and synaptic plasticity in Alzheimer's disease, we conducted a comparative analysis of TMAS and transcranial ultrasound stimulation (TUS) based on acoustic effects in 5xFAD mice and BV2 microglia cells. We found that the TMAS-TUS treatment effectively reduced amyloid plaque loads and plaque-associated neurotoxicity. Additionally, TMAS-TUS treatment ameliorated impairments in long-term memory formation and long-term potentiation. Moreover, TMAS-TUS treatment stimulated microglial proliferation and migration while enhancing the phagocytosis and clearance of A\u03b2. In 5xFAD mice with induced microglial exhaustion, TMAS-TUS treatment-mediated A\u03b2 plaque reduction, synaptic rehabilitation improvement, and the increase in phospho-AKT levels were diminished. Overall, our study highlights that stimulation of hippocampal microglia by TMAS treatment can induce anti-cognitive impairment effects via PI3K-AKT signaling, providing hope for the development of new strategies for an adjuvant therapy for Alzheimer's disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3390/ijms25094651",
+      "year": 2024,
+      "group": "International journal of molecular sciences",
+      "meta": {
+        "authors": "Zhang C, Tan R, Zhou X, Wang R, Wang X, Ma R, Chu F, Li Y, Yin T, Liu Z.",
+        "cited_by": 2,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:37542303",
+      "title": "The interwoven fibril-like structure of amyloid-beta plaques in mouse brain tissue visualized using super-resolution STED microscopy.",
+      "text": "<h4>Background</h4>Standard neuropathologic analysis of Alzheimer's brain relies on traditional fluorescence microscopy, which suffers from limited spatial resolution due to light diffraction. As a result, it fails to reveal intricate details of amyloid plaques. While electron microscopy (EM) offers higher resolution, its extensive sample preparation, involving fixation, dehydration, embedding, and sectioning, can introduce artifacts and distortions in the complex brain tissue. Moreover, EM lacks molecular specificity and has limited field of view and imaging depth.<h4>Results</h4>In our study, we employed super-resolution Stimulated Emission Depletion (STED) microscopy in conjunction with the anti-human APP recombinant antibody 1C3 fluorescently labelled with DyLight<sup>TM</sup>633 (1C3-DyLight633). This combination allowed us to visualize amyloidogenic aggregates in vitro and in brain sections from a 17-month-old 3\u00d7Tg-AD mouse with sub-diffraction limited spatial resolution. Remarkably, we achieved a spatial resolution of 29\u00a0nm in vitro and 62\u00a0nm in brain tissue sections, surpassing the capabilities of conventional confocal microscopy by 5-10 times. Consequently, we could discern individual fibrils within plaques, an achievement previously only possible with EM.<h4>Conclusions</h4>The utilization of STED microscopy represents a groundbreaking advancement in the field, enabling researchers to delve into the characterization of local mechanisms that underlie Amyloid (A\u03b2) deposition into plaques and their subsequent clearance. This unprecedented level of detail is especially crucial for comprehending the etiology of Alzheimer's disease and developing the next generation of anti-amyloid treatments. By facilitating the evaluation of drug candidates and non-pharmacological interventions aiming to reduce amyloid burden, STED microscopy emerges as an indispensable tool for driving scientific progress in Alzheimer's research.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1186/s13578-023-01086-4",
+      "year": 2023,
+      "group": "Cell & bioscience",
+      "meta": {
+        "authors": "Johansson B, Oasa S, Muntsant Soria A, Tiiman A, S\u00f6derberg L, Amandius E, M\u00f6ller C, Lannfelt L, Terenius L, Gim\u00e9nez-Llort L, Vukojevi\u0107 V.",
+        "cited_by": 4,
+        "is_open_access": "Y"
+      }
+    }
+  ]
+}

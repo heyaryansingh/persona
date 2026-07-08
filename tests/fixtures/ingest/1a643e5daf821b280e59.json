@@ -1,0 +1,173 @@
+{
+  "cached_at": 1783532187.5351694,
+  "value": [
+    {
+      "doc_id": "MED:42400752",
+      "title": "Exerkine-Mediated Regulation of the NLRP3 Inflammasome in Neuroprotection: Mechanistic Insights and the Role of Exercise.",
+      "text": "Neurodegeneration is a leading cause of long-term disability and cognitive impairment, and the aberrant activation of the NOD-like receptor protein 3 (NLRP3) inflammasome is closely implicated in its pathogenesis. The NLRP3 inflammasome, as a central mediator of inflammatory cascades, can, when excessively activated, promote neuroinflammation and glial polarization, induce neuronal death, disrupt the blood-brain barrier, suppress angiogenesis and neurogenesis, impair synaptic plasticity, and induce inflammaging, ultimately leading to neurodegeneration. Exerkines, including neurotrophic factors, adipokines, myokines, hepatokines, enzymes/coenzymes, metabolites, and miRNAs, can target the aberrant activation of the NLRP3 inflammasome, exerting neuroprotective effects. Exercise has attracted increasing attention for its benefits to brain health, as it can modulate the release and expression of numerous exerkines (such as BDNF, NGF, GDNF, APN, Chemerin, Apelin, Irisin, CX3CL1, HSP90, IGF-1, LCN2, SAA, SIRT1, lactate, and exosomal miRNAs), which, through the activation of specific kinases and downstream signaling pathways in the brain, precisely target the excessive activation of the NLRP3 inflammasome and thereby ameliorate neurodegeneration. This review summarizes and critically evaluates recent advances in the mechanistic roles of the NLRP3 inflammasome in the onset and progression of neurodegeneration, as well as in the molecular mechanisms by which exerkines regulate the NLRP3 inflammasome to ameliorate neurodegeneration, and in exercise interventions, providing a theoretical basis for the precise and targeted application of exercise in the prevention and treatment of neurodegeneration.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s12035-026-06039-9",
+      "year": 2026,
+      "group": "Molecular neurobiology",
+      "meta": {
+        "authors": "Tang S, Geng Y, Lin Q, Tian Z.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PMC:PMC13292674",
+      "title": "Innate immune crosstalk in ALS/FTD pathogenesis",
+      "text": "",
+      "source": "europepmc",
+      "url": "https://europepmc.org/article/PMC/PMC13292674",
+      "year": 2026,
+      "group": "Cell insight",
+      "meta": {
+        "authors": "Shu X, Yu X, Xu P, Wang A.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42405401",
+      "title": "Resveratrol and the NLRP3 Inflammasome: Unlocking the Anti-inflammatory Potential of a Natural Compound.",
+      "text": "<h4>Introduction/objective</h4>Chronic inflammation is the basis of various diseases, including inflammatory bowel disease, neurodegenerative diseases, and cardiometabolic disorders. NLRP3 is a key player in controlling Interleukin-1\u03b2 (IL-1\u03b2) and Interleukin-18 (IL-18) maturation and pyroptosis via its NOD-like receptor pyrin domain-containing 3 (NLRP3) inflammasome. This review will assess the mechanistic and therapeutic opportunity of resveratrol in restraining the NLRP3 inflammasome activation.<h4>Methods</h4>A search of experimental and preclinical studies examining the impact of resveratrol on oxidative stress, inflammatory signaling, mitochondrial activity, and inflammasome activation in various disease models was performed.<h4>Results</h4>Resveratrol reduces oxidative stress by regulating reactive oxygen species-mediated nuclear factor erythroid 2-related factor 2 signaling and suppressing toll-like receptor 4 (TLR4) /nuclear factor kappa B signaling (NF-\u03baB). It maintains mitochondrial integrity by activating sirtuin 1 and AMP-activated protein kinase signalling. In models of acute lung injury, bronchitis, diabetic nephropathy, and neurodegeneration, resveratrol can suppress the expression of NLRP3, caspase-1, and IL-1\u03b2, promote autophagy, and prevent dopaminergic neurons through the PINK1/Parkin/NLRP3 pathway. Additionally, it enhances intestinal barrier integrity in dextran sulfate sodium-induced colitis and suppresses inflammasome-mediated inflammation.<h4>Discussion</h4>These results suggest that resveratrol regulates the priming and activation stages of NLRP3 inflammasome signaling by inhibiting oxidative stress, mitochondrial dysfunction, and inflammatory cascades based on redox signaling. Nanoparticle preparations and structural analogs, such as pterostilbene, improve stability, bioavailability, and specific delivery.<h4>Conclusion</h4>Resveratrol is a potential natural therapeutic agent for managing NLRP3 inflammasomemediated inflammation, and its efficacy is enhanced when administered in optimal formulations and combined with conventional anti-inflammatory agents.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.2174/0113816128448299260622100931",
+      "year": 2026,
+      "group": "Current pharmaceutical design",
+      "meta": {
+        "authors": "Sharma K, Singla N, Kaur S, Bhatkatiya M, Vaisnav R, Gautam RK, Gautam S, Chitme H.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42154340",
+      "title": "Neuroprotective effects of trans-anethole on AlCl\u2083-induced memory impairment: targeting AChE, oxidative stress, and NLRP3 inflammasome: a promising approach for neurodegeneration prevention.",
+      "text": "Aluminum, a widely occurring environmental metal, has been implicated as a neurotoxic agent and is associated with the development of several neurodegenerative conditions, including Alzheimer's disease (AD). Its neurotoxicity is largerly attributed to the induction of oxidative stress , which exacerbates neuroinflammation, leading to cognitive deficits and progressive neuronal dysfunction. Trans-anethole (TA) possesses diverse pharmacological activities, including anti-inflammatory, antioxidant, antifungal, and anticancer effects. However, its neuroprotective potential against AlCl\u2083-induced neurodegeneration, particularly in the context of memory impairment mediated by inflammation and oxidative stress, remains unknown. Therefore, this study was conducted to evaluate the potential role of TA in mitigating neurodegeneration. To establish an aluminum-induced neuroinflammation-associated neurodegenerative model, rats received oral administration of 150\u00a0mg/kg AlCl\u2083 for 90 days. TA was administered at three different dosages between days 31 and 90: 40, 80, and 160\u00a0mg/kg between days 31 and 90. Cognitive performance was assessed using the Morris water maze (MWM) and passive avoidance test (PAT). Neuroprotective effects were evaluated by analyzing acetylcholinesterase (AChE) activity, oxidative stress markers (catalase, glutathione, and malondialdehyde levels), and neuroinflammatory mediators (NLRP3 inflammasome, Interleukin-1\u03b2, and TNF-\u03b1) in AlCl\u2083-exposed rats. TA significantly mitigated aluminum-induced neuronal damage by restoring antioxidant defence, inhibiting AChE activity, and downregulating inflammatory proteins, including NLRP3, TNF-\u03b1, and IL-1\u03b2. Histopathological analysis further confirmed its neuroprotective role. The findings of this study suggests that TA holds therapeutic potential for neurodegenerative disorders by mitigating memory deficits, neuroinflammation, and oxidative stress.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11011-026-01860-6",
+      "year": 2026,
+      "group": "Metabolic brain disease",
+      "meta": {
+        "authors": "Bagwe Parab S, Tripathi P, Barve K, Kaur G.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42232153",
+      "title": "The NLRP3-\u03b1-Synuclein Circuit: A Core Driver and Therapeutic Target in Parkinson's Disease.",
+      "text": "The neuroinflammatory mechanisms underlying Parkinson's disease (PD) have evolved from a view of localized central events to a systemic network perspective involving \"brain-periphery\" interactions. The NLRP3 inflammasome, as a core component of the innate immune system, plays a pivotal role within this network. This review aims to systematically elucidate NLRP3's multifaceted roles in PD: First, it delves into the \"self-amplifying\" vicious cycle between \u03b1-synuclein pathology and NLRP3 activation, supports the hypothesis that this cycle may serve as a core engine. Second, it transcends central nervous system limitations to systematically examine how the central-peripheral immune interaction network-comprising gut microbiota and peripheral immune cells-regulates this cycle. Third, it objectively evaluates the potential and current limitations of NLRP3 pathway-associated molecules as biomarkers for disease diagnosis and progression monitoring. Fourth, it comprehensively reviews therapeutic strategies targeting NLRP3 and critically examines key challenges in their clinical translation. This paper provides an integrated perspective for understanding PD as a systemic inflammatory disease and offers a theoretical framework for future biomarker development and precision treatment strategies based on this pathway.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.2147/jir.s597280",
+      "year": 2026,
+      "group": "Journal of inflammation research",
+      "meta": {
+        "authors": "Liu K, He Z, Zhang L, Wu YM, Xiao L.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42242486",
+      "title": "The neuroprotective effect of eugenol in aluminum chloride-induced Alzheimer's rats: Insights into the role of TLR4/MyD88/NF-kB and NLRP3 inflammasome/gasdermin D signaling pathways.",
+      "text": "Neuroinflammation, especially involving NLRP3 inflammasome, has been recognized as a fundamental pathology in Alzheimer's disease (AD). Therefore, inhibiting the NLRP3 inflammasome activity can slow the development of AD. Eugenol, a natural phenolic compound, is known to inhibit or modulate the inflammatory response. Therefore, this study focuses on scrutinizing the potential neuroprotective effect of eugenol via the NLRP3 signaling pathway in aluminum chloride (AlCl<sub>3</sub>) elicited AD rats. Rats were split into four groups: olive oil, eugenol (50\u202fmg/kg), AlCl<sub>3</sub> (100\u202fmg/kg), and eugenol\u00a0+\u00a0AlCl<sub>3</sub>, where rats received eugenol orally 2 weeks before and concurrently with oral induction by AlCl<sub>3</sub> for 12 weeks. Behavioral, histopathological, and biochemical analyses were performed. Significant behavioral dysfunction, aluminum accumulation and pronounced neuronal damage were observed in AD rats. These were associated with increased hippocampal nitric oxide (NO), malondialdehyde (MDA) and amyloid beta protein 1-42 (A\u03b2 1-42) along with diminished serum total antioxidant capacity (TAC) levels. In addition, activation of NLRP3 inflammasome pathway components concomitant with upregulation of the pyroptotic marker; gasdermin D (GSDMD) was observed. Nevertheless, eugenol administration significantly improved rats' behavioral and histological aberrations, reduced NO, MDA, aluminum, and elevated TAC levels. Eugenol modulated toll like receptor 4 (TLR4)/myeloid differentiation primary response gene 88 (Myd88)/nuclear factor kappa B (NF-kB) signal transduction pathway, leading to inhibition of NLRP3 inflammasome pathway, inflammatory cytokines as interleukin 18 (IL-18) and interleukin 1 beta (IL-1\u03b2) as well as GSDMD. Eugenol may exert neuroprotective effects against AlCl<sub>3</sub>-induced neurodegeneration by modulating NLRP3 inflammasome, pyroptosis, and TLR4/MyD88/NF-kB signaling pathways.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.abb.2026.110885",
+      "year": 2026,
+      "group": "Archives of biochemistry and biophysics",
+      "meta": {
+        "authors": "El-Dory ST, Abd El-Fattah AA, Sadik NAH, Elbaz EM.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42346137",
+      "title": "Neuroinflammation in Alzheimer's Disease (AD) and Glioblastoma (GBM): Shared Mechanisms and Therapeutic Insights.",
+      "text": "<h4>Introduction</h4>Neuroinflammation is a key feature of both Alzheimer's disease (AD) and glioblastoma, although it leads to different outcomes in each disorder. In AD, chronic activation of microglia and astrocytes by amyloid-\u03b2 and tau contributes to neuronal injury and cognitive decline. In glioblastoma, tumor cells exploit inflammatory pathways to create an immunosuppressive microenvironment that supports tumor growth. This review compares the shared and distinct neuroinflammatory mechanisms in AD and glioblastoma and highlights their therapeutic relevance.<h4>Materials and methods</h4>This study was conducted as a narrative review based on a PubMed search performed by three reviewers. English-language articles on AD, glioblastoma, and neuroinflammatory pathways were included, covering original studies, reviews, meta-analyses, and experimental and clinical reports. Keywords included neuroinflammation, microglia, astrocytes, tumor-associated macrophages, inflammasomes, NLRP3, NF-\u03baB, HIF-1\u03b1, cytokines, blood-brain barrier, and miRNAs. Due to study heterogeneity, findings were synthesized descriptively.<h4>Results</h4>AD and glioblastoma share major neuroinflammatory mechanisms, including microglial and astrocytic activation, cytokine signaling, inflammasome activity, blood-brain barrier dysfunction, hypoxia-related changes, and miRNA regulation. In AD, these pathways promote chronic inflammation, synaptic loss, and neurodegeneration, with NLRP3, NF-\u03baB, and M1-like microglial polarization playing central roles. In glioblastoma, similar pathways are redirected toward tumor progression through tumor-associated macrophages, reactive astrocytes, angiogenesis, immune evasion, and therapy resistance. Key overlapping mediators include IL-1\u03b2, TNF-\u03b1, NF-\u03baB, HIF-1\u03b1, GSK-3\u03b2, and selected miRNAs.<h4>Conclusions</h4>AD and glioblastoma are connected by common neuroinflammatory pathways, but these processes result in neurodegeneration in AD and tumor support in glioblastoma. Understanding these shared and divergent mechanisms may guide the development of biomarkers and targeted therapies focused on microglia, inflammasomes, cytokines, and immune reprogramming in both diseases.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3390/cells15121111",
+      "year": 2026,
+      "group": "Cells",
+      "meta": {
+        "authors": "Miko\u0142ajczak K, Chmiel J, Leszek J.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42208757",
+      "title": "Targeting the microbiome-NLRP3-ferroptosis axis in multiple sclerosis: Neuropharmacological implications for microglial dysfunction and demyelination.",
+      "text": "Multiple sclerosis (MS) is a chronic autoimmune disorder of the central nervous system (CNS) characterized by neuroinflammation, demyelination, and neurodegeneration. Recent evidence has established a mechanistic connection between gut microbial dysbiosis, the activation of the NOD-like receptor protein 3 (NLRP3) inflammasome, and ferroptosis, an iron-dependent regulated cell death marked by lipid peroxidation. This review synthesizes current understanding of how alterations in the gut microbiome disrupt the gut-brain axis and compromise the blood-brain barrier (BBB), thereby promoting the activation of the microglial NLRP3 inflammasome in the central nervous system. The resulting neuroinflammatory milieu, marked by oxidative stress and iron dysregulation, renders oligodendrocytes and neurons susceptible to ferroptosis via essential enzymes like ACSL4 and ALOX15. We examine the reciprocal relationship between NLRP3-induced inflammation and ferroptotic cell death, emphasizing microglia as crucial mediators of this detrimental cycle. We explore innovative neuropharmacological strategies targeting the gut microbiota, NLRP3 inhibition, and ferroptosis pathways (e.g., ACSL4/ALOX15 inhibitors) to achieve neuroprotection and reduce disease progression. This extensive perspective enhances understanding of MS pathophysiology and identifies actionable therapeutic targets within the microbiome-inflammasome-ferroptosis axis for the development of mechanism-based therapies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.neuropharm.2026.111042",
+      "year": 2026,
+      "group": "Neuropharmacology",
+      "meta": {
+        "authors": "Fawzy MN, Abdelaziz AM, Shokr MM, Fathy MK.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42105707",
+      "title": "NLRP3 inflammasome dysregulation by endocrine-disrupting chemicals and heavy metals: Developmental programming, sex differences, and inflammaging across the lifespan.",
+      "text": "Environmental exposure to heavy metals and endocrine-disrupting chemicals (EDCs) activates the NLRP3 inflammasome, driving chronic inflammation that worsens or may underlie cardiovascular disease, neurodegeneration, and accelerated aging. This review examines the molecular mechanisms by which lead, cadmium, mercury, arsenic, bisphenol A, phthalates, and dioxins modulate NLRP3 signaling. Lead and cadmium activate NLRP3 through mitochondrial dysfunction and oxidative stress, whereas mercury and arsenic suppress inflammasome assembly by preventing apoptosis-associated speck-like protein containing a CARD (ASC) oligomerization. EDCs engage receptor-mediated pathways: aryl hydrocarbon receptor (AhR) activation directly represses NLRP3 transcription, yet bisphenol A and phthalates override this suppression through NF-\u03baB activation. Developmental timing critically determines outcomes such as prenatal exposures epigenetically programing persistent NLRP3 dysregulation. Sex hormones have been shown to modulate distinct inflammatory landscapes: estrogen suppresses NLRP3 via ER\u03b2-dependent mechanisms, while testosterone amplifies inflammasome-dependent pathology. The skin serves as a primary interface for environmental chemical exposure and cutaneous NLRP3 activation. NLRP3-deficient mice exhibit 34% increased lifespan, and pharmacological inhibition with MCC950 extends lifespan in progeria models. The CANTOS trial demonstrated that targeting inflammation through IL-1\u03b2 neutralization confers cardiovascular benefits in high-risk humans. These findings position NLRP3 as a central integrator through which the chemical exposome accelerates inflammaging and identify inflammasome inhibition as a therapeutic strategy for environmental disease prevention.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.intimp.2026.116792",
+      "year": 2026,
+      "group": "International immunopharmacology",
+      "meta": {
+        "authors": "Karpuzoglu E, Holladay SD, Gogal RM.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:41933870",
+      "title": "Empagliflozin Halts NLRP3 Inflammasome-Mediated Neurodegeneration in Parkinson's Disease in a Rotenone Rat Model.",
+      "text": "The NLRP3 inflammasome is a crucial booster of pyroptosis and neuroinflammation in Parkinson's disease (PD). Although empagliflozin, a sodium-glucose cotransporter-2 (SGLT2) inhibitor, has shown neuroprotective ability, its impact on NLRP3 inflammasome stimulation in PD remains undefined. This study examined the neuroprotective properties of empagliflozin in the PD rat model induced by rotenone, with an emphasis on its modulation of NLRP3 inflammasome-mediated pyroptosis. PD was induced via daily subcutaneous administration of rotenone for 14 consecutive days. During this period, animals received daily oral empagliflozin treatment. Empagliflozin significantly improved motor performance, preserved the histoarchitecture of both substantia nigra and striatum, and restored tyrosine hydroxylase immunoreactivity and dopamine levels. It also reduced \u03b1-synuclein aggregation, suppressed microglial activation, and replenished glutathione content. Mechanistically, empagliflozin downregulated the NLRP3/caspase-1/IL-1\u03b2 signaling cascade and reduced gasdermin D (GSDMD) expression, thereby inhibiting pyroptotic cell death. In conclusion, these findings highlight empagliflozin as a promising neuroprotective agent capable of mitigating rotenone-induced PD pathology by targeting NLRP3 inflammasome-mediated pyroptosis, supporting its prospective repurposing as a disease-modifying therapy for PD and related neurodegenerative disorders.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1016/j.ejphar.2026.178831",
+      "year": 2026,
+      "group": "European journal of pharmacology",
+      "meta": {
+        "authors": "Ghaith WZ, Wadie W, El-Yamany MF.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42212127",
+      "title": "Targeting microglia-mediated neuroinflammation in Alzheimer's disease: mechanisms and therapeutic approaches.",
+      "text": "While the recent approval of amyloid-beta (A\u03b2)-clearing monoclonal antibodies (mAbs) marks a milestone in treating Alzheimer's disease (AD), their modest clinical efficacy has catalyzed a paradigm shift, underscoring the necessity of targeting complementary pathological drivers. Neuroinflammation, once considered a secondary phenomenon, is now established as a third core pathological pillar of AD, with microglia at its epicenter. This review provides a comprehensive analysis of the multifaceted role of microglia in AD pathogenesis and evaluates the rapidly evolving landscape of microglia-targeted therapeutic strategies. We first delineate the dynamic and dichotomous function of microglia, which act as a \"double-edged sword.\" Emerging evidence reveals a complex, three-stage functional arc: microglia are implicated in the initial seeding of A\u03b2 plaques, then transition to a neuroprotective role by containing established plaques, and finally devolve into a chronic, pro-inflammatory state that drives neurodegeneration. We then delve into the core molecular mechanisms governing this plasticity, including the pivotal Triggering Receptor Expressed on Myeloid Cells 2 (TREM2)-APOE signaling axis, the inhibitory receptor Cluster of Differentiation 33 (CD33), and key intracellular hubs like the NLRP3 inflammasome, which directly link genetic risk factors to microglial dysregulation. Based on this mechanistic understanding, we critically evaluate diverse therapeutic strategies, ranging from suppressing neurotoxic inflammation (e.g., TNF-\u03b1 and NLRP3 inhibitors) to enhancing protective functions (e.g., TREM2 agonism and CD33 antagonism), eliminating senescent microglia (senolytics), and utilizing advanced nanoplatforms for brain-targeted delivery. Finally, we highlight the critical role of neuroinflammatory biomarkers within the emerging ATI(N) framework for enabling precision medicine. In conclusion, targeting microglia represents a vital therapeutic avenue that moves beyond amyloid-centric approaches, where a sophisticated understanding of their stage-dependent functions is paramount for developing effective immunomodulatory therapies to alter the devastating course of AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3389/fimmu.2026.1818802",
+      "year": 2026,
+      "group": "Frontiers in immunology",
+      "meta": {
+        "authors": "Li BF, Chen XY, Xie R, Mo YF, Wu YZ, Meng Y, Han XL, Chen MH, Peng YJ.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42272988",
+      "title": "Editorial: Advances and challenges in stroke therapy: a regenerative prospective, volume II.",
+      "text": "",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3389/fnhum.2026.1867182",
+      "year": 2026,
+      "group": "Frontiers in human neuroscience",
+      "meta": {
+        "authors": "Raza SS, Morris VB, Azari H.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    }
+  ]
+}
