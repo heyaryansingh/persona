@@ -26,6 +26,9 @@ class Hypothesis:
     claim_key: str
     predicts: float            # +1 if a passing test supports the claim, -1 if it refutes
     test_description: str
+    subject: str = ""          # canonical entity A (for entity-driven dataset search + reanalysis)
+    object: str = ""           # canonical entity B
+    alternatives: list = field(default_factory=list)   # >=2 falsifiable candidate predictions
 
 
 @dataclass
@@ -34,6 +37,7 @@ class DatasetHit:
     source: str
     url: str
     relevance: str = ""
+    title: str = ""
 
 
 @dataclass
@@ -46,14 +50,31 @@ class SelfTestResult:
     is_replay: bool = True      # True until a real Claude-Science reanalysis is wired
 
 
-def hypothesize(event: ContradictionEvent) -> Hypothesis:
-    """Turn a typed contradiction into a falsifiable sub-hypothesis."""
+def hypothesize(event: ContradictionEvent, entities: Optional[tuple] = None) -> Hypothesis:
+    """Turn a typed contradiction into a falsifiable sub-hypothesis + >=2 candidate predictions.
+
+    `entities` = (subject, object) recovered from the durable observation log (store.entities_for);
+    when present the dataset scout and reanalysis can search on the real entities rather than
+    scraping the statement. The alternatives make the test genuinely falsifiable: each names a
+    distinct observable a first-pass dataset check could confirm or deny."""
+    subj, obj = (entities or ("", ""))
+    ent = f"{subj} <-> {obj}" if subj and obj else event.statement[:100]
     text = (f"If the disagreement on \"{event.statement[:100]}\" is a true effect (not "
-            f"{event.kind}), an independent public dataset should show the same direction.")
+            f"{event.kind}), an independent public dataset for {ent} should show the same "
+            f"direction, not the confound.")
+    alts = [
+        f"an independent expression/association dataset shows the SAME effect direction for {ent}",
+        f"the disagreement is context-divergence: the effect direction FLIPS with population/assay "
+        f"(same {ent}, different cohort)",
+    ]
+    if subj and obj:
+        alts.append(f"there is no reproducible {subj}->{obj} association in independent data "
+                    f"(the original signal was noise/citation echo)")
     return Hypothesis(
         text=text, claim_key=event.claim_key, predicts=+1.0,
-        test_description=("Locate a public expression/association dataset for the entities "
-                          "in the claim; compute the first-pass effect direction and compare."),
+        test_description=("Locate a public expression/association dataset for the entities in the "
+                          "claim; compute the first-pass effect direction and compare."),
+        subject=subj, object=obj, alternatives=alts,
     )
 
 
@@ -63,32 +84,51 @@ class DatasetScout(Protocol):
 
 
 class GEODatasetScout:
-    """Live NCBI GEO (GDS) search via eutils (stdlib urllib, cached)."""
+    """Live NCBI GEO (GDS) search via eutils (stdlib urllib, cached). Searches on the claim's
+    real entities and resolves UIDs to REAL accessions (GDS…/GSE…) + titles via esummary, so
+    the located dataset is a citable public artifact, not a bare UID (v3 T0.4)."""
     _ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    _ESUMMARY = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
 
     def __init__(self, cache: Optional[DiskCache] = None, timeout: float = 20.0):
         self.cache = cache or DiskCache()
         self.timeout = timeout
 
+    def _term(self, hyp: Hypothesis) -> str:
+        if hyp.subject and hyp.object:
+            # entity-driven query restricted to expression-profiling datasets
+            return f'("{hyp.subject}" AND "{hyp.object}") AND "expression profiling"[Filter]'
+        return hyp.text.split("\"")[1] if "\"" in hyp.text else hyp.claim_key
+
+    def _get(self, url: str) -> dict:
+        req = urllib.request.Request(url, headers={"User-Agent": "persona-researcher/0.0.1"})
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
     def search(self, hypothesis: Hypothesis, limit: int = 5) -> list[DatasetHit]:
-        # crude term: the claim key's statement words (the caller can pass richer terms later)
-        term = hypothesis.claim_key
-        term = urllib.parse.quote(hypothesis.text.split("\"")[1] if "\"" in hypothesis.text else term)
-        cached = self.cache.get("geo", term, str(limit))
+        term = self._term(hypothesis)
+        cached = self.cache.get("geo2", term, str(limit))
         if cached is None:
             params = urllib.parse.urlencode({"db": "gds", "term": term, "retmode": "json",
                                              "retmax": limit})
-            req = urllib.request.Request(f"{self._ESEARCH}?{params}",
-                                         headers={"User-Agent": "persona-researcher/0.0.1"})
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            ids = data.get("esearchresult", {}).get("idlist", [])
-            self.cache.put(ids, "geo", term, str(limit))
+            ids = self._get(f"{self._ESEARCH}?{params}").get("esearchresult", {}).get("idlist", [])
+            summ = {}
+            if ids:
+                sp = urllib.parse.urlencode({"db": "gds", "id": ",".join(ids), "retmode": "json"})
+                summ = self._get(f"{self._ESUMMARY}?{sp}").get("result", {})
+            hits = []
+            for i in ids:
+                s = summ.get(i, {}) if isinstance(summ, dict) else {}
+                acc = s.get("accession") or f"GDS_uid:{i}"
+                hits.append({"accession": acc, "title": s.get("title", ""),
+                             "n": s.get("n_samples", "")})
+            self.cache.put(hits, "geo2", term, str(limit))
         else:
-            ids = cached
-        return [DatasetHit(accession=f"GDS_uid:{i}", source="GEO",
-                           url=f"https://www.ncbi.nlm.nih.gov/gds/?term={i}",
-                           relevance="keyword match") for i in ids]
+            hits = cached
+        return [DatasetHit(accession=h["accession"], source="GEO",
+                           url=f"https://www.ncbi.nlm.nih.gov/gds/?term={h['accession']}",
+                           relevance="entity match" if hypothesis.subject else "keyword match",
+                           title=h.get("title", "")) for h in hits]
 
 
 class MockDatasetScout:

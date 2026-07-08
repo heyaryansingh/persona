@@ -123,6 +123,8 @@ class BeliefStore:
                 direction REAL NOT NULL,
                 relation TEXT NOT NULL DEFAULT '',
                 population TEXT,
+                subject TEXT NOT NULL DEFAULT '',
+                object TEXT NOT NULL DEFAULT '',
                 grp TEXT NOT NULL,
                 doc_id TEXT NOT NULL,
                 confidence REAL NOT NULL DEFAULT 0.5,
@@ -142,7 +144,17 @@ class BeliefStore:
             CREATE INDEX IF NOT EXISTS ix_edges_src ON edges(src);
             """
         )
+        self._migrate()
         self._db.commit()
+
+    def _migrate(self) -> None:
+        """Add columns to pre-existing DBs (CREATE TABLE IF NOT EXISTS won't). Idempotent."""
+        have = {r["name"] for r in self._db.execute("PRAGMA table_info(observations)").fetchall()}
+        for col in ("subject", "object", "relation"):
+            if col not in have:
+                self._db.execute(f"ALTER TABLE observations ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+        if "population" not in have:
+            self._db.execute("ALTER TABLE observations ADD COLUMN population TEXT")
 
     # ---------------------------------------------------------------- claims
     def add_claim(self, claim: Claim) -> Claim:
@@ -300,15 +312,19 @@ class BeliefStore:
     # ------------------------------------------------- observations (durable staging)
     def add_observation(self, claim_key: str, statement: str, direction: float, group: str,
                         doc_id: str, confidence: float = 0.5, relation: str = "",
-                        population: Optional[str] = None) -> None:
+                        population: Optional[str] = None, subject: str = "",
+                        object: str = "") -> None:
         """Persist a swarm candidate immediately (durable membrane buffer). Idempotent:
         the same (claim, doc, group, direction) is ignored on re-submit (crash-resume safe).
-        The RELATION verb is persisted so the belief-state never loses effect direction."""
+        The RELATION verb + canonical (subject, object) are persisted so the belief-state never
+        loses effect direction and the acting loop can recover entities for a real reanalysis."""
         self._db.execute(
             """INSERT OR IGNORE INTO observations
-               (claim_key, statement, direction, relation, population, grp, doc_id, confidence, ts)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (claim_key, statement, direction, relation, population, group, doc_id, confidence, _now()))
+               (claim_key, statement, direction, relation, population, subject, object,
+                grp, doc_id, confidence, ts)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (claim_key, statement, direction, relation, population, subject, object,
+             group, doc_id, confidence, _now()))
         self._db.commit()
 
     def observation_keys(self) -> list:
@@ -317,8 +333,17 @@ class BeliefStore:
 
     def observations_for(self, claim_key: str) -> list:
         return [dict(r) for r in self._db.execute(
-            "SELECT claim_key, statement, direction, relation, population, grp, doc_id, confidence "
-            "FROM observations WHERE claim_key=? ORDER BY obs_id", (claim_key,)).fetchall()]
+            "SELECT claim_key, statement, direction, relation, population, subject, object, "
+            "grp, doc_id, confidence FROM observations WHERE claim_key=? ORDER BY obs_id",
+            (claim_key,)).fetchall()]
+
+    def entities_for(self, claim_key: str) -> tuple:
+        """Recover the canonical (subject, object) for a claim from the observation log
+        (majority vote over non-empty entries). Returns ('', '') if unknown."""
+        from collections import Counter
+        pairs = Counter((o["subject"], o["object"]) for o in self.observations_for(claim_key)
+                        if o.get("subject") and o.get("object"))
+        return pairs.most_common(1)[0][0] if pairs else ("", "")
 
     def has_source(self, claim_id: str, ref: str) -> bool:
         """Has this exact source (e.g. doc_id) already contributed to this claim?

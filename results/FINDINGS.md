@@ -114,3 +114,31 @@ Architectural change validated in v2: a swarm belief is now a **deterministic fu
 accumulated independent evidence** (not an incremental step) over a **durable observation
 log** — making the membrane crash-safe and re-reads idempotent, and making the anchor guard
 **absolute by construction**. This supersedes (and strengthens) the boolean-sim crossover.
+
+---
+
+## v3 T0.4 — first-pass reanalysis over REAL data (Open Targets), and its bands
+
+The acting loop's "reanalysis" no longer reasons over an accession *string*; it cross-checks a
+gene↔disease claim against Open Targets' **computed** target–disease association (genetic +
+literature + pathway evidence). `is_replay=False` only when a real external computation returned
+a number.
+
+**Band validation** (`experiments/exp_reanalysis_bands.py`, 12 textbook-true vs 12 unrelated
+gene–disease pairs; Open Targets scores are deterministic external data, so n=24 labeled-pair
+separation, not seeds):
+
+| signal | pos mean | pos min | neg mean | neg max | best thr | precision | recall | F1 |
+|---|---|---|---|---|---|---|---|---|
+| genetic_association | 0.831 | 0.000 | 0.005 | 0.055 | 0.06 | 1.00 | 0.92 | 0.96 |
+| overall association | 0.771 | 0.637 | 0.027 | 0.061 | 0.07 | 1.00 | 1.00 | 1.00 |
+
+**Read:** the `overall` score is a *near-perfect* discriminator here — every true pair scores
+≥0.637, every unrelated pair ≤0.061, so any threshold in **[0.07, 0.63]** is error-free on this
+set. The production band `overall≥0.30` sits mid-interval with margin on both sides. The
+`genetic≥0.10` branch (genetic evidence = higher clinical-success prior, Minikel 2024) adds zero
+false positives (neg genetic max 0.055) and recovers the one drug-target case (TNF↔RA, genetic=0
+but overall=0.637) that a genetic-only rule would miss. Both bands are therefore evidence-backed,
+and the OR of them is justified. Honest caveat: Open Targets' fuzzy entity search can resolve a
+non-gene phrase to *some* target, but such spurious matches fall in the inconclusive/refute band
+(low score), so they don't manufacture a fake "supports".

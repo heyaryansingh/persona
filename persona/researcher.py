@@ -243,12 +243,19 @@ class Researcher:
         ev = next((e for e in self._contradictions if e.claim_key == claim_key), None)
         if ev is None:
             return {"error": "no open contradiction for that claim"}
-        if config.have_key():                       # real: live GEO scout + Claude first-pass
+        from .loops.self_test import hypothesize
+        from .loops.reanalysis import CompositeTester
+        entities = self.me.store.entities_for(claim_key)   # recover canonical (subject, object)
+        # real path: live GEO scout for a citable dataset + CompositeTester (Open Targets real
+        # first-pass over genetic-association data, Claude reasoning fallback). Offline: mock+replay.
+        if config.have_key() or any(entities):
             scout = GEODatasetScout(cache=_DiskCache("tests/fixtures/ingest"))
-            tester = ClaudeScienceTester()
-        else:                                       # offline demo fallback
+            tester = CompositeTester()
+        else:
             scout, tester = MockDatasetScout(), HeuristicTester()
-        res = run_self_test(ev, scout, tester)
+        hyp = hypothesize(ev, entities=entities)
+        hits = scout.search(hyp)
+        res = tester.run(hyp, hits[0] if hits else None)
         self._pending_tests[claim_key] = res      # hold for human sign-off (loop closes on resolve)
         self.me.notebook(f"self-test on {claim_key}: {res.outcome} "
                          f"(conf {res.confidence:.2f}, replay={res.is_replay}) — needs human sign-off")

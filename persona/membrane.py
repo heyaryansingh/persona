@@ -65,14 +65,17 @@ class Membrane:
         self.store.add_observation(cand.claim_key, cand.statement, cand.direction,
                                    cand.group, cand.doc_id, cand.confidence,
                                    relation=cand.meta.get("relation", ""),
-                                   population=cand.meta.get("population"))
+                                   population=cand.meta.get("population"),
+                                   subject=cand.meta.get("subject", ""),
+                                   object=cand.meta.get("object", ""))
 
     @staticmethod
     def _to_cands(rows) -> list:
         return [Candidate(claim_key=r["claim_key"], statement=r["statement"],
                           direction=r["direction"], group=r["grp"], doc_id=r["doc_id"],
                           confidence=r["confidence"],
-                          meta={"relation": r.get("relation", ""), "population": r.get("population")})
+                          meta={"relation": r.get("relation", ""), "population": r.get("population"),
+                                "subject": r.get("subject", ""), "object": r.get("object", "")})
                 for r in rows]
 
     # ------------------------------------------------- E10: poisoning detector
@@ -164,7 +167,11 @@ class Membrane:
 
     def _commit(self, key: str, sup: list[Candidate], direction: float) -> None:
         if self.store.get_claim(key) is None:
-            self.store.add_claim(Claim(key, sup[0].statement, tier="core"))
+            m = sup[0].meta
+            ents = [e for e in (m.get("subject"), m.get("object")) if e]
+            self.store.add_claim(Claim(key, sup[0].statement, tier="core", entities=ents,
+                                       direction=("up" if direction > 0 else "down"),
+                                       population=m.get("population")))
         # record each supporting doc once (idempotent; a paper can't count twice)
         for c in sup:
             if not self.store.has_source(key, c.doc_id):
