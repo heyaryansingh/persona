@@ -57,15 +57,21 @@ def candidates_from_claims(doc, raw: list) -> list[Candidate]:
     group = doc.group or doc.source
     out = []
     for c in raw:
-        subj, obj = (c.get("subject") or "").strip(), (c.get("object") or "").strip()
-        reln = c.get("relation", "associated_with")
+        if not isinstance(c, dict):
+            continue
+        subj, obj = str(c.get("subject") or "").strip(), str(c.get("object") or "").strip()
+        reln = str(c.get("relation") or "associated_with")
         if not subj or not obj:
             continue
+        try:
+            conf = float(c.get("confidence", 0.6))
+        except (TypeError, ValueError):
+            conf = 0.6
         out.append(Candidate(
             claim_key=claim_key(subj, obj),
             statement=f"{subj} {reln.replace('_', ' ')} {obj}",
             direction=_RELN_DIR.get(reln, +1.0), group=group, doc_id=doc.doc_id,
-            provenance="READ", confidence=float(c.get("confidence", 0.6)),
+            provenance="READ", confidence=conf,
             meta={"subject": subj, "object": obj, "relation": reln, "year": doc.year},
         ))
     return out

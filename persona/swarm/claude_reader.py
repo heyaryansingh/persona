@@ -51,7 +51,12 @@ EXTRACT_TOOL = {
 
 _SYSTEM = ("You extract falsifiable biomedical claims as structured tuples. Be precise, "
            "prefer the 3-8 most important claims, never pad, and set confidence to how "
-           "strongly the text asserts each claim.")
+           "strongly the text asserts each claim. Use CANONICAL, SHORT entity names for "
+           "subject and object — the standard gene/protein/cell/pathway/process name, and "
+           "DROP modifiers (write 'microglia' not 'microglial activation'; 'neuroinflammation' "
+           "not 'neuroinflammatory response'; 'tau' not 'hyperphosphorylated tau protein'; "
+           "'NLRP3' not 'NLRP3 inflammasome activation') so the same relation from different "
+           "papers matches and converges.")
 
 
 class ClaudeExtractor:
