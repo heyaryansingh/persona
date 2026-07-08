@@ -17,7 +17,7 @@ from the literature sweep (planning/LITERATURE.md §B/§D) are baked in:
 """
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .store import BeliefStore, Claim
@@ -54,22 +54,29 @@ class Membrane:
         self.poison_min_volume = poison_min_volume
         self.poison_indep_ratio = poison_indep_ratio
         self.escape_quorum = escape_quorum   # independent groups needed to CHALLENGE an anchor (E9)
-        self._buf: dict[str, deque[Candidate]] = defaultdict(lambda: deque(maxlen=window))
         self.strict_mode: set[str] = set()      # claim_keys currently under strict policy
         self.backpressure: float = 1.0           # fan-out scale the orchestrator reads (<=1)
 
     # ------------------------------------------------------------- intake
     def submit(self, cand: Candidate) -> None:
-        """Swarm hands a candidate to the staging buffer (never writes the self)."""
-        self._buf[cand.claim_key].append(cand)
+        """Swarm hands a candidate to the DURABLE observation log (never writes the self).
+        Persisting immediately makes the membrane crash-safe: a restart recomputes beliefs
+        from accumulated evidence and loses nothing held."""
+        self.store.add_observation(cand.claim_key, cand.statement, cand.direction,
+                                   cand.group, cand.doc_id, cand.confidence)
+
+    @staticmethod
+    def _to_cands(rows) -> list:
+        return [Candidate(claim_key=r["claim_key"], statement=r["statement"],
+                          direction=r["direction"], group=r["grp"], doc_id=r["doc_id"],
+                          confidence=r["confidence"]) for r in rows]
 
     # ------------------------------------------------- E10: poisoning detector
-    def _detect_poisoning(self, key: str, dominant_dir: float) -> bool:
+    def _detect_poisoning(self, key: str, cands: list, dominant_dir: float) -> bool:
         """Correlated-disagreement signature: high volume, low independence, attacking an
         established belief. Returns True -> switch this claim to strict + apply backpressure.
         """
-        buf = self._buf[key]
-        same_dir = [c for c in buf if c.direction == dominant_dir]
+        same_dir = [c for c in cands if c.direction == dominant_dir]
         if len(same_dir) < self.poison_min_volume:
             return False
         groups = {c.group for c in same_dir}
@@ -90,11 +97,12 @@ class Membrane:
         """Decide what crosses. Convergence by independent groups; typed contradictions
         routed out (not auto-committed)."""
         report = HarvestReport()
-        for key, buf in list(self._buf.items()):
-            if not buf:
+        for key in self.store.observation_keys():
+            cands = self._to_cands(self.store.observations_for(key))
+            if not cands:
                 continue
             by_dir: dict[float, list[Candidate]] = defaultdict(list)
-            for c in buf:
+            for c in cands:
                 by_dir[c.direction].append(c)
             # dominant direction = most independent groups
             def indep(cands):
@@ -106,7 +114,7 @@ class Membrane:
             sup_groups, ref_groups = indep(sup), indep(ref)
 
             # adaptive switch (E10)
-            if self._detect_poisoning(key, dominant_dir):
+            if self._detect_poisoning(key, cands, dominant_dir):
                 self.strict_mode.add(key)
                 self.backpressure = 0.3
                 report.strict_claims.append(key)
@@ -121,7 +129,7 @@ class Membrane:
             # still holds), and correlated poison (few groups) can't reach escape_quorum.
             existing = self.store.get_claim(key)
             if existing is not None and existing.anchor:
-                contrary_groups = len({c.group for c in buf if c.direction * existing.logit < 0})
+                contrary_groups = len({c.group for c in cands if c.direction * existing.logit < 0})
                 if contrary_groups >= self.escape_quorum:
                     report.contradictions.append(ContradictionEvent(
                         key, existing.statement, "anchor-challenge",
@@ -151,9 +159,17 @@ class Membrane:
         return ContradictionEvent(key, stmt, kind, sup_groups, ref_groups, detail)
 
     def _commit(self, key: str, sup: list[Candidate], direction: float) -> None:
+        # idempotency: drop candidates whose document already contributed to this claim,
+        # so re-reading a paper (e.g. after a crash-resume) can't count it twice.
+        fresh = [c for c in sup if not (self.store.get_claim(key) is not None
+                                        and self.store.has_source(key, c.doc_id))]
         if self.store.get_claim(key) is None:
             self.store.add_claim(Claim(key, sup[0].statement, tier="core"))
-        for c in sup:
+            fresh = sup
+        if not fresh:
+            return                      # every supporting doc already counted -> no-op
+        for c in fresh:
             self.store.add_source(key, c.doc_id, c.group)
-        # one bounded commit in the converged direction; store applies the anchor guard
-        self.store.update_belief(key, direction, cause="membrane", evidence_provenance="READ")
+        # belief = deterministic function of accumulated independent evidence (idempotent to
+        # re-reads / crash-resume); the store leaves anchored beliefs untouched.
+        self.store.set_swarm_belief(key, direction)

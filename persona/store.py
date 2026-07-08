@@ -116,6 +116,17 @@ class BeliefStore:
                 valid_from TEXT NOT NULL,
                 valid_to TEXT
             );
+            CREATE TABLE IF NOT EXISTS observations (
+                obs_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                claim_key TEXT NOT NULL,
+                statement TEXT NOT NULL,
+                direction REAL NOT NULL,
+                grp TEXT NOT NULL,
+                doc_id TEXT NOT NULL,
+                confidence REAL NOT NULL DEFAULT 0.5,
+                ts TEXT NOT NULL,
+                UNIQUE(claim_key, doc_id, grp, direction)
+            );
             CREATE TABLE IF NOT EXISTS history (
                 history_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 claim_id TEXT NOT NULL REFERENCES claims(claim_id),
@@ -205,6 +216,29 @@ class BeliefStore:
         self._db.commit()
         return self.get_claim(claim_id)
 
+    def set_swarm_belief(self, claim_id: str, direction: float, *, step: float = 0.6) -> Claim:
+        """Set a NON-anchored belief's strength as a deterministic function of its accumulated
+        independent evidence: logit = direction * step * (# independent source groups), clipped.
+        Schedule-independent → re-reading/crash-resume converges to the same belief (idempotent).
+        Anchored beliefs are untouched here (swarm can't move an anchor; human/test only)."""
+        r = self._row(claim_id)
+        if r is None:
+            raise KeyError(claim_id)
+        if bool(r["anchor"]):
+            return self.get_claim(claim_id)      # resist: swarm never moves an anchor
+        n = self.independent_source_count(claim_id)
+        after = max(-LOGIT_CLIP, min(LOGIT_CLIP, direction * step * n))
+        now = _now()
+        self._db.execute("UPDATE claims SET logit=?, updated_at=? WHERE claim_id=?",
+                         (after, now, claim_id))
+        self._db.execute(
+            """INSERT INTO history (claim_id, ts, cause, logit_before, logit_after,
+               provenance_before, provenance_after) VALUES (?,?,?,?,?,?,?)""",
+            (claim_id, now, "membrane(evidence)", r["logit"], after,
+             r["provenance_state"], r["provenance_state"]))
+        self._db.commit()
+        return self.get_claim(claim_id)
+
     def human_confirm(self, claim_id: str, truth: int, *, strong: float = 6.0,
                       tested: bool = False) -> Claim:
         """Human (or a TESTED reanalysis) pins a belief and anchors it. truth in {0,1}."""
@@ -250,6 +284,34 @@ class BeliefStore:
         return self._db.execute(
             "SELECT COUNT(DISTINCT grp) AS n FROM sources WHERE claim_id=?", (claim_id,)
         ).fetchone()["n"]
+
+    # ------------------------------------------------- observations (durable staging)
+    def add_observation(self, claim_key: str, statement: str, direction: float, group: str,
+                        doc_id: str, confidence: float = 0.5) -> None:
+        """Persist a swarm candidate immediately (durable membrane buffer). Idempotent:
+        the same (claim, doc, group, direction) is ignored on re-submit (crash-resume safe)."""
+        self._db.execute(
+            """INSERT OR IGNORE INTO observations
+               (claim_key, statement, direction, grp, doc_id, confidence, ts)
+               VALUES (?,?,?,?,?,?,?)""",
+            (claim_key, statement, direction, group, doc_id, confidence, _now()))
+        self._db.commit()
+
+    def observation_keys(self) -> list:
+        return [r["claim_key"] for r in self._db.execute(
+            "SELECT DISTINCT claim_key FROM observations").fetchall()]
+
+    def observations_for(self, claim_key: str) -> list:
+        return [dict(r) for r in self._db.execute(
+            "SELECT claim_key, statement, direction, grp, doc_id, confidence FROM observations "
+            "WHERE claim_key=? ORDER BY obs_id", (claim_key,)).fetchall()]
+
+    def has_source(self, claim_id: str, ref: str) -> bool:
+        """Has this exact source (e.g. doc_id) already contributed to this claim?
+        Makes re-reading a document idempotent (a paper can't count twice)."""
+        return self._db.execute(
+            "SELECT 1 FROM sources WHERE claim_id=? AND ref=? LIMIT 1", (claim_id, ref)
+        ).fetchone() is not None
 
     def sources(self, claim_id: str) -> list:
         """All sources for a claim as dict(ref, group)."""

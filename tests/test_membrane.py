@@ -13,9 +13,13 @@ from persona.membrane import Membrane                  # noqa: E402
 from persona.swarm.reader import Candidate             # noqa: E402
 
 
+_N = [0]  # each candidate is a DISTINCT document (the store dedups by doc_id)
+
+
 def _cand(key, direction, group, conf=0.6):
+    _N[0] += 1
     return Candidate(claim_key=key, statement=f"{key} claim", direction=direction,
-                     group=group, doc_id=f"{group}:doc", confidence=conf)
+                     group=group, doc_id=f"{group}:doc{_N[0]}", confidence=conf)
 
 
 def test_independent_convergence_commits():

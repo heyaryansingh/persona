@@ -32,8 +32,12 @@ from persona.membrane import Membrane
 from persona.swarm.reader import Candidate
 
 
+_N = [0]  # each candidate = a distinct document (store dedups by doc_id)
+
+
 def _cand(key, direction, group, conf=0.6):
-    return Candidate(key, f"{key} claim", direction, group, f"{group}:d", confidence=conf)
+    _N[0] += 1
+    return Candidate(key, f"{key} claim", direction, group, f"{group}:d{_N[0]}", confidence=conf)
 
 
 def one_seed(seed: int) -> dict:
