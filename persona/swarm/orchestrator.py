@@ -53,7 +53,7 @@ class ReadLedger:
         return self.store._db.execute("SELECT COUNT(*) AS n FROM read_ledger").fetchone()["n"]
 
 
-def candidates_from_claims(doc, raw: list) -> list[Candidate]:
+def candidates_from_claims(doc, raw: list, canon=None) -> list[Candidate]:
     group = doc.group or doc.source
     out = []
     for c in raw:
@@ -67,6 +67,9 @@ def candidates_from_claims(doc, raw: list) -> list[Candidate]:
             conf = float(c.get("confidence", 0.6))
         except (TypeError, ValueError):
             conf = 0.6
+        # canonicalize entities so equivalent claims from different papers converge
+        if canon is not None:
+            subj, obj = canon.canon(subj), canon.canon(obj)
         out.append(Candidate(
             claim_key=claim_key(subj, obj),
             statement=f"{subj} {reln.replace('_', ' ')} {obj}",
@@ -79,10 +82,16 @@ def candidates_from_claims(doc, raw: list) -> list[Candidate]:
 
 class AsyncSwarm:
     def __init__(self, membrane: Membrane, *, concurrency: int = 16, model: str | None = None,
-                 budget_usd: float | None = None, max_tokens: int = 4096, extract_fn=None):
+                 budget_usd: float | None = None, max_tokens: int = 4096, extract_fn=None,
+                 canonicalize: bool = True):
         self.membrane = membrane
         self.store = membrane.store
         self.ledger = ReadLedger(self.store)
+        if canonicalize and extract_fn is None:
+            from ..canonicalize import EntityCanonicalizer
+            self.canon = EntityCanonicalizer()
+        else:
+            self.canon = None
         self.model = model or config.MODEL_READER
         self.budget = budget_usd if budget_usd is not None else config.DAILY_BUDGET_USD
         self.max_tokens = max_tokens
@@ -132,7 +141,7 @@ class AsyncSwarm:
             for b in resp.content:
                 if b.type == "tool_use":
                     raw = b.input.get("claims", []) or []
-            cands = candidates_from_claims(doc, raw)
+            cands = candidates_from_claims(doc, raw, self.canon)
             self._emit({"type": "read", "doc_id": doc.doc_id, "ok": True,
                         "n_claims": len(cands), "group": doc.group,
                         "title": (doc.title or "")[:70]})
