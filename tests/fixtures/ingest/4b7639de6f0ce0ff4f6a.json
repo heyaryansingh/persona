@@ -1,0 +1,117 @@
+{
+  "cached_at": 1783540675.616146,
+  "value": [
+    {
+      "doc_id": "MED:42377782",
+      "title": "Neuroinflammation and Tauopathies.",
+      "text": "Alzheimer's disease (AD) and related Tauopathies are neurodegenerative disorders characterized by the accumulation of hyperphosphorylated Tau protein in neurofibrillary tangles and frequently accompanied by amyloid-\u03b2 (A\u03b2) pathology.<sup>1</sup> While Tau aggregation has long been considered a primary driver of neurodegeneration, growing evidence highlights neuroinflammation as a central and early contributor to disease onset and progression. This review combines current knowledge on the molecular and cellular mechanisms linking Tau pathology to chronic neuroinflammatory signaling, with a particular focus on microglia- and astrocyte-mediated responses. We discuss how dysregulated kinase-phosphatase balance, impaired proteostasis, and oxidative stress promote Tau hyperphosphorylation and aggregation, and how these processes are amplified by innate immune pathways, including TREM2-DAP12, toll-like receptors, GPCR signaling, the PI3K-Akt/PTEN axis, Wnt/\u03b2-catenin signaling, and the NOD-like receptor family pyrin domain-containing 3 (NLRP3) inflammasome. Special emphasis is placed on the transition from early protective glial responses to chronic inflammation, which fosters prion-like propagation of Tau and accelerates synaptic dysfunction and neuronal loss. Finally, we evaluate emerging therapeutic strategies aimed at modulating neuroinflammatory pathways and restoring signaling homeostasis, highlighting their potential to slow or halt disease progression. Collectively, this review positions neuroinflammation as a critical mechanistic link between Tau pathology and neurodegeneration, underscoring its relevance as a therapeutic target in AD and other Tauopathies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11033-026-12253-4",
+      "year": 2026,
+      "group": "Molecular biology reports",
+      "meta": {
+        "authors": "Zeenny MN, Salame I, Maatouk L, Akoury E.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42292389",
+      "title": "Neuroinflammation in Alzheimer's disease: glial crosstalk, pathological modulation, and therapeutic implications.",
+      "text": "Alzheimer's disease (AD) remains a major therapeutic challenge despite the availability of amyloid-targeting disease-modifying therapies for selected patients with early symptomatic disease. These therapies have shown that disease modification is possible, but their benefits are modest and constrained by amyloid confirmation, safety monitoring, infusion delivery, access, and eligibility requirements. Neuroinflammation is increasingly viewed as a context-dependent modifying process that interacts with \u03b2-amyloid (A\u03b2), tau pathology, metabolic stress, and vascular dysfunction, rather than as an unequivocally established primary initiating driver. This review provides a selective, glia-centered synthesis of AD neuroinflammation focused on microglia, astrocytes, and their reciprocal crosstalk. We examine how microglial and astrocytic responses can support A\u03b2 handling, plaque containment, tissue homeostasis, and synaptic protection, while chronic or poorly resolved glial signaling can amplify cytokine and complement responses, metabolic and oxidative stress, and neuronal vulnerability. Representative signaling nodes, including NF-\u03baB, AMPK/mTOR, and PI3K/Akt, are discussed as organizing mechanisms linking inflammatory transcription, proteostatic stress, glial metabolism, and neuronal injury, rather than as equivalently validated therapeutic targets. Therapeutic implications are interpreted across three evidence tiers: approved anti-amyloid antibodies with indirect inflammatory relevance, clinically tested anti-inflammatory or immunomodulatory strategies that have not established disease-modifying efficacy, and experimental precision approaches aimed at glial-state modulation. Overall, the translational challenge is not broad suppression of neuroinflammation, but stage-specific identification and modulation of maladaptive glial states while preserving protective microglial and astrocytic functions.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3389/fimmu.2026.1783786",
+      "year": 2026,
+      "group": "Frontiers in immunology",
+      "meta": {
+        "authors": "Li E, Zhang P, Feng W.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42163660",
+      "title": "Involvement and Mechanisms of A\u03b2 and Tau in the Neuroinflammatory Response of Alzheimer's Disease.",
+      "text": "Alzheimer's disease (AD) is a common chronic neurodegenerative disorder, serving as the most prevalent cause of dementia among the elderly. The primary histopathological hallmarks of AD encompass senile plaques, induced by excessive deposition of extracellular \u03b2-amyloid (A\u03b2), and neurofibrillary tangles (NFT), resulting from excessive phosphorylation of intracellular Tau protein, leading to neuronal damage and loss. Numerous studies on AD patients and animal models have revealed the widespread presence of neuroinflammatory responses within the AD brain, emphasizing the pivotal role of neuroinflammation in the pathogenesis of AD, which is now widely recognized as one of the primary triggers of AD. Microglia, the resident macrophages in the brain and the first line of defense of the central nervous system, play a central role in neuroinflammation. In the pathogenesis of AD, microglia are considered a double-edged sword, exerting beneficial effects by clearing A\u03b2 deposition while causing detrimental effects through the production of cytotoxic substances, leading to neuronal dysfunction. Although the precise role of neuroinflammation in the pathogenesis of AD remains incompletely elucidated, an increasing number of studies have revealed that pathological A\u03b2 and Tau proteins are extensively involved in the neuroinflammatory process mediated by microglia activation in AD, exhibiting a complex interplay. Therefore, this article will provide a comprehensive review of the research progress on the relationship between A\u03b2 or Tau proteins and neuroinflammation induced by microglia in AD, as well as its associated mechanisms.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.2174/011570159x438314260228195840",
+      "year": 2026,
+      "group": "Current neuropharmacology",
+      "meta": {
+        "authors": "Yang M, Dai S, Li S, Xu Z, Chen T.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "MED:42253956",
+      "title": "The tango of immune and neural cells: orchestrating neuroinflammation mediated brain disorders.",
+      "text": "The bidirectional interaction between immune cells and neural cells is the core effector unit of neuroinflammation, determining whether the central nervous system (CNS) maintains homeostasis or develops disease. Under physiological conditions, this interaction supports CNS homeostasis through microglial surveillance, astrocytic metabolic support (including the astrocyte-neuron lactate shuttle and glutamate reuptake), and blood-brain barrier (BBB) integrity. Under pathological states, dysregulated immune-neural crosstalk drives neuroinflammation. Damaged neurons activate microglia and astrocytes, which in turn secrete proinflammatory factors that impair neurons, reduce neurotrophic support, and disrupt BBB integrity. This interaction operates through cell surface receptor-ligand systems and soluble signals. Representative diseases including Alzheimer's disease (AD), Parkinson's disease (PD), depression, and schizophrenia share common inflammatory features such as glial cell activation, BBB damage, and synaptic dysfunction, while exhibiting disease-specific pathological mechanisms. Clinical translation progress has been made in developing biomarkers for diagnosis, targeting immune cells and neural cells for therapy, and exploring emerging interventions like immunometabolic regulation and cell therapy. However, gaps remain in understanding cell type specificity, spatiotemporal dynamics, and achieving precise clinical application. Future interdisciplinary research will further advance the role of immune-neural interaction as a key target for preventing and treating neurological diseases, providing more precise diagnostic and therapeutic strategies.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.3389/fimmu.2026.1827437",
+      "year": 2026,
+      "group": "Frontiers in immunology",
+      "meta": {
+        "authors": "Wu Y, Lyu W, Xie X, Fu X, Zhang L, Pan J.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42410071",
+      "title": "The Protective Effects of Small-Molecule Compound 0242 Against LPS-Induced Neuroinflammation and in P301S Tau Transgenic Mice.",
+      "text": "Neuroinflammation and tau pathology are central drivers of Alzheimer's disease (AD) progression, necessitating multi-target therapeutic strategies. Here, we evaluated the efficacy and mechanisms of 0242, a novel small-molecule derivative optimized from the berberine scaffold. In lipopolysaccharide (LPS)-stimulated BV-2 microglia, 0242 treatment significantly inhibited cell activation and nitric oxide release without cytotoxicity, while downregulating the mRNA levels of pro-inflammatory cytokines IL-1\u03b2 and TNF-\u03b1. Transcriptomic profiling revealed that 0242 modulated LPS-induced inflammatory gene signatures by enriched core signaling cascades, including NF-\u03baB, TLR, and JAK-STAT and upregulating cytoprotective genes such as ceruloplasmin (Cp) and Bcl2a1b. In vivo, oral administration of 0242 attenuated hippocampal astrocyte and microglial activation in an LPS-induced acute neuroinflammatory mouse model. Furthermore, in female P301S tau transgenic mice, 0242 treatment significantly improved spontaneous locomotor activity and recognition memory. Histological and biochemical analyses confirmed that 0242 suppressed hippocampal glial activation and reduced total tau protein levels in the prefrontal cortex. Collectively, these findings suggest that 0242 may exert potent anti-neuroinflammatory effects by modulating multiple immune signaling cascades and uniquely alleviates tau pathology in AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1007/s11064-026-04834-3",
+      "year": 2026,
+      "group": "Neurochemical research",
+      "meta": {
+        "authors": "Suo X, Wan P, Yu J, Zhu X, Tian C, Li S, Sun G, Liu H, Liu S, Geng M, Tian J, Yang W, Zhang Y.",
+        "cited_by": 0,
+        "is_open_access": "N"
+      }
+    },
+    {
+      "doc_id": "PMC:PMC13297367",
+      "title": "The Immune-Chemokine Axis in Alzheimer\u2019s Disease: Roles of Adaptive Immune System in Neuroinflammation and Disease Progression",
+      "text": "",
+      "source": "europepmc",
+      "url": "https://europepmc.org/article/PMC/PMC13297367",
+      "year": 2026,
+      "group": "Biomolecules",
+      "meta": {
+        "authors": "Merino J, Rodr\u00edguez-Arellano J, Busquets X, \u00c1lvarez-Vicente I, Caba\u00f1a-Mu\u00f1oz M, Flores A, Gasca A.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42291413",
+      "title": "The role of YKL-40 in Alzheimer's disease pathology and drug targeting.",
+      "text": "<h4>Background</h4>Alzheimer's disease (AD) is a progressive neurodegenerative disorder characterized by the accumulation of amyloid-beta (A\u03b2) plaques, hyperphosphorylated tau tangles, and significant neuronal loss. Recent studies have implicated YKL-40, a glycoprotein commonly associated with inflammation and neural apoptosis, in the pathogenesis of AD.<h4>Methods</h4>We conducted extensive searches across major scientific databases, including PubMed, Web of Science, and Embase. We selected peer-reviewed articles, review articles, and clinical studies focusing on YKL-40 in AD.<h4>Results</h4>This review comprehensively analyses the multifaceted role of YKL-40 in AD, covering its cellular localization, biomarker associations, and pathological mechanisms. We also summarize the mechanistic pathways by which YKL-40 contributes to disease progression, highlighting its role in neuroinflammation, neural apoptosis, and disruption of the circadian regulation of immune responses. Moreover, the development of drugs that target YKL-40, such as humanized anti-YKL-40 antibodies and small molecules, offers promising strategies for blocking AD progression.<h4>Conclusion</h4>This review highlights the potential of YKL-40 as a novel drug target and its implications for enhancing diagnostic precision and treatment strategies in combating Alzheimer's disease.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.7717/peerj.21361",
+      "year": 2026,
+      "group": "PeerJ",
+      "meta": {
+        "authors": "Sha Y, Fu H, Lu K, Wang G, Wang Y.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    },
+    {
+      "doc_id": "MED:42021305",
+      "title": "Type-1 interferons associated with microglial-mediated neuroinflammation in Alzheimer's disease.",
+      "text": "Type-1 interferons (IFN-1) are a pleiotropic group of cytokines initially known for their antiviral activity, but recent studies highlight a vital role of IFN-1 in central nervous system (CNS) homeostasis, brain aging, and neurodegeneration. Alzheimer\u2019s disease (AD) is an age-related neurodegenerative disorder with a complex etiology. The hallmark signs of AD that appear in the brain are amyloid-\u03b2 (A\u03b2) plaques and intracellular neurofibrillary tangles (NFTs) composed of hyperphosphorylated tau. Neuroinflammation facilitated primarily by microglia is known to drive amyloid and tau pathology, with evidence suggesting IFN-1 as a key player in AD pathogenesis. Activated microglia secrete IFN-1 in response to A\u03b2 accumulation which activates the Janus kinase (JAK)/signal transducer and activator of transcription (STAT) (JAK/STAT) pathway as well as the cyclic GMP\u2013AMP synthase (cGAS)/stimulator of interferon genes (STING) (cGAS/STING) pathway, resulting in the expression of interferon-stimulated genes (ISGs). Implications of IFN-1 signaling during AD development include neuroinflammation, alterations in microglial morphology (microglial dysfunction), synapse/neuron loss, and cognitive impairment. Additionally, studies suggest blocking/attenuating the IFN-1 response results in reduced AD pathology and improved behavioral deficits. Here, we review the role of IFN-1 in AD pathogenesis. The ability to attenuate IFN-1, coupled with the well-established role of IFN-1 in AD pathogenesis, supports the notion that targeting this neuroinflammatory pathway may be a potential therapeutic strategy for AD.",
+      "source": "europepmc",
+      "url": "https://doi.org/10.1186/s12974-026-03828-w",
+      "year": 2026,
+      "group": "Journal of neuroinflammation",
+      "meta": {
+        "authors": "Shippy DC, Sande ML, Ulland TK.",
+        "cited_by": 0,
+        "is_open_access": "Y"
+      }
+    }
+  ]
+}

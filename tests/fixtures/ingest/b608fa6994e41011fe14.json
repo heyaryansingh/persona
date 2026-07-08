@@ -1,0 +1,20 @@
+{
+  "cached_at": 1783537479.9675746,
+  "value": [
+    {
+      "accession": "GSE327611",
+      "title": "Epigenetic control of microglial mitochondrial immunity by KAT7 drives Alzheimer\u2019s disease pathogenesis [scRNA-Seq]",
+      "n": 4
+    },
+    {
+      "accession": "GSE327608",
+      "title": "Epigenetic control of microglial mitochondrial immunity by KAT7 drives Alzheimer\u2019s disease pathogenesis [Cut &  Tag]",
+      "n": 6
+    },
+    {
+      "accession": "GSE327604",
+      "title": "Epigenetic control of microglial mitochondrial immunity by KAT7 drives Alzheimer\u2019s disease pathogenesis [RNA-Seq]",
+      "n": 12
+    }
+  ]
+}
