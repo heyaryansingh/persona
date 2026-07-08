@@ -16,3 +16,6 @@ Thumbs.db
 
 # ingest cache (kept out of git except committed fixtures)
 .cache/
+
+# demo runs
+runs/

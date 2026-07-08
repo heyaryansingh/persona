@@ -1,0 +1,142 @@
+"""The membrane: the anti-slop funnel between swarm and self (BUILD_PLAN 1.3 / 5.4).
+
+Nothing becomes belief without **convergence + provenance + calibration**. Corrections
+from the literature sweep (planning/LITERATURE.md §B/§D) are baked in:
+
+- Convergence = EVIDENTIAL INDEPENDENCE (distinct source groups), NOT raw agreement count
+  (citation echo manufactures fake consensus — Greenberg BMJ 2009).
+- ADAPTIVE (E10): cheap fast-path quorum in benign regimes; switch to strict quorum +
+  backpressure when a correlated-disagreement (poisoning) signature is detected — many
+  candidates, few independent groups, attacking an established belief.
+- Backpressure keys on independence, not agent-count agreement (same-base-model readers
+  have correlated errors -> agreement is false confidence).
+- Contradictions are emitted TYPED {true-refutation, context-divergence, no-evidence}
+  (BioDivergence 2026: most apparent contradictions are context-divergence), NOT committed
+  autonomously — they route to the human handoff (ignition is human-gated).
+- Commits go through the store, whose anchor write-policy is the last-line guard.
+"""
+from __future__ import annotations
+
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+
+from .store import BeliefStore, Claim
+from .swarm.reader import Candidate
+
+
+@dataclass
+class ContradictionEvent:
+    claim_key: str
+    statement: str
+    kind: str                       # true-refutation | context-divergence | no-evidence
+    support_groups: int
+    refute_groups: int
+    detail: str = ""
+
+
+@dataclass
+class HarvestReport:
+    committed: list[str] = field(default_factory=list)
+    held: list[str] = field(default_factory=list)
+    contradictions: list[ContradictionEvent] = field(default_factory=list)
+    strict_claims: list[str] = field(default_factory=list)
+
+
+class Membrane:
+    def __init__(self, store: BeliefStore, *, fast_quorum: int = 2, strict_quorum: int = 3,
+                 confidence_floor: float = 0.5, window: int = 40,
+                 poison_min_volume: int = 6, poison_indep_ratio: float = 0.4):
+        self.store = store
+        self.fast_quorum = fast_quorum
+        self.strict_quorum = strict_quorum
+        self.confidence_floor = confidence_floor
+        self.poison_min_volume = poison_min_volume
+        self.poison_indep_ratio = poison_indep_ratio
+        self._buf: dict[str, deque[Candidate]] = defaultdict(lambda: deque(maxlen=window))
+        self.strict_mode: set[str] = set()      # claim_keys currently under strict policy
+        self.backpressure: float = 1.0           # fan-out scale the orchestrator reads (<=1)
+
+    # ------------------------------------------------------------- intake
+    def submit(self, cand: Candidate) -> None:
+        """Swarm hands a candidate to the staging buffer (never writes the self)."""
+        self._buf[cand.claim_key].append(cand)
+
+    # ------------------------------------------------- E10: poisoning detector
+    def _detect_poisoning(self, key: str, dominant_dir: float) -> bool:
+        """Correlated-disagreement signature: high volume, low independence, attacking an
+        established belief. Returns True -> switch this claim to strict + apply backpressure.
+        """
+        buf = self._buf[key]
+        same_dir = [c for c in buf if c.direction == dominant_dir]
+        if len(same_dir) < self.poison_min_volume:
+            return False
+        groups = {c.group for c in same_dir}
+        independence_ratio = len(groups) / len(same_dir)
+        if independence_ratio > self.poison_indep_ratio:
+            return False                          # genuinely many independent sources
+        existing = self.store.get_claim(key)
+        # only a *signature* if it opposes an already-established belief
+        if existing is not None and existing.logit * dominant_dir < 0 and abs(existing.logit) >= 2:
+            return True
+        return False
+
+    def _quorum_for(self, key: str) -> int:
+        return self.strict_quorum if key in self.strict_mode else self.fast_quorum
+
+    # ------------------------------------------------------------- harvest
+    def harvest(self) -> HarvestReport:
+        """Decide what crosses. Convergence by independent groups; typed contradictions
+        routed out (not auto-committed)."""
+        report = HarvestReport()
+        for key, buf in list(self._buf.items()):
+            if not buf:
+                continue
+            by_dir: dict[float, list[Candidate]] = defaultdict(list)
+            for c in buf:
+                by_dir[c.direction].append(c)
+            # dominant direction = most independent groups
+            def indep(cands):
+                return len({c.group for c in cands})
+            dominant_dir = max(by_dir, key=lambda d: indep(by_dir[d]))
+            other_dir = -dominant_dir
+            sup = by_dir.get(dominant_dir, [])
+            ref = by_dir.get(other_dir, [])
+            sup_groups, ref_groups = indep(sup), indep(ref)
+
+            # adaptive switch (E10)
+            if self._detect_poisoning(key, dominant_dir):
+                self.strict_mode.add(key)
+                self.backpressure = 0.3
+                report.strict_claims.append(key)
+
+            # typed contradiction (routed to human, not auto-committed)
+            if ref_groups >= 1 and sup_groups >= 1:
+                report.contradictions.append(self._type_contradiction(
+                    key, sup, ref, sup_groups, ref_groups))
+
+            quorum = self._quorum_for(key)
+            mean_conf = (sum(c.confidence for c in sup) / len(sup)) if sup else 0.0
+            if sup_groups >= quorum and mean_conf >= self.confidence_floor:
+                self._commit(key, sup, dominant_dir)
+                report.committed.append(key)
+            else:
+                report.held.append(key)
+        return report
+
+    def _type_contradiction(self, key, sup, ref, sup_groups, ref_groups) -> ContradictionEvent:
+        stmt = sup[0].statement if sup else (ref[0].statement if ref else key)
+        if sup_groups >= 2 and ref_groups >= 2:
+            kind, detail = "context-divergence", "both sides independently supported"
+        elif min(sup_groups, ref_groups) == 1 and max(sup_groups, ref_groups) >= 2:
+            kind, detail = "true-refutation", "one side single-source; likely weaker"
+        else:
+            kind, detail = "no-evidence", "insufficient independent support either side"
+        return ContradictionEvent(key, stmt, kind, sup_groups, ref_groups, detail)
+
+    def _commit(self, key: str, sup: list[Candidate], direction: float) -> None:
+        if self.store.get_claim(key) is None:
+            self.store.add_claim(Claim(key, sup[0].statement, tier="core"))
+        for c in sup:
+            self.store.add_source(key, c.doc_id, c.group)
+        # one bounded commit in the converged direction; store applies the anchor guard
+        self.store.update_belief(key, direction, cause="membrane", evidence_provenance="READ")
