@@ -125,6 +125,22 @@ class Researcher:
         self.me.consolidate()
         return summary
 
+    async def autonomous_cycle(self, limit: int = 8, on_event=None) -> dict:
+        """One always-on tick (v2, P9): read in parallel (real Claude) → reflect + spawn an
+        interest → act unbidden by self-testing a flagged contradiction (real first-pass) →
+        follow curiosity by retrieving on the newest interest. Initiative, end to end."""
+        summary = await self.aread(limit=limit, on_event=on_event)
+        self.reflect()
+        acted = None
+        if self._contradictions:                       # act on the sharpest tension
+            acted = self.self_test(self._contradictions[0].claim_key)
+        # follow curiosity: retrieve on the most recent self-spawned interest
+        if self.seed_interests:
+            self.retrieve(self.seed_interests[-1], fetch=20, k=5)
+        return {**summary, "acted_on": (self._contradictions[0].claim_key
+                                        if self._contradictions else None),
+                "self_test": acted}
+
     def close(self):
         self.me.close()
 
