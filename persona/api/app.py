@@ -329,6 +329,21 @@ def graph_subgraph(pid: str, q: str):
         return g.subgraph(ents)
 
 
+@app.post("/api/persona/{pid}/mywork")
+async def mywork(pid: str, file: UploadFile = File(...), kind: str = "draft"):
+    """Upload YOUR paper/draft/notes -> the persona extracts your claims and cross-checks each against
+    everything it has read (what supports it, what contradicts it, with quotes+DOIs)."""
+    p = _p(pid)
+    up = p.paths.uploads_dir
+    up.mkdir(parents=True, exist_ok=True)
+    name = "".join(c for c in (file.filename or "doc") if c.isalnum() or c in "._- ")[:120] or "doc"
+    (up / name).write_bytes(await file.read())
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        from ..agents.mywork import ingest
+        return ingest(f"uploads/{name}", kind, get_kg())
+
+
 @app.post("/api/persona/{pid}/ask")
 def ask(pid: str, payload: dict):
     """Ask the persona's knowledge graph a question in plain English — answered with citations."""

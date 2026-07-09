@@ -260,6 +260,51 @@ class KG:
                 "independent_sources", "sources"]
         return [dict(zip(cols, row)) for row in r.result_set]
 
+    # --------------------------------------- human corpus + cross-check (v6 P5 co-researcher)
+    def add_human_work(self, doc_id: str, title: str, kind: str, owner: str = "human") -> None:
+        self._q("MERGE (h:Human {owner:$o}) MERGE (w:HumanWork {doc_id:$d}) "
+                "SET w.title=$t, w.kind=$k, w.created=$now MERGE (w)-[:AUTHORED_BY]->(h)",
+                {"o": owner, "d": doc_id, "t": (title or "")[:200], "k": kind, "now": _now()})
+
+    def add_human_claim(self, doc_id: str, subject: str, obj: str, effect_sign: str,
+                        quote: str) -> str:
+        """The human's OWN assertion — provenance origin HUMAN_CORPUS, kept distinct from the
+        literature belief store so it never renders with confirmed-belief authority."""
+        subj = self.canon.canon(subject)
+        ob = self.canon.canon(obj)
+        hcid = "hcl_" + hashlib.sha1(f"{doc_id}|{subj}|{ob}|{effect_sign}".encode()).hexdigest()[:12]
+        self._q(
+            "MATCH (w:HumanWork {doc_id:$d}) MERGE (hc:HumanClaim {hc_id:$id}) "
+            "SET hc.subject=$s, hc.object=$o, hc.effect_sign=$sign, hc.quote=$q, "
+            "hc.provenance='HUMAN_CORPUS', hc.pair_key=$pk "
+            "MERGE (w)-[:ASSERTS]->(hc) "
+            "MERGE (subj:Entity {name:$s}) MERGE (obj:Entity {name:$o}) "
+            "MERGE (hc)-[:ABOUT_SUBJECT]->(subj) MERGE (hc)-[:ABOUT_OBJECT]->(obj)",
+            {"d": doc_id, "id": hcid, "s": subj, "o": ob, "sign": effect_sign,
+             "q": (quote or "")[:500], "pk": pair_key(subj, ob)})
+        return hcid
+
+    def crosscheck(self, subject: str, obj: str, effect_sign: str) -> dict:
+        """Find literature claims on the same (subject,object) pair: same sign = SUPPORT, opposite =
+        CONTRADICTION — with sources + verbatim quotes + DOIs. The evidence for/against a claim."""
+        subj = self.canon.canon(subject)
+        ob = self.canon.canon(obj)
+        rows = self._q(
+            "MATCH (c:Claim {pair_key:$pk}) "
+            "OPTIONAL MATCH (c)-[r:SUPPORTED_BY]->(s:Source) "
+            "WITH c, collect({slug:s.slug, title:s.title, doi:s.doi, lab:s.lab, quote:r.quote}) AS srcs "
+            "RETURN c.claim_id, c.subject, c.object, c.effect_sign, c.independent_source_count, "
+            "c.confidence, srcs", {"pk": pair_key(subj, ob)}).result_set
+        support, contra = [], []
+        for cid, cs, co, csign, isc, conf, srcs in rows:
+            item = {"claim_id": cid, "text": f"{cs} [{csign}] {co}", "labs": isc,
+                    "confidence": conf, "sources": [s for s in srcs if s.get("slug")]}
+            if csign == effect_sign:
+                support.append(item)
+            elif {csign, effect_sign} == {"+", "-"}:
+                contra.append(item)
+        return {"subject": subj, "object": ob, "support": support, "contradict": contra}
+
     def claims_about(self, entities: list, limit: int = 60) -> list:
         """Claims where the subject OR object is in a set of entities (a topic), with sources — the
         grounded material for a topic digest / NL answer (broader than claims_in's both-endpoints)."""

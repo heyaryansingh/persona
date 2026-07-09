@@ -196,6 +196,8 @@
     <button class="back" id="filesbtn" style="display:none" onclick="openFiles()">⧉ files</button>
     <button class="back" id="graphbtn" style="display:none" onclick="openGraph()">◉ explore graph</button>
     <button class="back" id="briefbtn" style="display:none" onclick="openBrief()">❋ brief / ask</button>
+    <button class="back" id="myworkbtn" style="display:none" onclick="$('#myworkfile').click()" title="upload your draft/paper — get cited support & contradictions on your own claims">⊹ check my work</button>
+    <input type="file" id="myworkfile" style="display:none" onchange="crossCheckWork(this)">
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
     <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ review/paper</button>
     <button class="back" id="buildbtn" style="display:none" onclick="requestBuild()">✦ build</button>
@@ -348,7 +350,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";$("#briefbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";$("#briefbtn").style.display="none";$("#myworkbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -390,6 +392,32 @@ async function runAsk(){
       (cl.length?`<h2>sources</h2><div class="bmeta">${srcList(cl)}</div>`:'')+`</div>`;
   }catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not answer</div></div>'; }
 }
+async function crossCheckWork(input){
+  if(!input.files||!input.files[0]) return;
+  const fd=new FormData(); fd.append("file", input.files[0]);
+  openBrief();
+  $("#briefout").innerHTML='<div class="inner"><div class="bplace">reading your work and cross-checking every claim against the literature…</div></div>';
+  try{ renderCrosscheck(await (await fetch(A("/mywork"),{method:"POST",body:fd})).json()); }
+  catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not process the file</div></div>'; }
+  input.value="";
+}
+function ccEvidence(items){return (items||[]).slice(0,4).map(s=>
+  `<div style="margin:2px 0 6px 14px"><span style="font-size:11.5px;color:#cfd4dd">${esc(s.text||'')} <span style="color:var(--dim)">(${s.labs} labs)</span></span>`+
+  (s.sources||[]).slice(0,2).map(x=>`<div style="font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-left:10px">${esc((x.title||x.slug||'').slice(0,78))}${x.doi?` · <a href="https://doi.org/${esc(x.doi)}" target="_blank" style="color:var(--anchor)">${esc(x.doi)}</a>`:''}${x.quote?`<br><span style="color:#9aa0ac">“${esc((x.quote||'').slice(0,140))}”</span>`:''}</div>`).join('')+`</div>`).join('');}
+function renderCrosscheck(r){
+  if(!r.ok){$("#briefout").innerHTML=`<div class="inner"><div class="bplace">Couldn't cross-check: ${esc(r.reason||'error')}</div></div>`;return;}
+  const col=st=>({supported:'var(--live)',contradicted:'var(--contra)',mixed:'var(--claim)',novel:'var(--dim)'}[st]||'var(--dim)');
+  let h=`<div class="inner"><div class="tldr" style="font-size:18px">Cross-check of “${esc(r.title)}”</div>`+
+    `<div class="bmeta" style="margin-bottom:16px">${r.n_claims} of your claims · <span style="color:var(--live)">${r.n_supported} with literature support</span> · <span style="color:var(--contra)">${r.n_contradicted} contradicted</span></div>`;
+  h+=(r.results||[]).map(c=>`<div style="border-left:3px solid ${col(c.status)};padding:2px 0 10px 14px;margin-bottom:14px">`+
+    `<div style="font-family:var(--mono);font-size:12.5px;color:#e4e8ef">${esc(c.your_claim)} <span style="color:${col(c.status)};text-transform:uppercase;font-size:9.5px;letter-spacing:.08em">· ${c.status}</span></div>`+
+    (c.quote?`<div style="font-family:var(--serif);font-size:12.5px;color:var(--dim);margin:3px 0">“${esc((c.quote||'').slice(0,180))}”</div>`:'')+
+    ((c.support||[]).length?`<div style="font-size:9.5px;color:var(--live);letter-spacing:.06em;margin-top:6px">SUPPORTED BY</div>`+ccEvidence(c.support):'')+
+    ((c.contradict||[]).length?`<div style="font-size:9.5px;color:var(--contra);letter-spacing:.06em;margin-top:6px">CONTRADICTED BY</div>`+ccEvidence(c.contradict):'')+
+    ((c.support||[]).length+(c.contradict||[]).length===0?`<div style="font-size:11px;color:var(--dim);margin-top:4px">novel — nothing in my reading speaks to this yet</div>`:'')+
+    `</div>`).join("");
+  $("#briefout").innerHTML=h+`</div>`;
+}
 async function requestBuild(){
   const kind=prompt("Build what?  diagram · art · page · code","diagram"); if(!kind) return;
   const topic=prompt("On what topic / question?"); if(!topic) return;
@@ -413,7 +441,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";$("#briefbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";$("#briefbtn").style.display="";$("#myworkbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
