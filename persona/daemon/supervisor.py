@@ -43,8 +43,11 @@ class Daemon:
     async def _scheduler_loop(self) -> None:
         # seed the very first pulse of work so the mind starts thinking immediately
         self.queue.enqueue("reflect", priority=0)
+        self_every = max(1, int(config.SELF_INTERVAL_S / config.SCHEDULER_INTERVAL_S))
+        tick = 0
         while not self._stop.is_set():
             try:
+                tick += 1
                 depth = self.queue.depth()
                 if depth < config.QUEUE_MIN_DEPTH:
                     # never idle: if we're low on work, reflect (which generates readers)
@@ -52,6 +55,9 @@ class Daemon:
                     log().emit("schedule",
                                f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); generating work",
                                actor="scheduler", depth=depth)
+                if tick % self_every == 0:
+                    # slower cadence: the reflecting self evolves (Opus, budget-gated)
+                    self.queue.enqueue("deliberate", priority=1)
             except Exception as e:
                 log().emit("error", f"scheduler: {str(e)[:200]}", actor="scheduler")
             await asyncio.sleep(config.SCHEDULER_INTERVAL_S)

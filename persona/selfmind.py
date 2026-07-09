@@ -88,3 +88,30 @@ def append_changelog(line: str) -> None:
     p = config.SELF_DIR / "CHANGELOG.md"
     prev = p.read_text(encoding="utf-8") if p.exists() else "# changelog\n"
     p.write_text(prev.rstrip() + f"\n- {_now()} — {line}\n", encoding="utf-8")
+
+
+def set_interests(pairs: list[tuple[str, float]]) -> None:
+    """Rewrite interests.md from an evolved (name, weight) list (the self reshaping its curiosity)."""
+    lines = ["# interests\n", "_evolves as I read — new curiosities appear, weights shift._\n"]
+    seen = set()
+    for name, weight in pairs:
+        n = name.strip()
+        if n and n.lower() not in seen:
+            seen.add(n.lower())
+            lines.append(f"- {n} :: {round(float(weight), 2)}")
+    (config.SELF_DIR / "interests.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def set_open_questions(qs: list[str]) -> None:
+    lines = ["# open questions\n", "_what I most want to find out. Drives what I read next._\n"]
+    lines += [f"- {q.strip()}" for q in qs if q.strip()]
+    (config.SELF_DIR / "open_questions.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def append_section(filename: str, note: str) -> None:
+    """Append a dated note to a self file (strategies/taste/identity accrete over time)."""
+    if not note or not note.strip():
+        return
+    p = config.SELF_DIR / filename
+    prev = p.read_text(encoding="utf-8") if p.exists() else f"# {filename[:-3]}\n"
+    p.write_text(prev.rstrip() + f"\n- {_now()} — {note.strip()}\n", encoding="utf-8")

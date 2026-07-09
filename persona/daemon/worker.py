@@ -114,6 +114,23 @@ async def _harvest(task, queue) -> str:
     return f"harvest: +{res['ingested']} sources, {res['beliefs']} beliefs, {res['new_contradictions']} new contradiction(s)"
 
 
+@handler("deliberate")
+async def _deliberate(task, queue) -> str:
+    """The reflecting self (Opus): reads what it's learned and EVOLVES — reweights + spawns new
+    interests, forms questions, then scouts its own priority reads. This is autonomy."""
+    import asyncio
+    from ..agents import deliberate as dlb
+    from ..memory import membrane
+    kg = await asyncio.to_thread(membrane.get_kg)
+    res = await asyncio.to_thread(dlb.deliberate, kg, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"deliberate: {res.get('reason')}"
+    for topic in res.get("priority_reads", [])[:4]:
+        queue.enqueue("scout", priority=2, params={"interest": topic}, parent_id=task.parent_id)
+    return f"deliberate: evolved self, spawned {len(res.get('new_interests', []))} interest(s), " \
+           f"queued {len(res.get('priority_reads', [])[:4])} priority read(s)"
+
+
 @handler("observe")
 async def _observe(task, queue) -> str:
     """Reader: fetch ONE specific paper (from the scout) and extract structured claims.

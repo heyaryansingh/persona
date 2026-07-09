@@ -45,6 +45,7 @@ NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
 N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "6"))
 QUEUE_MIN_DEPTH = int(os.environ.get("PERSONA_QUEUE_MIN_DEPTH", "4"))   # scheduler tops up below this
 SCHEDULER_INTERVAL_S = float(os.environ.get("PERSONA_SCHEDULER_INTERVAL", "5"))
+SELF_INTERVAL_S = float(os.environ.get("PERSONA_SELF_INTERVAL", "240"))   # reflecting-self cadence
 DAILY_BUDGET_USD = float(os.environ.get("PERSONA_DAILY_BUDGET_USD", "15"))
 LEASE_SECONDS = int(os.environ.get("PERSONA_LEASE_SECONDS", "300"))
 
