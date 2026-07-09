@@ -44,8 +44,37 @@ async def _reflect(task, queue) -> str:
         log().emit("spawn", f"scouting the literature on “{name}”", actor="self",
                    parent_id=ev, interest=name)
         spawned += 1
-    queue.enqueue("harvest", priority=8, parent_id=ev)   # low priority: digest AFTER reads drain
+    # a background bulk sweep (Batch API, ~50% cost, thousands/day) on the top interest
+    top = sorted(ints, key=lambda x: -x[1])[:1]
+    if top:
+        queue.enqueue("bulk", priority=7, params={"interest": top[0][0]}, parent_id=ev)
+    queue.enqueue("collect_batches", priority=9, parent_id=ev)   # drain finished batches
+    queue.enqueue("harvest", priority=8, parent_id=ev)           # digest AFTER reads drain
     return f"reflect: scouting {spawned} interest(s)"
+
+
+@handler("bulk")
+async def _bulk(task, queue) -> str:
+    """Background bulk sweep: scout a batch of papers and submit them to the Batch API."""
+    import asyncio
+    from ..reading import reader, batch
+    from ..budget import budget
+    interest = task.params.get("interest", task.prompt)
+    if not budget().can_spend():
+        return "bulk: budget reached"
+    works = await asyncio.to_thread(reader.scout, interest, 25)
+    if not works:
+        return "bulk: nothing new"
+    res = await asyncio.to_thread(batch.submit, works, interest)
+    return f"bulk: submitted {res.get('n',0)} to batch {str(res.get('batch_id',''))[:12]}"
+
+
+@handler("collect_batches")
+async def _collect_batches(task, queue) -> str:
+    import asyncio
+    from ..reading import batch
+    res = await asyncio.to_thread(batch.collect_pending)
+    return f"collect_batches: checked {res.get('checked',0)}, collected {res.get('collected',0)}"
 
 
 @handler("scout")
@@ -61,6 +90,17 @@ async def _scout(task, queue) -> str:
     log().emit("spawn", f"found {len(works)} unread paper(s) on “{interest}” → queued readers",
                actor="scout", parent_id=task.parent_id, interest=interest, n=len(works))
     return f"scout: queued {len(works)} readers for {interest}"
+
+
+@handler("read_url")
+async def _read_url(task, queue) -> str:
+    """Read an arbitrary web/online source (any URL)."""
+    import asyncio
+    from ..reading import reader
+    url = task.params.get("url", task.prompt)
+    res = await asyncio.to_thread(reader.read_url, url, task.params.get("interest", "web"),
+                                  parent_id=task.parent_id)
+    return f"read_url: {res.get('slug', res.get('reason', res.get('error','?')))}"
 
 
 @handler("harvest")

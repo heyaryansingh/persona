@@ -78,6 +78,16 @@ def seed(payload: dict):
     return {"seeded": seeded, "interests": selfmind.interests()}
 
 
+@app.post("/api/read_url")
+def read_url(payload: dict):
+    """Feed the researcher an arbitrary web/online source to read."""
+    if _daemon is None:
+        return {"ok": False, "reason": "daemon down"}
+    tid = _daemon.queue.enqueue("read_url", priority=2,
+                                params={"url": payload["url"], "interest": payload.get("interest", "web")})
+    return {"ok": True, "task": tid}
+
+
 @app.get("/api/stream")
 async def stream():
     async def gen():

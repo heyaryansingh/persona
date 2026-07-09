@@ -9,6 +9,7 @@ python-dotenv
 falkordb            # temporal knowledge graph client (needs Docker: falkordb/falkordb on :6379)
 
 # Planned (install per phase):
-# docling trafilatura        # P3 full-text + web parsing
+trafilatura          # web main-content extraction (arbitrary URLs)
+# docling                    # P3+ richer PDF structure (heavier)
 # fastembed                  # P3/P5 local embeddings (bge-small)
 # claude-agent-sdk           # P5 hierarchical sub-agents + sandboxed tool use

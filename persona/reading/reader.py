@@ -29,7 +29,9 @@ def _claim_id(subject: str, relation: str, obj: str, sign: str) -> str:
 
 
 def _already_read(slug: str) -> bool:
-    return (config.SOURCES_DIR / slug / "claims.jsonl").exists()
+    # keyed on meta.json: a source is "seen" once fetched+stored (before extraction), so a paper
+    # submitted to a pending batch isn't re-scouted. Harvest still skips sources with no claims.jsonl.
+    return (config.SOURCES_DIR / slug / "meta.json").exists()
 
 
 def scout(interest: str, want: int = 20, max_pages: int = 3, per_page: int = 25) -> list[dict]:
@@ -52,6 +54,21 @@ def scout(interest: str, want: int = 20, max_pages: int = 3, per_page: int = 25)
                     break
         page += 1
     return out
+
+
+def read_url(url: str, interest: str = "web", *, parent_id=None) -> dict:
+    """Read an ARBITRARY web page (not just a paper) through the same pipeline."""
+    from ..ingest import web
+    try:
+        w = web.fetch_url(url)
+    except Exception as e:
+        log().emit("error", f"web fetch failed for {url}: {str(e)[:120]}", actor="reader",
+                   parent_id=parent_id)
+        return {"ok": False, "error": str(e)[:120]}
+    if w is None:
+        log().emit("thought", f"nothing substantive at {url}", actor="reader", parent_id=parent_id)
+        return {"ok": True, "read": False, "reason": "empty"}
+    return read_work(w.to_dict(), interest, parent_id=parent_id)
 
 
 def read_work(work_dict: dict, interest: str = "", *, parent_id=None) -> dict:
@@ -87,6 +104,7 @@ def read_work(work_dict: dict, interest: str = "", *, parent_id=None) -> dict:
 
     claims, usage = extract.extract_claims(text, work.title)
     budget().add(usage.get("cost", 0.0))
+    claims = [c for c in claims if isinstance(c, dict)]      # model sometimes emits a bare string
     lines = []
     for c in claims:
         cid = _claim_id(c.get("subject", ""), c.get("relation", ""),
