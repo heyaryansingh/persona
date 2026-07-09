@@ -286,6 +286,35 @@ def deliver(pid: str, payload: dict):
     return {"ok": True, "queued": kind, "task": tid}
 
 
+# --------------------------------------------------------------- builders + free mind (v6 P4)
+@app.post("/api/persona/{pid}/build")
+def build_ep(pid: str, payload: dict):
+    """Ask the persona to build a real artifact now: a diagram, generative art, an interactive page,
+    or a small code tool — grounded in its knowledge, browsable in files/deliverables when done."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    kind = (payload.get("kind") or "diagram").strip()
+    topic = (payload.get("topic") or "").strip()
+    if not topic:
+        return {"ok": False, "reason": "empty topic"}
+    if kind not in ("diagram", "art", "page", "code"):
+        return {"ok": False, "reason": f"unknown kind {kind}"}
+    if d is None:
+        return {"ok": False, "reason": "daemon not running (seed/resume the persona)"}
+    tid = d.queue.enqueue("build", priority=3, params={"kind": kind, "topic": topic})
+    return {"ok": True, "queued": kind, "task": tid}
+
+
+@app.post("/api/persona/{pid}/freemove")
+def freemove_ep(pid: str):
+    """Let the persona choose its own next move (the free mind), one step, budget-gated."""
+    d = manager()._daemons.get(pid)
+    if d is None:
+        return {"ok": False, "reason": "daemon not running (seed/resume the persona)"}
+    tid = d.queue.enqueue("free_move", priority=2)
+    return {"ok": True, "task": tid}
+
+
 @app.get("/api/persona/{pid}/fieldmap")
 def fieldmap(pid: str):
     """A navigable map through the field: subtopics → beliefs → contradictions → open-questions → papers."""

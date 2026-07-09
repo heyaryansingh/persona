@@ -19,6 +19,7 @@ Edges: (Claim)-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(Entity), (Claim)-[:SUPPORTED_BY]-
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from datetime import datetime, timezone
 
@@ -267,6 +268,22 @@ class KG:
             self._q("MATCH (n:SynthesisNote {slug:$slug}), (c:Claim {claim_id:$cid}) "
                     "MERGE (n)-[:SYNTHESIZES]->(c)", {"slug": slug, "cid": cid})
 
+    def add_experiment(self, exp_id: str, title: str, kind: str, entities: list,
+                       artifact: str = "", meta: dict = None) -> None:
+        """Record an experiment/build as a first-class node linked to the entities it's about, so the
+        graph can be walked belief -> experiment -> result (v6 P4)."""
+        self._q("MERGE (x:Experiment {exp_id:$id}) SET x.title=$t, x.kind=$k, x.artifact=$a, "
+                "x.created=$now, x.meta=$m",
+                {"id": exp_id, "t": (title or "")[:200], "k": kind, "a": artifact, "now": _now(),
+                 "m": json.dumps(meta or {})})
+        for e in entities or []:
+            try:
+                cn = self.canon.canon(e)
+            except Exception:
+                cn = e
+            self._q("MATCH (x:Experiment {exp_id:$id}) MERGE (e:Entity {name:$n}) "
+                    "MERGE (x)-[:ABOUT]->(e)", {"id": exp_id, "n": cn})
+
     def graph_snapshot(self, limit: int = 2000) -> dict:
         """Nodes+edges for the dashboard mini-graph (entities + claim topology)."""
         nodes = self._q(
@@ -337,6 +354,16 @@ class KG:
                     "RETURN DISTINCT nt.slug, nt.title LIMIT 6", {"n": key}).result_set:
                 add(f"note:{slug}", "note", title or slug)
                 edges.append({"source": f"note:{slug}", "target": f"entity:{key}", "type": "synthesizes"})
+            for xid, title, xk in self._q(
+                    "MATCH (x:Experiment)-[:ABOUT]->(e:Entity {name:$n}) "
+                    "RETURN x.exp_id, x.title, x.kind LIMIT 8", {"n": key}).result_set:
+                add(f"experiment:{xid}", "experiment", title or xk)
+                edges.append({"source": f"experiment:{xid}", "target": f"entity:{key}", "type": "about"})
+        elif kind == "experiment":
+            for nm, in self._q("MATCH (x:Experiment {exp_id:$k})-[:ABOUT]->(e:Entity) "
+                               "RETURN e.name LIMIT $lim", {"k": key, "lim": limit}).result_set:
+                add(f"entity:{nm}", "entity", nm)
+                edges.append({"source": f"experiment:{key}", "target": f"entity:{nm}", "type": "about"})
         elif kind == "source":
             for a, b, cid, sign in self._q(
                     "MATCH (c:Claim)-[:SUPPORTED_BY]->(s:Source {slug:$k}), "
@@ -387,6 +414,16 @@ class KG:
             row = r[0] if r else [key, [], ""]
             return {"id": node_id, "type": "note", "label": row[0] or key, "slug": key,
                     "entities": row[1], "updated": row[2]}
+        if kind == "experiment":
+            r = self._q("MATCH (x:Experiment {exp_id:$k}) RETURN x.title, x.kind, x.artifact, "
+                        "x.created, x.meta", {"k": key}).result_set
+            row = r[0] if r else [key, "", "", "", "{}"]
+            try:
+                meta = json.loads(row[4] or "{}")
+            except Exception:
+                meta = {}
+            return {"id": node_id, "type": "experiment", "label": row[0] or key, "kind": row[1],
+                    "artifact": row[2], "created": row[3], "meta": meta}
         return {"id": node_id, "type": kind or "unknown", "label": key}
 
     def search(self, q: str, limit: int = 20) -> list:

@@ -191,6 +191,52 @@ async def _investigate(task, queue) -> str:
     return f"investigate: wrote “{res.get('title','')[:60]}” (code={res.get('ran_code')})"
 
 
+@handler("build")
+async def _build(task, queue) -> str:
+    """Build a real artifact (diagram/art/page/code), grounded in the mind's knowledge + browsable."""
+    import asyncio
+    from ..agents import builder
+    from ..memory import membrane
+    kind = task.params.get("kind", "diagram")
+    topic = task.params.get("topic", task.prompt)
+    kg = await asyncio.to_thread(membrane.get_kg)
+    if kind in ("diagram", "art"):
+        res = await asyncio.to_thread(builder.build_visual, kind, topic, parent_id=task.parent_id, kg=kg)
+    elif kind == "page":
+        res = await asyncio.to_thread(builder.build_page, topic, parent_id=task.parent_id, kg=kg)
+    elif kind == "code":
+        res = await asyncio.to_thread(builder.build_code, topic, parent_id=task.parent_id, kg=kg)
+    else:
+        return f"build: unknown kind {kind}"
+    return f"build {kind}: {res.get('artifact', res.get('reason'))}"
+
+
+@handler("free_move")
+async def _free_move(task, queue) -> str:
+    """The FREE mind: an Opus step picks any vetted action + topic, then enqueues it (v6 P4)."""
+    import asyncio
+    from ..agents import freemove
+    from ..memory import membrane
+    kg = await asyncio.to_thread(membrane.get_kg)
+    res = await asyncio.to_thread(freemove.free_move, kg, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"free_move: {res.get('reason')}"
+    a, topic = res["action"], res.get("topic", "")
+    if a == "scout":
+        queue.enqueue("scout", priority=3, params={"interest": topic}, parent_id=task.parent_id)
+    elif a == "investigate":
+        queue.enqueue("investigate", priority=4, params={"question": topic}, parent_id=task.parent_id)
+    elif a == "review":
+        queue.enqueue("review", priority=4, params={"topic": topic}, parent_id=task.parent_id)
+    elif a == "paper":
+        queue.enqueue("paper", priority=5, params={"topic": topic}, parent_id=task.parent_id)
+    elif a == "consolidate":
+        queue.enqueue("consolidate", priority=5, parent_id=task.parent_id)
+    elif a in ("diagram", "art", "page", "code"):
+        queue.enqueue("build", priority=4, params={"kind": a, "topic": topic}, parent_id=task.parent_id)
+    return f"free_move -> {a}: {topic[:60]}"
+
+
 @handler("observe")
 async def _observe(task, queue) -> str:
     """Reader: fetch ONE specific paper (from the scout) and extract structured claims.

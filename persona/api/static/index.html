@@ -178,7 +178,9 @@
     <button class="back" id="filesbtn" style="display:none" onclick="openFiles()">⧉ files</button>
     <button class="back" id="graphbtn" style="display:none" onclick="openGraph()">◉ explore graph</button>
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
-    <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ request review/paper</button>
+    <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ review/paper</button>
+    <button class="back" id="buildbtn" style="display:none" onclick="requestBuild()">✦ build</button>
+    <button class="back" id="freebtn" style="display:none" onclick="freeMove()" title="let it choose its own next move">✧ free move</button>
     <span class="ctl" id="controlbar">
       <span class="pill RUNNING" id="runpill">running</span>
       <span class="meter" title="today's spend / daily cap">
@@ -315,7 +317,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -323,6 +325,16 @@ async function requestDeliverable(){
   const kind=confirm("OK = LaTeX paper (compiled PDF)\nCancel = cited literature review")?"paper":"review";
   const r=await (await fetch(A("/deliver"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,topic})})).json();
   alert(r.ok?`Queued a ${kind} on "${topic}". Watch the stream; it appears in body of work when done.`:`Could not: ${r.reason}`);}
+async function requestBuild(){
+  const kind=prompt("Build what?  diagram · art · page · code","diagram"); if(!kind) return;
+  const topic=prompt("On what topic / question?"); if(!topic) return;
+  const r=await (await fetch(A("/build"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:kind.trim(),topic})})).json();
+  alert(r.ok?`Queued a ${kind.trim()}. Watch the stream; it appears in ⧉ files when done.`:`Could not: ${r.reason}`);
+}
+async function freeMove(){
+  const r=await (await fetch(A("/freemove"),{method:"POST"})).json();
+  alert(r.ok?"It's choosing its own next move — watch the stream.":`Could not: ${r.reason}`);
+}
 async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json();
   const html=(m.subtopics||[]).map(s=>`<div style="margin:16px 0;border-left:3px solid var(--anchor);padding-left:14px">`+
     `<div style="font-family:var(--serif);font-size:18px">${esc(s.title)} `+
@@ -336,7 +348,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
