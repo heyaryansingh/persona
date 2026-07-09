@@ -66,8 +66,9 @@ def create_persona(payload: dict):
         interests = [s.strip() for s in interests.split(",") if s.strip()]
     p = manager().create(payload["name"], interests=interests,
                          budget_usd=payload.get("budget_usd"))
-    if interests:                       # seeded at birth -> start researching
-        manager().start(p)
+    # create() already seeds when interests are given; the startup _supervisor() loop starts the
+    # daemon from WITHIN the event loop. Don't call manager().start() here — this is a sync request
+    # thread with no running loop, so asyncio.create_task() would raise (a 500 with no UI feedback).
     return p.to_card()
 
 

@@ -147,10 +147,19 @@ async function loadGallery(){
 }
 async function createPersona(){
   const name=$("#pname").value.trim(), interests=$("#pint").value.trim();
-  if(!name) return;
-  const p=await (await fetch("/api/personas",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name,interests})})).json();
-  if(interests) openPersona(p.id); else loadGallery();
+  if(!name){$("#pname").focus();return;}
+  const btn=event&&event.target; if(btn){btn.disabled=true;btn.textContent="creating…";}
+  try{
+    const res=await fetch("/api/personas",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,interests})});
+    if(!res.ok) throw new Error("server "+res.status+": "+(await res.text()).slice(0,140));
+    const p=await res.json();
+    if(!p||!p.id) throw new Error("no persona id in response");
+    if(interests) openPersona(p.id); else loadGallery();
+  }catch(e){
+    alert("Could not create persona — "+e.message);
+    if(btn){btn.disabled=false;btn.textContent="create & seed";}
+  }
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
