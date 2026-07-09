@@ -95,7 +95,13 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
     body = out.get("synthesis_markdown", "")
     oq = out.get("open_questions", []) or []
     contra = out.get("contradictions", []) or []
-    md = (f"# {title}\n\n_synthesis · {len(claims)} claims · {len(src_list)} sources · updated {_now()}_\n\n"
+    # eval-in-the-loop: verify the synthesis is actually supported by the quotes (defensibility)
+    from . import checker
+    allquotes = [s.get("quote") for c in claims for s in (c.get("sources") or []) if s.get("quote")]
+    chk = checker.check(body, allquotes)
+    sr = chk.get("support_rate")
+    sr_str = f" · {int(sr*100)}% quote-supported" if sr is not None else ""
+    md = (f"# {title}\n\n_synthesis · {len(claims)} claims · {len(src_list)} sources{sr_str} · updated {_now()}_\n\n"
           f"{body}\n\n" + ("## open questions\n" + "\n".join(f"- {q}" for q in oq) + "\n\n" if oq else "")
           + ("## contradictions\n" + "\n".join(f"- {q}" for q in contra) + "\n\n" if contra else "")
           + "## sources\n" + sources_md + "\n")
@@ -106,6 +112,7 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
         p.vectors.upsert(f"note:{slug}", f"{title}\n{body}", {"title": title, "slug": slug, "kind": "note"})
     except Exception:
         pass
-    log().emit("synthesis", f"synthesized “{title}” ({len(claims)} claims, {len(src_list)} sources)",
-               actor="synthesizer", parent_id=parent_id, slug=slug)
-    return {"ok": True, "slug": slug, "title": title, "n_claims": len(claims)}
+    log().emit("synthesis", f"synthesized “{title}” ({len(claims)} claims, {len(src_list)} sources"
+               + (f", {int(sr*100)}% quote-supported" if sr is not None else "") + ")",
+               actor="synthesizer", parent_id=parent_id, slug=slug, support_rate=sr)
+    return {"ok": True, "slug": slug, "title": title, "n_claims": len(claims), "support_rate": sr}

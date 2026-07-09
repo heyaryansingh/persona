@@ -86,7 +86,9 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
     if not out:
         return {"ok": False, "reason": "no-output"}
 
+    from .. import coherence
     prev_interests = {n.lower() for n, _ in selfmind.interests()}
+    prev_sig = coherence.interest_signature()
     new_pairs = [(i["name"], i.get("weight", 1.0)) for i in out.get("interests", [])
                  if isinstance(i, dict) and i.get("name")]
     if new_pairs:
@@ -97,6 +99,13 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
     selfmind.append_section("taste.md", out.get("taste_note", ""))
     selfmind.append_section("identity.md", out.get("identity_update", ""))
     selfmind.append_changelog(out.get("changelog", "reflected"))
+
+    # anti-degradation: keep the self bounded (memory-blocks) + flag a sudden interest spiral
+    coherence.enforce_caps()
+    dr = coherence.drift(prev_sig, coherence.interest_signature())
+    if dr > 0.75 and prev_sig:
+        log().emit("coherence", f"large interest shift this reflection (drift={dr:.2f}) — watching "
+                   f"for spiral", actor="self", parent_id=parent_id)
 
     spawned = [n for n, _ in new_pairs if n.lower() not in prev_interests]
     log().emit("thought",
