@@ -13,13 +13,18 @@ import json
 from datetime import datetime, timezone
 
 from .. import config
+from ..context import get_persona
 from ..budget import budget
 from ..events import log
 from ..ingest import openalex, fetch
 from .extract import EXTRACT_TOOL, _SYSTEM
 from .reader import _claim_id, _already_read
 
-_BATCH_DIR = config.OPS_DIR / "batches"
+def _batch_dir():
+    from ..context import get_persona
+    d = get_persona().paths.ops_dir / "batches"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 
 def _now() -> str:
@@ -35,14 +40,14 @@ def submit(works: list[dict], interest: str = "") -> dict:
     """Fetch texts + submit a batch of claim-extractions. Returns {batch_id, n}."""
     if not config.have_key():
         return {"ok": False, "reason": "no-key"}
-    _BATCH_DIR.mkdir(parents=True, exist_ok=True)
+    _batch_dir().mkdir(parents=True, exist_ok=True)
     requests, id_map = [], {}
     for i, wd in enumerate(works):
         work = openalex.Work.from_dict(wd)
         if not work.slug or _already_read(work.slug):
             continue
         text, kind = fetch.fulltext(work)
-        src = config.SOURCES_DIR / work.slug
+        src = get_persona().paths.sources_dir / work.slug
         src.mkdir(parents=True, exist_ok=True)
         (src / "clean.md").write_text(f"# {work.title}\n\n_{kind}_\n\n{text}\n", encoding="utf-8")
         (src / "meta.json").write_text(json.dumps(
@@ -59,7 +64,7 @@ def submit(works: list[dict], interest: str = "") -> dict:
     if not requests:
         return {"ok": True, "n": 0, "reason": "nothing-new"}
     batch = _client().messages.batches.create(requests=requests)
-    (_BATCH_DIR / f"{batch.id}.json").write_text(json.dumps(
+    (_batch_dir() / f"{batch.id}.json").write_text(json.dumps(
         {"batch_id": batch.id, "id_map": id_map, "interest": interest, "submitted_at": _now(),
          "status": "in_progress"}), encoding="utf-8")
     log().emit("tool", f"submitted a batch of {len(requests)} extraction(s) on “{interest}” "
@@ -69,7 +74,7 @@ def submit(works: list[dict], interest: str = "") -> dict:
 
 def collect(batch_id: str) -> dict:
     """Poll one manifest; if ended, write claims.jsonl per source. Returns {status, written}."""
-    man_p = _BATCH_DIR / f"{batch_id}.json"
+    man_p = _batch_dir() / f"{batch_id}.json"
     if not man_p.exists():
         return {"ok": False, "reason": "no-manifest"}
     man = json.loads(man_p.read_text(encoding="utf-8"))
@@ -90,7 +95,7 @@ def collect(batch_id: str) -> dict:
                 raw = b.input.get("claims", []) or []
         u = res.result.message.usage
         budget().add((u.input_tokens * 1.0 + u.output_tokens * 5.0) / 1_000_000 * 0.5)  # batch = 0.5x
-        meta = json.loads((config.SOURCES_DIR / slug / "meta.json").read_text(encoding="utf-8"))
+        meta = json.loads((get_persona().paths.sources_dir / slug / "meta.json").read_text(encoding="utf-8"))
         lines = []
         for c in raw:
             if not isinstance(c, dict):
@@ -103,7 +108,7 @@ def collect(batch_id: str) -> dict:
                 "quote": c.get("quote", ""), "confidence": c.get("confidence", 0.6),
                 "provenance": "READ", "affiliations": meta.get("affiliations", []),
                 "extracted_at": _now()}, ensure_ascii=False))
-        (config.SOURCES_DIR / slug / "claims.jsonl").write_text(
+        (get_persona().paths.sources_dir / slug / "claims.jsonl").write_text(
             "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
         written += 1
     man["status"] = "done"
@@ -115,10 +120,10 @@ def collect(batch_id: str) -> dict:
 
 def collect_pending() -> dict:
     """Drain all open batch manifests (periodic task)."""
-    if not _BATCH_DIR.exists():
+    if not _batch_dir().exists():
         return {"ok": True, "checked": 0}
     checked, done = 0, 0
-    for p in _BATCH_DIR.glob("*.json"):
+    for p in _batch_dir().glob("*.json"):
         man = json.loads(p.read_text(encoding="utf-8"))
         if man.get("status") == "done":
             continue

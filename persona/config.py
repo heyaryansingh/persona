@@ -16,6 +16,8 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKSPACE = Path(os.environ.get("PERSONA_WORKSPACE", ROOT / "persona-workspace"))
+KG_NAME = os.environ.get("PERSONA_KG_NAME", "persona")     # default persona's FalkorDB graph
+PERSONAS_ROOT = Path(os.environ.get("PERSONA_PERSONAS_ROOT", ROOT / "personas"))  # multi-persona home
 
 # workspace subdirs (the on-disk mind — see the v4 plan §"Memory / folder system")
 SELF_DIR = WORKSPACE / "self"

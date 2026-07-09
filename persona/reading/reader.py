@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 from .. import config
 from ..budget import budget
+from ..context import get_persona
 from ..events import log
 from ..ingest import openalex, fetch
 from . import extract
@@ -31,7 +32,7 @@ def _claim_id(subject: str, relation: str, obj: str, sign: str) -> str:
 def _already_read(slug: str) -> bool:
     # keyed on meta.json: a source is "seen" once fetched+stored (before extraction), so a paper
     # submitted to a pending batch isn't re-scouted. Harvest still skips sources with no claims.jsonl.
-    return (config.SOURCES_DIR / slug / "meta.json").exists()
+    return (get_persona().paths.sources_dir / slug / "meta.json").exists()
 
 
 def scout(interest: str, want: int = 20, max_pages: int = 3, per_page: int = 25) -> list[dict]:
@@ -71,13 +72,13 @@ def read_url(url: str, interest: str = "web", *, parent_id=None) -> dict:
 
 def read_work(work_dict: dict, interest: str = "", *, parent_id=None) -> dict:
     """Read one specific paper -> claims on disk. Budget-gated extraction."""
-    config.ensure_workspace()
+    get_persona().paths.ensure()
     work = openalex.Work.from_dict(work_dict)
     if not work.slug or _already_read(work.slug):
         return {"ok": True, "read": False, "reason": "already-read"}
 
     text, kind = fetch.fulltext(work)
-    src_dir = config.SOURCES_DIR / work.slug
+    src_dir = get_persona().paths.sources_dir / work.slug
     src_dir.mkdir(parents=True, exist_ok=True)
     (src_dir / "clean.md").write_text(f"# {work.title}\n\n_{kind} · {work.venue or ''} · "
                                       f"{work.year or ''}_\n\n{text}\n", encoding="utf-8")

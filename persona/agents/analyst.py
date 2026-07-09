@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import config
+from ..context import get_persona
 from ..budget import budget
 from ..events import log
 from ..tools import sandbox, datasets
@@ -73,7 +74,7 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
     from anthropic import Anthropic
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
-    project = config.PROJECTS_DIR / _slug(question)
+    project = get_persona().paths.projects_dir / _slug(question)
     (project / "results").mkdir(parents=True, exist_ok=True)
     (project / "data").mkdir(parents=True, exist_ok=True)
     (project / "plan.md").write_text(f"# {question}\n\n_started {_now()}_\n", encoding="utf-8")
@@ -137,8 +138,8 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
         return {"ok": False, "reason": "no-finish", "project": _slug(question), "ran_code": ran_code}
     title = finished.get("title", question)[:120]
     report = finished.get("report_markdown", "")
-    draft = config.DRAFTS_DIR / f"{_slug(question)}.md"
-    config.DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
+    draft = get_persona().paths.drafts_dir / f"{_slug(question)}.md"
+    get_persona().paths.drafts_dir.mkdir(parents=True, exist_ok=True)
     draft.write_text(f"# {title}\n\n_{_now()} · question: {question}_\n\n{report}\n", encoding="utf-8")
     (project / "REPORT.md").write_text(f"# {title}\n\n{report}\n", encoding="utf-8")
     log().emit("artifact", f"wrote a report: “{title}” (real analysis{' with code' if ran_code else ''})",

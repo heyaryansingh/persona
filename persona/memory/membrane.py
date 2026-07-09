@@ -14,25 +14,24 @@ from .. import config
 from ..events import log
 from .kg import KG
 
-_KG = None
-_HARVEST_LOCK = threading.Lock()   # one harvest at a time (single FalkorDB connection)
-
-
 def get_kg():
-    """Lazy KG connection; None if FalkorDB is unreachable (daemon still runs without it)."""
-    global _KG
-    if _KG is None:
-        try:
-            _KG = KG()
-        except Exception as e:
-            log().emit("error", f"knowledge graph unavailable (FalkorDB): {str(e)[:140]}",
-                       actor="membrane")
-            return None
-    return _KG
+    """The CURRENT persona's KG (v5); None if FalkorDB is unreachable."""
+    from ..context import get_persona
+    try:
+        return get_persona().kg
+    except Exception as e:
+        log().emit("error", f"knowledge graph unavailable (FalkorDB): {str(e)[:140]}",
+                   actor="membrane")
+        return None
+
+
+def _ops_dir():
+    from ..context import get_persona
+    return get_persona().paths.ops_dir
 
 
 def _announced() -> set:
-    p = config.OPS_DIR / "announced_contradictions.json"
+    p = _ops_dir() / "announced_contradictions.json"
     if p.exists():
         try:
             return set(json.loads(p.read_text(encoding="utf-8")))
@@ -42,26 +41,29 @@ def _announced() -> set:
 
 
 def _save_announced(s: set) -> None:
-    (config.OPS_DIR / "announced_contradictions.json").write_text(
+    (_ops_dir() / "announced_contradictions.json").write_text(
         json.dumps(sorted(s)), encoding="utf-8")
 
 
 def harvest(min_independent: int = 2, parent_id=None) -> dict:
     """Ingest all not-yet-ingested sources into the KG; fire contradictions; project beliefs."""
-    if not _HARVEST_LOCK.acquire(blocking=False):
+    from ..context import get_persona
+    lock = get_persona().harvest_lock
+    if not lock.acquire(blocking=False):
         return {"ok": True, "ingested": 0, "reason": "harvest-already-running"}
     try:
         return _harvest(min_independent, parent_id)
     finally:
-        _HARVEST_LOCK.release()
+        lock.release()
 
 
 def _harvest(min_independent: int, parent_id) -> dict:
     kg = get_kg()
     if kg is None:
         return {"ok": False, "reason": "no-kg"}
+    from ..context import get_persona
     ingested, n_claims = 0, 0
-    for src_dir in sorted(config.SOURCES_DIR.glob("*")):
+    for src_dir in sorted(get_persona().paths.sources_dir.glob("*")):
         claims_f = src_dir / "claims.jsonl"
         marker = src_dir / ".ingested"
         if not claims_f.exists() or marker.exists():
@@ -122,4 +124,5 @@ def project_beliefs(kg=None, min_independent: int = 2) -> None:
         lines.append(f"- **{b['subject']}** {a} **{b['object']}** ({b['relation']}) "
                      f"· {b['independent_sources']} labs · p={b['confidence']:.2f} "
                      f"· {b['provenance']}{anchor}")
-    (config.SELF_DIR / "beliefs.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    from ..context import get_persona
+    (get_persona().paths.self_dir / "beliefs.md").write_text("\n".join(lines) + "\n", encoding="utf-8")

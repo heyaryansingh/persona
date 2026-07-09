@@ -43,11 +43,12 @@ def lab_of(affiliations: list, slug: str) -> str:
 
 
 class KG:
-    def __init__(self, host: str = None, port: int = None, name: str = None):
+    def __init__(self, host: str = None, port: int = None, name: str = None, ops_dir=None):
         from falkordb import FalkorDB
         self.host = host or os.environ.get("PERSONA_FALKOR_HOST", "127.0.0.1")
         self.port = int(port or os.environ.get("PERSONA_FALKOR_PORT", "6379"))
         self.name = name or os.environ.get("PERSONA_KG_NAME", "persona")
+        self.ops_dir = ops_dir
         self.db = FalkorDB(host=self.host, port=self.port)
         self.g = self.db.select_graph(self.name)
         self._canon = None
@@ -58,7 +59,7 @@ class KG:
         """Lazy entity canonicalizer (embeddings) — so the same concept converges to one node."""
         if self._canon is None:
             from .canon import Canonicalizer
-            self._canon = Canonicalizer()
+            self._canon = Canonicalizer(ops_dir=self.ops_dir)
         return self._canon
 
     def _q(self, cypher: str, params: dict = None):

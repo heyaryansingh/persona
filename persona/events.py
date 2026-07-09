@@ -22,8 +22,8 @@ def _now() -> str:
 
 class EventLog:
     def __init__(self, path: Optional[Path] = None):
-        config.ensure_workspace()
         self.path = str(path or config.EVENTS_DB)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._local = threading.local()
         self._init()
 
@@ -82,12 +82,8 @@ class EventLog:
         return self.since(max(0, last - n))
 
 
-# process-wide singleton (the daemon and API share one log file)
-_LOG: Optional[EventLog] = None
-
-
 def log() -> EventLog:
-    global _LOG
-    if _LOG is None:
-        _LOG = EventLog()
-    return _LOG
+    """The CURRENT persona's event log (v5) — routed via the context persona; each persona has
+    its own events.db, so streams never interleave across personas."""
+    from .context import get_persona
+    return get_persona().events

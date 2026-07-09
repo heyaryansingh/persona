@@ -34,8 +34,9 @@ def _symbol_sig(s: str) -> frozenset:
 
 
 class Canonicalizer:
-    def __init__(self, threshold: float = None):
+    def __init__(self, threshold: float = None, ops_dir=None):
         self.threshold = threshold if threshold is not None else _THRESHOLD
+        self.ops_dir = ops_dir if ops_dir is not None else config.OPS_DIR   # per-persona in v5
         self._lock = threading.Lock()
         self.canon_names: list[str] = []          # canonical form per cluster (first-seen)
         self.sigs: list[frozenset] = []
@@ -44,8 +45,8 @@ class Canonicalizer:
         self._load()
 
     def _load(self):
-        j = config.OPS_DIR / "canon.json"
-        e = config.OPS_DIR / "canon.npy"
+        j = self.ops_dir / "canon.json"
+        e = self.ops_dir / "canon.npy"
         if j.exists():
             d = json.loads(j.read_text(encoding="utf-8"))
             self.canon_names = d["names"]
@@ -55,11 +56,11 @@ class Canonicalizer:
             self.emb = np.load(e)
 
     def _save(self):
-        (config.OPS_DIR / "canon.json").write_text(json.dumps(
+        (self.ops_dir / "canon.json").write_text(json.dumps(
             {"names": self.canon_names, "sigs": [sorted(s) for s in self.sigs],
              "cache": self.cache}), encoding="utf-8")
         if self.emb is not None:
-            np.save(config.OPS_DIR / "canon.npy", self.emb)
+            np.save(self.ops_dir / "canon.npy", self.emb)
 
     def canon(self, name: str) -> str:
         norm = _norm(name)

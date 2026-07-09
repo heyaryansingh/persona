@@ -17,9 +17,12 @@ from . import worker
 
 
 class Daemon:
-    def __init__(self, n_workers: int = None, queue: TaskQueue = None, scheduler: bool = True):
+    def __init__(self, n_workers: int = None, queue: TaskQueue = None, scheduler: bool = True,
+                 persona=None):
+        from ..context import get_persona
+        self.persona = persona or get_persona()          # every daemon runs FOR one persona (v5)
         self.n_workers = n_workers or config.N_WORKERS
-        self.queue = queue or TaskQueue()
+        self.queue = queue or self.persona.queue()
         self.scheduler = scheduler          # False -> worker-only process (horizontal scale-out)
         self._stop = asyncio.Event()
         self.started_at = None
@@ -77,11 +80,14 @@ class Daemon:
             await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
 
     async def run(self) -> None:
-        config.ensure_workspace()
+        # bind THIS persona into the context so every worker/scheduler task + to_thread inherits it
+        from ..context import set_persona
+        set_persona(self.persona)
+        self.persona.paths.ensure()
         self.started_at = asyncio.get_event_loop().time()
         recovered = self.queue.reset_expired_leases()
         log().emit("boot",
-                   f"daemon up — {self.n_workers} workers"
+                   f"daemon up for “{self.persona.name}” — {self.n_workers} workers"
                    + (f", recovered {recovered} in-flight task(s)" if recovered else ""),
                    actor="daemon", seeded=selfmind.is_seeded())
         self._tasks = [asyncio.create_task(self._scheduler_loop())] if self.scheduler else []

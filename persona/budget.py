@@ -14,8 +14,9 @@ from . import config
 
 class DailyBudget:
     def __init__(self, path=None, cap_usd: float = None):
-        config.ensure_workspace()
+        from pathlib import Path
         self.path = str(path or (config.OPS_DIR / "budget.db"))
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self.cap = float(cap_usd if cap_usd is not None else config.DAILY_BUDGET_USD)
         self._local = threading.local()
         self._db().execute(
@@ -51,11 +52,8 @@ class DailyBudget:
         self._db().commit()
 
 
-_B = None
-
-
 def budget() -> DailyBudget:
-    global _B
-    if _B is None:
-        _B = DailyBudget()
-    return _B
+    """The CURRENT persona's budget (v5) — routed via the context persona; each persona has its
+    own daily cap + ledger."""
+    from .context import get_persona
+    return get_persona().budget

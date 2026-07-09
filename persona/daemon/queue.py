@@ -42,8 +42,8 @@ class Task:
 
 class TaskQueue:
     def __init__(self, path: Optional[Path] = None, lease_seconds: int = None):
-        config.ensure_workspace()
         self.path = str(path or config.QUEUE_DB)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self.lease_seconds = lease_seconds or config.LEASE_SECONDS
         self._local = threading.local()
         self._init()
