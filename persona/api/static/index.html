@@ -407,6 +407,15 @@ function openBrief(){$("#briefview").style.display="flex";$("#briefq").focus();}
 const asArr=x=>Array.isArray(x)?x:(x?[x]:[]);
 function citeLinks(text,claims){return (text||"").replace(/\[(\d+)\]/g,(m,n)=>{const c=claims[+n-1];return c?`<span class="cite" onclick="prov('${c.claim_id}')">[${n}]</span>`:m;});}
 function srcList(cl){return cl.slice(0,40).map(c=>`[${c.n}] ${esc(c.text)}${c.doi?` · <a href="https://doi.org/${esc(c.doi)}" target="_blank" style="color:var(--anchor)">${esc(c.doi)}</a>`:''}`).join("<br>");}
+function sparkline(series){
+  if(!series||series.length<2) return '';
+  const w=130,h=26,pad=3,n=series.length;
+  const xs=series.map((_,i)=>pad+i*(w-2*pad)/(n-1));
+  const ys=series.map(s=>h-pad-(Math.max(0,Math.min(1,s.confidence)))*(h-2*pad));
+  const pts=xs.map((x,i)=>x.toFixed(1)+","+ys[i].toFixed(1)).join(" ");
+  const rising=series[n-1].confidence>=series[0].confidence, col=rising?"var(--live)":"var(--contra)";
+  return `<svg width="${w}" height="${h}" style="vertical-align:middle;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${xs[n-1].toFixed(1)}" cy="${ys[n-1].toFixed(1)}" r="2.2" fill="${col}"/></svg>`;
+}
 async function runDigest(){
   const q=$("#briefq").value.trim(); if(!q) return;
   $("#briefout").innerHTML='<div class="inner"><div class="bplace">reading everything I know on this…</div></div>';
@@ -421,6 +430,7 @@ function renderDigest(d,q){
   h+=`<div class="tldr" style="margin-top:8px">${citeLinks(esc(g.tldr||''),cl)}</div>`;
   h+=sec("what's settled",g.settled)+sec("what's contested",g.contested,"contested")+sec("open questions",g.open_questions);
   if(g.narrative)h+=`<h2>synthesis</h2><div class="nar">${citeLinks(esc(g.narrative),cl)}</div>`;
+  if((d.evolution||[]).length)h+=`<h2>how these beliefs evolved</h2>`+d.evolution.map(e=>`<div style="display:flex;align-items:center;gap:12px;margin:6px 0;font-family:var(--mono);font-size:11.5px"><span style="flex:1;color:#cfd4dd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.text)}</span>${sparkline(e.series)}<span style="color:var(--dim);flex-shrink:0">${e.series.length} pts</span></div>`).join("");
   if((d.contradictions||[]).length)h+=`<h2>live contradictions</h2>`+d.contradictions.map(c=>`<div style="color:var(--contra);font-family:var(--mono);font-size:12px;margin:3px 0">⚡ ${esc(c.subject)} → ${esc(c.object)}: +${c.pos_sources} vs −${c.neg_sources} labs</div>`).join("");
   h+=`<h2>sources · click any [n] above</h2><div class="bmeta">${srcList(cl)}</div></div>`;
   $("#briefout").innerHTML=h;
