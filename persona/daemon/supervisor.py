@@ -73,9 +73,10 @@ class Daemon:
                                f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); generating work",
                                actor="scheduler", depth=depth)
                 if tick % self_every == 0:
-                    # slower cadence: consolidate reads into cited understanding, then evolve the self
+                    # slower cadence: consolidate → evolve the self → discover leads & act on them
                     self.queue.enqueue("consolidate", priority=6)
                     self.queue.enqueue("deliberate", priority=1)
+                    self.queue.enqueue("discover", priority=6)
             except Exception as e:
                 log().emit("error", f"scheduler: {str(e)[:200]}", actor="scheduler")
             await asyncio.sleep(config.SCHEDULER_INTERVAL_S)

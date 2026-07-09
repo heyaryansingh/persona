@@ -114,6 +114,17 @@ async def _harvest(task, queue) -> str:
     return f"harvest: +{res['ingested']} sources, {res['beliefs']} beliefs, {res['new_contradictions']} new contradiction(s)"
 
 
+@handler("discover")
+async def _discover(task, queue) -> str:
+    """See what's known, generate hypotheses, run the testable ones, flag physical ones for humans."""
+    import asyncio
+    from ..agents import discover
+    res = await asyncio.to_thread(discover.discover, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"discover: {res.get('reason')}"
+    return f"discover: {res['ideas']} lead(s), {res['queued']} experiment(s), {res['escalated']} to human"
+
+
 @handler("consolidate")
 async def _consolidate(task, queue) -> str:
     """Sleep-time synthesis: turn accumulated claims into cited per-topic understanding (notes)."""
