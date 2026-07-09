@@ -42,9 +42,18 @@ MODEL_SELF = os.environ.get("PERSONA_SELF_MODEL", "claude-opus-4-8")
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
-OPENALEX_API_KEY = os.environ.get("OPENALEX_API_KEY")            # premium pool -> higher limits, no shared-pool bans
-# OpenAlex "polite pool" wants a real contact email; premium key auths via api_key param.
-OPENALEX_MAILTO = os.environ.get("OPENALEX_MAILTO", "aryanrheasingh@gmail.com")
+OPENALEX_API_KEY = os.environ.get("OPENALEX_API_KEY")            # 10x daily budget (OpenAlex moved to a $-budget model, 2025)
+# A REAL contact email is what puts us in Crossref's "polite pool" (they email before blocking, not
+# silently 403) and identifies us to OpenAlex. One canonical value, used for both the mailto param
+# and the HTTP User-Agent. Override with OPENALEX_MAILTO or CONTACT_EMAIL in .env.
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL") or os.environ.get("OPENALEX_MAILTO", "aryanrheasingh@gmail.com")
+OPENALEX_MAILTO = CONTACT_EMAIL
+# Dev safety valve: multiply every per-host min-interval to crawl extra-gently while iterating
+# (set PERSONA_INGEST_GENTLE=3 during heavy dev). 1.0 = the verified polite defaults.
+INGEST_INTERVAL_MULT = float(os.environ.get("PERSONA_INGEST_GENTLE", "1.0"))
+# HTTP cache lifetime: identical searches/PDFs within this window are served from disk (no network,
+# no budget spend). Long is good for dev — bump it while iterating so restarts never refetch.
+HTTP_CACHE_TTL_DAYS = float(os.environ.get("PERSONA_HTTP_CACHE_TTL_DAYS", "7"))
 
 # daemon knobs
 N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "6"))

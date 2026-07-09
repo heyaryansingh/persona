@@ -37,10 +37,14 @@ def fetch(url: str, dest_dir: Path, filename: str = None) -> dict:
     name = filename or (urllib.parse.urlparse(url).path.rsplit("/", 1)[-1] or "dataset.bin")
     name = "".join(c for c in name if c.isalnum() or c in "._-")[:80] or "dataset.bin"
     path = dest_dir / name
+    from .. import config
+    host = urllib.parse.urlparse(url).netloc.lower()
+    if config.NCBI_API_KEY and host.endswith("ncbi.nlm.nih.gov") and "api_key=" not in url:
+        url += ("&" if "?" in url else "?") + "api_key=" + config.NCBI_API_KEY   # 10 rps vs 3 keyless
     try:
         total = 0
         with httpx.stream("GET", url, follow_redirects=True, timeout=60.0,
-                          headers={"User-Agent": "persona-researcher/4.0"}) as r:
+                          headers={"User-Agent": f"persona-researcher/5.0 (mailto:{config.CONTACT_EMAIL})"}) as r:
             r.raise_for_status()
             with open(path, "wb") as f:
                 for chunk in r.iter_bytes(65536):

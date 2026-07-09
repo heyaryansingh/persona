@@ -9,7 +9,8 @@ python-dotenv
 falkordb             # temporal knowledge graph client (needs Docker: falkordb/falkordb on :6379)
 fastembed            # local bge-small embeddings (entity canonicalization / retrieval)
 trafilatura          # web main-content extraction (arbitrary URLs)
-hishel               # persistent HTTP cache (v5 ingestion: kills re-scout churn); httpx-based
+# HTTP cache: now a stdlib sqlite3 keyed-TTL store in ingest/service.py (dropped hishel — 1.3
+# removed its drop-in client; our GETs are idempotent so a TTL cache is simpler and version-stable).
 
 # Planned (install per phase):
 # docling                    # richer PDF structure (heavier); PyMuPDF suffices for now

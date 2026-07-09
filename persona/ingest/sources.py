@@ -67,8 +67,10 @@ def openalex_search(query: str, limit: int, page: int = 1) -> list[Work]:
 
 # ------------------------------------------------------------------ Crossref
 def crossref_search(query: str, limit: int) -> list[Work]:
+    from .. import config
     d = service().get_json("https://api.crossref.org/works",
                            {"query": query, "rows": max(1, min(limit, 40)),
+                            "mailto": config.CONTACT_EMAIL,   # polite pool: 3 rps vs 1 rps keyless (Dec-2025 limits)
                             "select": "DOI,title,abstract,author,issued,container-title,link"})
     out = []
     for it in d.get("message", {}).get("items", []):
