@@ -43,6 +43,15 @@ TOOLS = [
      "matplotlib/statsmodels available; NO network). The project is mounted at /work; datasets at "
      "/work/data. Write outputs to /work/results/. Returns stdout/stderr.",
      "input_schema": {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]}},
+    {"name": "science_query", "description": "Query a real scientific database for structured "
+     "evidence: open_targets (gene<->disease associations), uniprot (proteins), ncbi_search "
+     "(PubMed/GEO/gene; use db='gds' for GEO datasets), pubchem (compounds), clinical_trials.",
+     "input_schema": {"type": "object", "properties": {
+         "api": {"type": "string", "enum": ["open_targets", "uniprot", "ncbi_search", "pubchem",
+                                            "clinical_trials"]},
+         "params": {"type": "object", "description": "e.g. {\"query\":\"Alzheimer disease\"} or "
+                    "{\"term\":\"microglia\",\"db\":\"gds\"} or {\"compound\":\"donepezil\"}"}},
+         "required": ["api", "params"]}},
     {"name": "finish", "description": "Finish the investigation with a written report.",
      "input_schema": {"type": "object", "properties": {
          "title": {"type": "string"}, "report_markdown": {"type": "string",
@@ -50,7 +59,9 @@ TOOLS = [
          "required": ["title", "report_markdown"]}},
 ]
 
-_SYSTEM = ("You are a rigorous research analyst. Given a question, do REAL work: plan briefly, fetch "
+_SYSTEM = ("You are a rigorous research analyst. Given a question, do REAL work: plan briefly, pull "
+           "structured evidence from scientific databases (science_query: Open Targets, UniProt, "
+           "NCBI/GEO, PubChem, ClinicalTrials) when relevant, fetch "
            "real data if useful (open-data hosts only), write and RUN Python in the sandbox to "
            "actually compute an answer (don't just reason — verify numerically), then finish with a "
            "concise, honest report including caveats. Prefer a small, decisive analysis over a sprawling "
@@ -109,6 +120,15 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
                            f"{'ok '+str(r.get('bytes',0))+'B' if r.get('ok') else 'FAIL: '+r.get('error','')}",
                            actor="analyst", parent_id=parent_id)
                 return r
+            if name == "science_query":
+                from ..tools import science
+                res = science.call(inp.get("api", ""), inp.get("params", {}) or {})
+                _logstep("science_query", f"{inp.get('api')} {json.dumps(inp.get('params', {}))[:80]} "
+                         f"-> {'ok' if res.get('ok') else 'fail'}")
+                log().emit("tool", f"queried {inp.get('api')} → "
+                           f"{'ok' if res.get('ok') else 'fail: '+str(res.get('error',''))[:60]}",
+                           actor="analyst", parent_id=parent_id)
+                return res
             if name == "run_python":
                 code = inp["code"]
                 ch = _hl.sha256(code.encode()).hexdigest()[:12]

@@ -329,6 +329,14 @@ def graph_subgraph(pid: str, q: str):
         return g.subgraph(ents)
 
 
+@app.post("/api/persona/{pid}/science")
+def science_ep(pid: str, payload: dict):
+    """Query a scientific database directly (Open Targets / UniProt / NCBI-GEO / PubChem / trials)."""
+    _p(pid)
+    from ..tools import science
+    return science.call(payload.get("api", ""), payload.get("params", {}) or {})
+
+
 @app.post("/api/persona/{pid}/goal")
 def goal(pid: str, payload: dict):
     """Directed mode: hand the persona a real problem/question. It pursues it (reads + a real

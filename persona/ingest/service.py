@@ -128,8 +128,11 @@ class IngestService:
     def _request(self, method: str, url: str, **kw) -> httpx.Response:
         host = httpx.URL(url).host or "_default"
         lim = self._limiter(host)
+        max_retries = kw.pop("_retries", None)
+        if max_retries is None:
+            max_retries = self.max_retries
         last_exc = None
-        for attempt in range(self.max_retries + 1):
+        for attempt in range(max_retries + 1):
             lim.acquire()
             try:
                 r = self.client.request(method, url, **kw)
@@ -152,23 +155,39 @@ class IngestService:
             if ra is not None and ra > 30:
                 raise httpx.HTTPStatusError(f"rate-limited, Retry-After={ra:.0f}s (fail over)",
                                             request=r.request, response=r)
-            if attempt >= self.max_retries:
+            if attempt >= max_retries:
                 break
-            delay = ra if ra is not None else min(20.0, (2 ** attempt) + random.uniform(0, 1.0))
+            delay = ra if ra is not None else min(8.0, (2 ** attempt) + random.uniform(0, 1.0))
             time.sleep(delay)
         if last_exc:
             raise last_exc
         raise httpx.HTTPStatusError("exhausted retries", request=None,
                                     response=r) if r is not None else RuntimeError("request failed")
 
-    def get_json(self, url: str, params: dict = None) -> dict:
+    def get_json(self, url: str, params: dict = None, retries: int = None, timeout: float = None) -> dict:
         key = _ckey(url, params, None)
         if self.cache and (hit := self.cache.get(key)) is not None:
             return json.loads(hit)
-        body = self._request("GET", url, params=params).content
+        kw = {"params": params, "_retries": retries}
+        if timeout is not None:
+            kw["timeout"] = timeout
+        body = self._request("GET", url, **kw).content
         if self.cache:
             self.cache.put(key, body)
         return json.loads(body)
+
+    def post_json(self, url: str, body: dict, retries: int = None, timeout: float = None) -> dict:
+        """POST a JSON body (e.g. a GraphQL query), cached by url+body. Rate-limited + retried."""
+        key = _ckey(url, body, "POST")
+        if self.cache and (hit := self.cache.get(key)) is not None:
+            return json.loads(hit)
+        kw = {"json": body, "_retries": retries}
+        if timeout is not None:
+            kw["timeout"] = timeout
+        content = self._request("POST", url, **kw).content
+        if self.cache:
+            self.cache.put(key, content)
+        return json.loads(content)
 
     def get_bytes(self, url: str, accept: str = None) -> bytes:
         key = _ckey(url, None, accept)
