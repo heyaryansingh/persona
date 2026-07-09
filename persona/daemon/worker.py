@@ -114,6 +114,26 @@ async def _harvest(task, queue) -> str:
     return f"harvest: +{res['ingested']} sources, {res['beliefs']} beliefs, {res['new_contradictions']} new contradiction(s)"
 
 
+@handler("review")
+async def _review(task, queue) -> str:
+    """Write a cited literature review of a topic from the mind's synthesis notes (deliverable)."""
+    import asyncio
+    from ..deliverables import review
+    res = await asyncio.to_thread(review.write_review, task.params.get("topic", task.prompt),
+                                  parent_id=task.parent_id)
+    return f"review: {res.get('file', res.get('reason'))}"
+
+
+@handler("paper")
+async def _paper(task, queue) -> str:
+    """Write + compile a LaTeX -> PDF paper (deliverable)."""
+    import asyncio
+    from ..deliverables import paper
+    res = await asyncio.to_thread(paper.write_paper, task.params.get("topic", task.prompt),
+                                  parent_id=task.parent_id)
+    return f"paper: {res.get('pdf', res.get('reason'))}"
+
+
 @handler("discover")
 async def _discover(task, queue) -> str:
     """See what's known, generate hypotheses, run the testable ones, flag physical ones for humans."""

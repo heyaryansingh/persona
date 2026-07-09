@@ -47,6 +47,29 @@ def run_python(code: str, workdir: Path, *, data_dir: Path = None, timeout: int 
         return {"exit_code": -1, "stdout": "", "stderr": "docker not available", "timeout": False}
 
 
+def compile_latex(workdir: Path, tex: str = "main.tex", timeout: int = 150, image: str = IMAGE) -> dict:
+    """Compile a LaTeX file to PDF inside the sandbox (offline pdflatex, run twice for refs).
+    workdir mounted rw at /work. Returns {ok, pdf, log}."""
+    workdir = Path(workdir)
+    name = "persona_tex_" + uuid.uuid4().hex[:10]
+    cmd = (f"pdflatex -interaction=nonstopmode -halt-on-error {tex} >/work/_tex.log 2>&1; "
+           f"pdflatex -interaction=nonstopmode -halt-on-error {tex} >>/work/_tex.log 2>&1; true")
+    args = ["docker", "run", "--rm", "--name", name, "--network", "none",
+            "--memory", "1g", "--cpus", "1", "--pids-limit", "256",
+            "-v", f"{_dockerize(workdir)}:/work", "-w", "/work", image, "sh", "-c", cmd]
+    try:
+        subprocess.run(args, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        subprocess.run(["docker", "kill", name], capture_output=True)
+        return {"ok": False, "pdf": None, "log": "compile timed out"}
+    except FileNotFoundError:
+        return {"ok": False, "pdf": None, "log": "docker not available"}
+    pdf = workdir / tex.replace(".tex", ".pdf")
+    logf = workdir / "_tex.log"
+    return {"ok": pdf.exists(), "pdf": str(pdf) if pdf.exists() else None,
+            "log": (logf.read_text(encoding="utf-8", errors="replace")[-3000:] if logf.exists() else "")}
+
+
 def image_ready(image: str = IMAGE) -> bool:
     try:
         r = subprocess.run(["docker", "image", "inspect", image], capture_output=True, timeout=15)

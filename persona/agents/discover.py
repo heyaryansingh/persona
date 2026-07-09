@@ -110,6 +110,15 @@ def discover(*, parent_id=None, max_investigations: int = 1) -> dict:
             log().emit("escalate", f"needs a human: {i['title']} — {i.get('human_action','')[:120]}",
                        actor="discover", parent_id=parent_id)
             escalated += 1
+    # research journal — a dated, human-readable record of what I explored and why (a deliverable)
+    jp = p.paths.deliverables_dir / "journal.md"
+    jprev = jp.read_text(encoding="utf-8") if jp.exists() else "# research journal\n\n_dated record of what I explored and why._\n"
+    entry = (f"\n## {_now()}\nKnew {len(beliefs)} converged belief(s), {len(contra)} live "
+             f"contradiction(s), {len(qs)} open question(s). Generated {len(ideas)} lead(s): "
+             + "; ".join(i["title"] for i in ideas[:4]) + f". Queued {queued} experiment(s), "
+             f"flagged {escalated} for a human.\n")
+    jp.write_text(jprev.rstrip() + "\n" + entry, encoding="utf-8")
+
     log().emit("thought", f"generated {len(ideas)} lead(s) → queued {queued} experiment(s), "
                f"flagged {escalated} for a human", actor="discover", parent_id=parent_id)
     return {"ok": True, "ideas": len(ideas), "queued": queued, "escalated": escalated}

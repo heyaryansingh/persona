@@ -184,6 +184,20 @@ def synthesis(pid: str):
     return {"notes": notes}
 
 
+@app.post("/api/persona/{pid}/deliver")
+def deliver(pid: str, payload: dict):
+    """Ask a persona to produce a deliverable now: a cited review or a LaTeX->PDF paper on a topic."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    kind = payload.get("kind", "review")
+    topic = payload.get("topic", "")
+    if d is None:
+        return {"ok": False, "reason": "daemon not running (seed the persona first)"}
+    tid = d.queue.enqueue("paper" if kind == "paper" else "review", priority=2,
+                          params={"topic": topic})
+    return {"ok": True, "queued": kind, "task": tid}
+
+
 @app.get("/api/persona/{pid}/fieldmap")
 def fieldmap(pid: str):
     """A navigable map through the field: subtopics → beliefs → contradictions → open-questions → papers."""
