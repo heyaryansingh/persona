@@ -329,6 +329,26 @@ def graph_subgraph(pid: str, q: str):
         return g.subgraph(ents)
 
 
+@app.post("/api/persona/{pid}/goal")
+def goal(pid: str, payload: dict):
+    """Directed mode: hand the persona a real problem/question. It pursues it (reads + a real
+    computational investigation) as high-priority work and returns a cited deliverable — without
+    stopping its own research, and without rewriting its durable self."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    g = (payload.get("goal") or payload.get("text") or "").strip()
+    if not g:
+        return {"ok": False, "reason": "empty"}
+    if d is None:
+        return {"ok": False, "reason": "daemon not running (seed/resume the persona)"}
+    with context.use(p):
+        from ..events import log
+        log().emit("say", f"[goal] {g}", actor="human")
+    d.queue.enqueue("scout", priority=1, params={"interest": g})
+    tid = d.queue.enqueue("investigate", priority=1, params={"question": g})
+    return {"ok": True, "task": tid, "goal": g}
+
+
 @app.post("/api/persona/{pid}/mywork")
 async def mywork(pid: str, file: UploadFile = File(...), kind: str = "draft"):
     """Upload YOUR paper/draft/notes -> the persona extracts your claims and cross-checks each against

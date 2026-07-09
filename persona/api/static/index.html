@@ -202,6 +202,7 @@
     <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ review/paper</button>
     <button class="back" id="buildbtn" style="display:none" onclick="requestBuild()">✦ build</button>
     <button class="back" id="freebtn" style="display:none" onclick="freeMove()" title="let it choose its own next move">✧ free move</button>
+    <button class="back" id="goalbtn" style="display:none" onclick="giveGoal()" title="hand it a research goal to pursue for you">◱ give a goal</button>
     <span class="ctl" id="controlbar">
       <span class="pill RUNNING" id="runpill">running</span>
       <span class="meter" title="today's spend / daily cap">
@@ -350,7 +351,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";$("#briefbtn").style.display="none";$("#myworkbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";$("#briefbtn").style.display="none";$("#myworkbtn").style.display="none";$("#goalbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -428,6 +429,11 @@ async function freeMove(){
   const r=await (await fetch(A("/freemove"),{method:"POST"})).json();
   alert(r.ok?"It's choosing its own next move — watch the stream.":`Could not: ${r.reason}`);
 }
+async function giveGoal(){
+  const g=prompt("Hand it a research goal/problem to pursue for you:"); if(!g) return;
+  const r=await (await fetch(A("/goal"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({goal:g})})).json();
+  alert(r.ok?"On it — it will read + run a real investigation toward this. Watch the stream; the result lands in ⧉ files / body of work.":`Could not: ${r.reason}`);
+}
 async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json();
   const html=(m.subtopics||[]).map(s=>`<div style="margin:16px 0;border-left:3px solid var(--anchor);padding-left:14px">`+
     `<div style="font-family:var(--serif);font-size:18px">${esc(s.title)} `+
@@ -441,7 +447,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";$("#briefbtn").style.display="";$("#myworkbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";$("#briefbtn").style.display="";$("#myworkbtn").style.display="";$("#goalbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
