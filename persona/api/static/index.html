@@ -229,6 +229,81 @@
   .tabs button{transition:color .16s,border-color .2s}
   .meter .fill{transition:width .6s var(--eout),background .5s}
   .st.RUNNING::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--live);margin-left:6px;vertical-align:middle;box-shadow:0 0 7px var(--live);animation:pulse 2s infinite}
+  /* --- stream rows: gutter ledger (time | glyph-rail | message) --- */
+  .row{display:grid;grid-template-columns:44px 15px 1fr;column-gap:9px;align-items:baseline;padding:2px 16px 2px 12px}
+  .row .t{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;text-align:right}
+  .row .g{font-size:11px;line-height:1.5;text-align:center;font-variant-emoji:text;color:inherit;opacity:.9}
+  .thought .g{color:#4a4f5c} .read .g{color:var(--live)} .claim .g{color:var(--claim)} .spawn .g{color:var(--anchor)}
+  .belief_update .g{color:var(--live)} .contradiction .g{color:var(--contra)} .tool .g{color:#7fa7c9}
+  .artifact .g,.escalate .g,.seed .g{color:var(--human)} .say .g{color:var(--human)} .reply .g{color:var(--live)}
+  .error .g{color:var(--contra)} .boot .g,.control .g,.cost .g{color:var(--dim)}
+  .row.child{padding-left:30px;position:relative}
+  .row.child::after{content:"";position:absolute;left:17px;top:-2px;height:13px;width:8px;border-left:1px solid #2a2e3a;border-bottom:1px solid #2a2e3a}
+  .typing{display:inline-flex;gap:3px;vertical-align:middle}
+  .typing i{width:4px;height:4px;border-radius:50%;background:var(--live);opacity:.3}
+  .row.reply.pending{opacity:.82}
+  /* --- chat composer: REPL prompt into a live process --- */
+  .chatbar{position:relative;gap:8px;align-items:center}
+  .composer{position:relative;flex:1;display:flex;align-items:center;background:#07080b;border:1px solid var(--line);border-radius:9px;transition:border-color .16s,box-shadow .22s var(--spring)}
+  .composer::before{content:"\203A";padding:0 2px 0 12px;color:var(--anchor);font:600 14px var(--mono);opacity:.55;transition:opacity .16s}
+  .composer:focus-within{border-color:var(--anchor);box-shadow:0 0 0 1px var(--anchor),0 0 22px -9px var(--anchor)}
+  .composer:focus-within::before{opacity:1}
+  .chatbar .composer input{flex:1;background:transparent;border:0;padding:0 6px 0 4px;min-height:44px;font:12px var(--mono);color:var(--ink)}
+  .chatbar .composer input:focus{outline:none}
+  .chatbar .send{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:8px;color:var(--dim);font-size:15px;cursor:pointer;flex-shrink:0}
+  .chatbar .send:hover{color:var(--live);border-color:transparent}
+  .khint{position:absolute;right:56px;font:10px var(--mono);letter-spacing:.03em;color:var(--faint);pointer-events:none;transition:opacity .2s}
+  .composer:focus-within ~ .khint{opacity:0}
+  @keyframes typingPulse{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
+  @keyframes sentPulse{0%{transform:translateY(0)}40%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+  @keyframes railFire{0%{box-shadow:inset 3px 0 0 var(--live)}100%{box-shadow:inset 0 0 0 transparent}}
+  @keyframes railFireH{0%{box-shadow:inset 3px 0 0 var(--human)}100%{box-shadow:inset 0 0 0 transparent}}
+  @keyframes glyphPop{0%{transform:scale(1)}45%{transform:scale(1.5)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion: no-preference){
+    .typing i{animation:typingPulse 1.1s ease-in-out infinite}
+    .typing i:nth-child(2){animation-delay:.18s} .typing i:nth-child(3){animation-delay:.36s}
+    .chatbar .send.sent{color:var(--live);animation:sentPulse .42s var(--spring)}
+    .row.belief_update,.row.claim{animation:rowIn .26s var(--eout), railFire 1.6s ease}
+    .row.contradiction,.row.escalate,.row.artifact{animation:rowIn .26s var(--eout), railFireH 1.6s ease}
+    .row.contradiction .g,.row.belief_update .g{animation:glyphPop .5s var(--spring)}
+  }
+  /* --- file tree: typographic ledger --- */
+  #ftree .node{height:24px;padding:0 8px;gap:8px;align-items:center;border-radius:5px}
+  #ftree .node .ic{width:14px;flex-shrink:0;text-align:center;font-size:11px;color:var(--faint);transition:color .14s,transform .2s var(--eout);font-variant-emoji:text}
+  #ftree .node.dir .ic{color:var(--dim)} #ftree .node.dir.open .ic{transform:rotate(90deg)}
+  #ftree .node .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ftree .node.dir .nm{color:var(--ink)} #ftree .node.file .nm{color:var(--dim)}
+  #ftree .ic[data-t=code]{color:#7d9fbd}#ftree .ic[data-t=data]{color:#b39a63}#ftree .ic[data-t=doc]{color:#8a8f9c}#ftree .ic[data-t=pdf]{color:#c06a5a}#ftree .ic[data-t=image]{color:#6ab89a}#ftree .ic[data-t=config]{color:#8a8f9c}
+  #ftree .kids{display:grid;grid-template-rows:0fr;margin-left:0;border-left:0;transition:grid-template-rows .26s cubic-bezier(.22,.61,.36,1)}
+  #ftree .kids.open{grid-template-rows:1fr}
+  #ftree .kids-in{overflow:hidden;margin-left:11px;border-left:1px solid #171a22}
+  #ftree .node.sel{background:#182031;box-shadow:inset 2px 0 0 var(--anchor)}
+  #ftree .node:hover{background:#141821}#ftree .node:hover .ic{color:var(--dim)}
+  /* --- graph inspector: type-colored dossier --- */
+  #ginspect .ihead{position:sticky;top:-16px;margin:-16px -16px 12px;padding:14px 16px 11px;background:var(--panel2);border-bottom:1px solid var(--line);border-left:2px solid var(--tc,var(--anchor))}
+  #ginspect .ihead .krow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--tc,var(--dim))}
+  #ginspect .ihead h3{margin:5px 0 0;color:#eef1f6}
+  #ginspect .isec{display:flex;align-items:center;gap:9px;margin:15px 0 7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  #ginspect .isec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .conf{display:flex;align-items:center;gap:9px;margin:6px 0}
+  .conf .track{flex:1;height:4px;border-radius:2px;background:#1c1f29;overflow:hidden}
+  .conf .fill{height:100%;background:var(--tc,var(--live));border-radius:2px}
+  .conf .pv{font-family:var(--mono);font-size:10.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .ev{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:8px 0;background:#0f1218;transition:border-color .16s,background .16s}
+  .ev:hover{border-color:var(--tc,var(--anchor));background:#12161d}
+  .ev .evt{font-size:11.5px;color:#cfd4dd} .ev .evm{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px}
+  .ev blockquote{margin:7px 0 0;padding-left:9px;border-left:2px solid #23262f;font-family:var(--serif);font-size:12.5px;line-height:1.5;color:#aeb4c0}
+  #ginspect .cl{position:relative;padding-right:16px;min-height:38px}
+  #ginspect .cl::after{content:"\203A";position:absolute;right:2px;top:6px;color:var(--faint);transition:transform .16s,color .16s}
+  #ginspect .cl:hover::after{transform:translateX(3px);color:var(--tc,var(--anchor))}
+  .pill.anchor{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;border:1px solid var(--anchor);color:var(--anchor);font-size:9px;letter-spacing:.05em;text-transform:uppercase;margin-left:4px}
+  @keyframes insSwap{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+  @keyframes confGrow{from{width:0}}
+  @media (prefers-reduced-motion: no-preference){
+    .ins-swap{animation:insSwap .3s var(--eout) both}
+    .ins-swap .ev,.ins-swap .cl,.ins-swap .conf{animation:fadeUp .3s var(--eout) both}
+    .conf .fill{animation:confGrow .55s var(--spring) both}
+  }
   @media (prefers-reduced-motion: reduce){*{animation:none !important}}
 </style>
 </head>
@@ -277,8 +352,11 @@
       <div class="col" style="display:flex;flex-direction:column">
         <div class="stream" id="stream"></div>
         <div class="chatbar">
-          <input id="chatin" placeholder="talk to it — steer or ask what it's doing (it keeps working)…" onkeydown="if(event.key==='Enter')sendSay()">
-          <button onclick="sendSay()" title="send">↑</button>
+          <div class="composer">
+            <input id="chatin" placeholder="steer it — or ask what it's doing…" onkeydown="if(event.key==='Enter')sendSay()">
+            <button class="send" id="sendbtn" onclick="sendSay()" title="send (Enter)">↵</button>
+          </div>
+          <span class="khint">/ focus · ↵ send</span>
         </div>
       </div>
       <div class="col right">
@@ -545,13 +623,17 @@ async function editBudget(){
 /* ---------- file & artifact browser (v6 P1) ---------- */
 const IMG_EXT=["png","jpg","jpeg","gif","webp","bmp","svg"], TXT_EXT=["py","md","txt","json","jsonl","csv","tsv","tex","log","yaml","yml","toml","ini","cfg","r","sh","js","ts","css"];
 function fmtSize(b){b=b||0;return b<1024?b+" B":b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";}
+const FT_TYPE={code:['py','js','ts','r','sh','css','html'],data:['csv','tsv','json','jsonl','npy'],doc:['md','txt','tex','log','rst'],pdf:['pdf'],image:['png','jpg','jpeg','gif','svg','webp'],config:['yaml','yml','toml','ini','cfg']};
+const FT_GLYPH={code:'›',data:'▦',doc:'≡',pdf:'▤',image:'◩',config:'⋮',file:'·'};
+function ftType(ext){ext=(ext||'').toLowerCase();for(const t in FT_TYPE)if(FT_TYPE[t].includes(ext))return t;return 'file';}
 function renderTree(nodes){
   return nodes.map(n=>{
     if(n.type==="dir")
-      return `<div class="node dir" data-p="${esc(n.path)}"><span class="ic">▸</span>${esc(n.name)}</div>`+
-             `<div class="kids" style="display:none">${renderTree(n.children||[])}</div>`;
-    return `<div class="node file" data-p="${esc(n.path)}" data-ext="${esc(n.ext||'')}"><span class="ic">·</span>`+
-           `<span style="overflow:hidden;text-overflow:ellipsis">${esc(n.name)}</span>`+
+      return `<div class="node dir" data-p="${esc(n.path)}"><span class="ic">▸</span><span class="nm">${esc(n.name)}</span></div>`+
+             `<div class="kids"><div class="kids-in">${renderTree(n.children||[])}</div></div>`;
+    const ty=ftType(n.ext);
+    return `<div class="node file" data-p="${esc(n.path)}" data-ext="${esc(n.ext||'')}"><span class="ic" data-t="${ty}">${FT_GLYPH[ty]}</span>`+
+           `<span class="nm">${esc(n.name)}</span>`+
            `<span class="ext">${esc(n.ext||'')}</span><span class="sz">${fmtSize(n.size)}</span></div>`;
   }).join("");
 }
@@ -567,8 +649,7 @@ function closeFiles(){ $("#filesview").style.display="none"; }
 $("#ftree").onclick=e=>{
   const node=e.target.closest(".node"); if(!node) return;
   if(node.classList.contains("dir")){
-    const kids=node.nextElementSibling, open=kids.style.display!=="none";
-    kids.style.display=open?"none":"block"; node.querySelector(".ic").textContent=open?"▸":"▾"; return;
+    node.classList.toggle("open"); node.nextElementSibling.classList.toggle("open"); return;
   }
   document.querySelectorAll("#ftree .node.sel").forEach(x=>x.classList.remove("sel"));
   node.classList.add("sel");
@@ -601,10 +682,11 @@ function csvTable(txt, sep){
 }
 async function sendSay(){
   const inp=$("#chatin"), t=inp.value.trim(); if(!t) return;
-  inp.value=""; inp.disabled=true;
+  inp.value=""; const btn=$("#sendbtn"); if(btn){btn.classList.add("sent");setTimeout(()=>btn.classList.remove("sent"),420);}
+  showPending();                          // ephemeral row until the real reply lands
   try{ await fetch(A("/say"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:t})}); }
-  catch{ alert("could not send"); }
-  inp.disabled=false; inp.focus(); refreshSpend();
+  catch{ clearPending(); alert("could not send"); }
+  inp.focus(); refreshSpend();
 }
 async function doUpload(input){
   if(!input.files||!input.files[0]) return;
@@ -700,26 +782,33 @@ async function gxSelect(id){
   GX.sel=id; $("#ginspect").innerHTML='<div class="gplace">loading…</div>';
   try{
     const det=await (await fetch(A("/graph/node?node="+encodeURIComponent(id)))).json();
-    $("#ginspect").innerHTML=gxInspect(det);
+    gxSetInspect(det);
     const nb=await (await fetch(A("/graph/neighbors?node="+encodeURIComponent(id)+"&limit=40"))).json();
     gxAdd(nb,false); gxRenderFilters();
   }catch(e){}
 }
+const GNGLYPH={entity:"◆",claim:"≡",source:"¶",note:"✎",experiment:"⌾"};
+function gxSetInspect(det){const el=$("#ginspect");el.scrollTop=0;el.innerHTML=`<div class="ins-swap" style="--tc:${gxColor(det.type||'entity')}">${gxInspect(det)}</div>`;}
+function confMeter(p){const pct=Math.round(Math.max(0,Math.min(1,p||0))*100);return `<div class="conf"><span class="track"><span class="fill" style="width:${pct}%"></span></span><span class="pv">p=${(p||0).toFixed(2)}</span></div>`;}
 function gxInspect(d){
   const t=d.type||"node";
-  let h=`<div class="kind" style="color:${gxColor(t)}">${esc(t)}</div><h3>${esc(d.label||d.subject||"")}</h3>`;
+  let h=`<div class="ihead"><div class="krow"><span>${GNGLYPH[t]||"·"}</span><span>${esc(t)}</span>`+
+    `<span class="gact" style="margin-left:auto;padding:3px 9px" onclick="gxExpand('${esc(d.id)}')" title="expand connections">⤢</span></div>`+
+    `<h3>${esc(d.label||d.subject||"")}</h3></div>`;
   if(t==="entity"){
-    h+=`<div class="meta">${d.degree} connections in the graph</div><div class="kind">beliefs about this</div>`;
-    h+=(d.claims||[]).map(c=>`<div class="cl" onclick="prov('${c.claim_id}')">${esc(c.text)}<div class="m">${c.labs} labs · p=${(c.confidence||0).toFixed(2)}${c.anchored?' · ⚓ anchored':''}</div></div>`).join("")||'<div class="gplace">no claims yet</div>';
+    h+=`<div class="isec">${d.degree} connections</div><div class="isec">beliefs about this</div>`;
+    h+=(d.claims||[]).map(c=>`<div class="cl" tabindex="0" role="button" onclick="prov('${c.claim_id}')">${esc(c.text)}`+
+      `<div class="m">${c.labs} labs${c.anchored?' <span class="pill anchor">anchored</span>':''}</div>${confMeter(c.confidence)}</div>`).join("")||'<div class="gplace">no beliefs yet</div>';
   } else if(t==="claim"){
-    h+=`<div class="meta">${d.independent_sources} independent labs · p=${(d.confidence||0).toFixed(2)} · ${esc(d.provenance||'')}${d.anchored?' · ⚓ anchored':''}</div><div class="kind">evidence</div>`;
-    h+=(d.sources||[]).map(s=>`<div class="cl">${esc((s.title||s.slug||'').slice(0,90))}<div class="m">${esc(s.lab||'')}${s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank">${esc(s.doi)}</a>`:''}${s.quote?`<br>“${esc((s.quote||'').slice(0,150))}”`:''}</div></div>`).join("")||'<div class="gplace">no sources</div>';
+    h+=`<div class="isec">${d.independent_sources} independent labs · ${esc(d.provenance||'')}${d.anchored?' <span class="pill anchor">anchored</span>':''}</div>`+confMeter(d.confidence)+`<div class="isec">evidence</div>`;
+    h+=(d.sources||[]).map(s=>`<div class="ev"><div class="evt">${esc((s.title||s.slug||'').slice(0,90))}</div><div class="evm">${esc(s.lab||'')}${s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank" style="color:var(--anchor)">${esc(s.doi)}</a>`:''}</div>${s.quote?`<blockquote>${esc((s.quote||'').slice(0,180))}</blockquote>`:''}</div>`).join("")||'<div class="gplace">no sources</div>';
   } else if(t==="source"){
-    h+=`<div class="meta">${d.year||''} · ${esc(d.lab||'')}${d.doi?`<br><a href="https://doi.org/${esc(d.doi)}" target="_blank">${esc(d.doi)}</a>`:''}${d.url?`<br><a href="${esc(d.url)}" target="_blank">open paper ↗</a>`:''}</div>`;
+    h+=`<div class="isec">paper</div><div class="ev"><div class="evt">${d.year||''} · ${esc(d.lab||'')}</div><div class="evm">${d.doi?`<a href="https://doi.org/${esc(d.doi)}" target="_blank" style="color:var(--anchor)">${esc(d.doi)}</a>`:''}${d.url?` · <a href="${esc(d.url)}" target="_blank" style="color:var(--anchor)">open paper ↗</a>`:''}</div></div>`;
   } else if(t==="note"){
-    h+=`<div class="meta">${esc((d.entities||[]).slice(0,8).join(', '))}</div><span class="gact" onclick="openNote('${encodeURIComponent(d.slug)}')">read synthesis →</span>`;
+    h+=`<div class="isec">synthesis</div><div class="ev"><div class="evt">${esc((d.entities||[]).slice(0,8).join(', '))}</div></div><div style="margin-top:10px"><span class="gact" onclick="openNote('${encodeURIComponent(d.slug)}')">read synthesis →</span></div>`;
+  } else if(t==="experiment"){
+    h+=`<div class="isec">${esc(d.kind||'experiment')}</div>`+(d.artifact?`<div class="ev"><div class="evt">artifact</div><div class="evm"><a href="#" onclick="closeGraph();openFiles();return false" style="color:var(--anchor)">${esc(d.artifact)}</a></div></div>`:'<div class="gplace">no artifact</div>');
   }
-  h+=`<div style="margin-top:14px"><span class="gact" onclick="gxExpand('${esc(d.id)}')">expand connections ⤢</span></div>`;
   return h;
 }
 async function gxExpand(id){try{const nb=await (await fetch(A("/graph/neighbors?node="+encodeURIComponent(id)+"&limit=60"))).json();gxAdd(nb,false);gxRenderFilters();}catch(e){}}
@@ -754,15 +843,26 @@ async function gxGoto(id,label){
 /* ---------- dashboard fetches (per persona) ---------- */
 const A=p=>`/api/persona/${PID}${p}`;
 const stream=$("#stream"), MAX=1000;
+const GLYPH={thought:"∴",read:"▤",claim:"◆",belief_update:"⟳",contradiction:"◈",spawn:"▹",tool:"⌥",artifact:"✦",say:"›",reply:"‹",escalate:"!",boot:"●",error:"✕",control:"·",seed:"✧",schedule:"·",lease:"·",coherence:"~",cost:"$"};
+let pendingRow=null,pendingTO=null;
 function addEvent(e){
+  if(e.type==="reply")clearPending();
   const near=stream.scrollHeight-stream.scrollTop-stream.clientHeight<90;
   const d=document.createElement("div");
   d.className="row "+(e.type||"thought")+(e.parent_id?" child":"");
-  d.innerHTML=`<span class="t">${ftime(e.ts)}</span><span class="tag">${e.type}</span>`+
+  d.innerHTML=`<span class="t">${ftime(e.ts)}</span><span class="g">${GLYPH[e.type]||"·"}</span>`+
     `<span class="msg">${esc(e.message)} <span class="who">· ${esc(e.actor||"")}</span></span>`;
   stream.appendChild(d); while(stream.childNodes.length>MAX)stream.removeChild(stream.firstChild);
   if(near)stream.scrollTop=stream.scrollHeight;
 }
+function showPending(){
+  clearPending();
+  const d=document.createElement("div"); d.className="row reply pending";
+  d.innerHTML=`<span class="t"></span><span class="g">‹</span><span class="msg"><span class="typing"><i></i><i></i><i></i></span> <span class="who">· thinking</span></span>`;
+  stream.appendChild(d); pendingRow=d; stream.scrollTop=stream.scrollHeight;
+  pendingTO=setTimeout(()=>{ if(pendingRow) pendingRow.querySelector(".msg").innerHTML='<span class="who" style="color:var(--faint)">· no reply yet — still working</span>'; },25000);
+}
+function clearPending(){ if(pendingTO){clearTimeout(pendingTO);pendingTO=null;} if(pendingRow){pendingRow.remove();pendingRow=null;} }
 async function refreshStatus(){try{const s=await (await fetch(A("/status"))).json();const q=s.queue||{};
   $("#status").textContent=`${esc(s.name)} · ${s.status} · ${s.workers||0}w · ${q.pending||0} queued · $${(s.spent_today||0).toFixed(2)}`;}catch{}}
 async function refreshSelf(){try{const s=await (await fetch(A("/self"))).json();
@@ -780,8 +880,12 @@ async function openNote(slug){const r=await (await fetch(A("/note/")+slug)).json
 $("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").style.display="none";};
 /* Escape closes the topmost overlay (interactive clarity) */
 addEventListener("keydown",e=>{
-  if(e.key!=="Escape") return;
   const shown=id=>getComputedStyle($("#"+id)).display!=="none";
+  if(e.key==="/" && PID && $("#dash").style.display!=="none" && !/^(input|textarea)$/i.test(document.activeElement.tagName)
+     && !shown("filesview") && !shown("graphview") && !shown("briefview") && !shown("modal")){
+    e.preventDefault(); $("#chatin").focus(); return;
+  }
+  if(e.key!=="Escape") return;
   if(shown("modal")){$("#modal").style.display="none";}
   else if(shown("briefview")){$("#briefview").style.display="none";}
   else if(shown("graphview")){closeGraph();}
