@@ -43,9 +43,12 @@ def _reconstruct_abstract(inv):
 
 
 def openalex_search(query: str, limit: int, page: int = 1) -> list[Work]:
-    d = service().get_json("https://api.openalex.org/works", {
-        "search": query, "per_page": max(1, min(limit, 50)), "page": page,
-        "mailto": "persona-researcher@example.org", "sort": "relevance_score:desc"})
+    from .. import config
+    params = {"search": query, "per_page": max(1, min(limit, 50)), "page": page,
+              "mailto": config.OPENALEX_MAILTO, "sort": "relevance_score:desc"}
+    if config.OPENALEX_API_KEY:                       # premium pool: higher rate limits, no shared-pool ban
+        params["api_key"] = config.OPENALEX_API_KEY
+    d = service().get_json("https://api.openalex.org/works", params)
     out = []
     for r in d.get("results", []):
         affs = [inst.get("display_name") for a in r.get("authorships", [])

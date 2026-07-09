@@ -42,6 +42,9 @@ MODEL_SELF = os.environ.get("PERSONA_SELF_MODEL", "claude-opus-4-8")
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
+OPENALEX_API_KEY = os.environ.get("OPENALEX_API_KEY")            # premium pool -> higher limits, no shared-pool bans
+# OpenAlex "polite pool" wants a real contact email; premium key auths via api_key param.
+OPENALEX_MAILTO = os.environ.get("OPENALEX_MAILTO", "aryanrheasingh@gmail.com")
 
 # daemon knobs
 N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "6"))
