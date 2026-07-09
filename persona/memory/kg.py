@@ -260,6 +260,39 @@ class KG:
                 "independent_sources", "sources"]
         return [dict(zip(cols, row)) for row in r.result_set]
 
+    def claims_about(self, entities: list, limit: int = 60) -> list:
+        """Claims where the subject OR object is in a set of entities (a topic), with sources — the
+        grounded material for a topic digest / NL answer (broader than claims_in's both-endpoints)."""
+        r = self._q(
+            """
+            MATCH (c:Claim)-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(e:Entity)
+            WHERE e.name IN $ents AND c.valid_to IS NULL
+            OPTIONAL MATCH (c)-[sr:SUPPORTED_BY]->(s:Source)
+            WITH c, collect(DISTINCT {slug:s.slug, title:s.title, lab:s.lab, doi:s.doi, quote:sr.quote}) AS srcs
+            RETURN DISTINCT c.claim_id, c.subject, c.relation, c.object, c.effect_sign, c.confidence,
+                   c.independent_source_count, c.provenance, c.anchored, srcs
+            ORDER BY c.independent_source_count DESC, c.confidence DESC LIMIT $lim
+            """, {"ents": list(entities), "lim": limit})
+        cols = ["claim_id", "subject", "relation", "object", "effect_sign", "confidence",
+                "independent_sources", "provenance", "anchored", "sources"]
+        return [dict(zip(cols, row)) for row in r.result_set]
+
+    def subgraph(self, entities: list, limit: int = 80) -> dict:
+        """The induced graph over a set of entities (+ their strongest links) — for a topic view."""
+        ents = list(entities)[:limit]
+        nodes = [{"id": f"entity:{n}", "type": "entity", "label": n} for n in ents]
+        edges = []
+        if ents:
+            for s, o, cid, sign, isc, conf, ing in self._q(
+                    "MATCH (c:Claim)-[:ABOUT_SUBJECT]->(s:Entity), (c)-[:ABOUT_OBJECT]->(o:Entity) "
+                    "WHERE s.name IN $e AND o.name IN $e "
+                    "RETURN s.name, o.name, c.claim_id, c.effect_sign, c.independent_source_count, "
+                    "c.confidence, c.ingest_time", {"e": ents}).result_set:
+                edges.append({"source": f"entity:{s}", "target": f"entity:{o}", "type": "claim",
+                              "claim_id": cid, "sign": sign, "independent_sources": isc,
+                              "confidence": conf, "t": ing})
+        return {"nodes": nodes, "edges": edges}
+
     def add_synthesis_note(self, slug: str, title: str, entities: list, claim_ids: list) -> None:
         """Record a synthesis note as a KG node linked to the claims it synthesizes."""
         self._q("MERGE (n:SynthesisNote {slug:$slug}) SET n.title=$title, n.entities=$ents, "

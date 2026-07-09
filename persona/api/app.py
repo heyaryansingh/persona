@@ -286,6 +286,62 @@ def deliver(pid: str, payload: dict):
     return {"ok": True, "queued": kind, "task": tid}
 
 
+# --------------------------------------------------------------- knowledge transfer (v6 P5)
+@app.get("/api/persona/{pid}/topic/digest")
+def topic_digest(pid: str, q: str):
+    """A digestible, cited briefing of everything the persona knows on a topic + a subgraph +
+    an evolution timeline — the 'transfer the knowledge, not just next steps' surface."""
+    p = _p(pid)
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        from ..agents.knowledge import topic_digest as _td
+        return _td(q, get_kg(), p.history)
+
+
+@app.get("/api/persona/{pid}/topic/evolution")
+def topic_evolution(pid: str, q: str):
+    """How belief/consensus on a topic moved over time (per-claim confidence + support series)."""
+    p = _p(pid)
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        if g is None:
+            return {"series": []}
+        ents = [n["label"] for n in g.search(q, 25) if n["type"] == "entity"]
+        claims = g.claims_about(ents, 12) if ents else []
+        out = []
+        for c in claims:
+            s = p.history.series(c["claim_id"])
+            if len(s) >= 2:
+                out.append({"claim_id": c["claim_id"],
+                            "text": f"{c['subject']} [{c['effect_sign']}] {c['object']}", "series": s})
+        return {"topic": q, "series": out}
+
+
+@app.get("/api/persona/{pid}/graph/subgraph")
+def graph_subgraph(pid: str, q: str):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        if g is None:
+            return {"nodes": [], "edges": []}
+        ents = [n["label"] for n in g.search(q, 40) if n["type"] == "entity"]
+        return g.subgraph(ents)
+
+
+@app.post("/api/persona/{pid}/ask")
+def ask(pid: str, payload: dict):
+    """Ask the persona's knowledge graph a question in plain English — answered with citations."""
+    p = _p(pid)
+    q = (payload.get("q") or payload.get("question") or "").strip()
+    if not q:
+        return {"ok": False, "reason": "empty"}
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        from ..agents.knowledge import ask_graph
+        return ask_graph(q, get_kg())
+
+
 # --------------------------------------------------------------- builders + free mind (v6 P4)
 @app.post("/api/persona/{pid}/build")
 def build_ep(pid: str, payload: dict):

@@ -169,6 +169,24 @@
   #ginspect .gact{display:inline-block;margin:2px 6px 8px 0;background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer}
   #ginspect .gact:hover{border-color:var(--anchor)}
   #ginspect .gplace{color:var(--faint);font-size:11.5px;margin-top:30px;text-align:center}
+  /* brief / ask its mind (v6 P5) */
+  #briefview{position:fixed;inset:0;background:var(--bg);z-index:48;display:none;flex-direction:column}
+  #briefview .bhead{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  #briefq{flex:1;min-width:240px;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:13px;padding:9px 13px;border-radius:8px}
+  #briefq:focus{outline:none;border-color:var(--anchor)}
+  #briefview .bhead button{background:#191d27;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:8px;cursor:pointer}
+  #briefview .bhead button.primary{border-color:var(--live);color:#fff}
+  #briefout{flex:1;overflow-y:auto;padding:28px 34px}
+  #briefout .inner{max-width:900px;margin:0 auto}
+  #briefout h2{font-family:var(--mono);font-weight:600;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin:24px 0 8px}
+  #briefout .tldr{font-family:var(--serif);font-size:20px;line-height:1.5;color:#e8ecf3;margin-bottom:6px}
+  #briefout .nar{font-family:var(--serif);font-size:15.5px;line-height:1.75;color:#d3d8e0}
+  #briefout ul{margin:0;padding-left:20px} #briefout li{font-size:13.5px;line-height:1.55;margin:5px 0;color:#cfd4dd}
+  #briefout ul.contested li{color:#e0b06a}
+  #briefout .cite{color:var(--anchor);cursor:pointer;font-family:var(--mono);font-size:11px;padding:0 1px}
+  #briefout .cite:hover{text-decoration:underline}
+  #briefout .bmeta{font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.6}
+  #briefout .bplace{color:var(--faint);font-size:13px;text-align:center;margin-top:60px;font-family:var(--serif)}
 </style>
 </head>
 <body>
@@ -177,6 +195,7 @@
     <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
     <button class="back" id="filesbtn" style="display:none" onclick="openFiles()">⧉ files</button>
     <button class="back" id="graphbtn" style="display:none" onclick="openGraph()">◉ explore graph</button>
+    <button class="back" id="briefbtn" style="display:none" onclick="openBrief()">❋ brief / ask</button>
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
     <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ review/paper</button>
     <button class="back" id="buildbtn" style="display:none" onclick="requestBuild()">✦ build</button>
@@ -244,6 +263,18 @@
       </div>
     </div>
     <input type="file" id="fupload" style="display:none" onchange="doUpload(this)">
+  </div>
+
+  <!-- BRIEF / ASK -->
+  <div id="briefview">
+    <div class="bhead">
+      <span style="font-family:var(--serif);font-size:16px">ask its mind</span>
+      <input id="briefq" placeholder="name a topic to be briefed on, or ask a question…" onkeydown="if(event.key==='Enter')runDigest()">
+      <button class="primary" onclick="runDigest()">brief me</button>
+      <button onclick="runAsk()">answer</button>
+      <button style="margin-left:auto" onclick="$('#briefview').style.display='none'">✕ close</button>
+    </div>
+    <div id="briefout"><div class="inner"><div class="bplace">Name a topic → a digestible, cited briefing of everything this mind has learned: what's settled, what's contested, what's open — every point clickable to its evidence. Or ask a question and get a grounded, cited answer.</div></div></div>
   </div>
 
   <!-- GRAPH EXPLORER -->
@@ -317,7 +348,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";$("#briefbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -325,6 +356,40 @@ async function requestDeliverable(){
   const kind=confirm("OK = LaTeX paper (compiled PDF)\nCancel = cited literature review")?"paper":"review";
   const r=await (await fetch(A("/deliver"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,topic})})).json();
   alert(r.ok?`Queued a ${kind} on "${topic}". Watch the stream; it appears in body of work when done.`:`Could not: ${r.reason}`);}
+/* ---------- brief / ask its mind (v6 P5) ---------- */
+function openBrief(){$("#briefview").style.display="flex";$("#briefq").focus();}
+const asArr=x=>Array.isArray(x)?x:(x?[x]:[]);
+function citeLinks(text,claims){return (text||"").replace(/\[(\d+)\]/g,(m,n)=>{const c=claims[+n-1];return c?`<span class="cite" onclick="prov('${c.claim_id}')">[${n}]</span>`:m;});}
+function srcList(cl){return cl.slice(0,40).map(c=>`[${c.n}] ${esc(c.text)}${c.doi?` · <a href="https://doi.org/${esc(c.doi)}" target="_blank" style="color:var(--anchor)">${esc(c.doi)}</a>`:''}`).join("<br>");}
+async function runDigest(){
+  const q=$("#briefq").value.trim(); if(!q) return;
+  $("#briefout").innerHTML='<div class="inner"><div class="bplace">reading everything I know on this…</div></div>';
+  try{ renderDigest(await (await fetch(A("/topic/digest?q="+encodeURIComponent(q)))).json(), q); }
+  catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not build the briefing</div></div>'; }
+}
+function renderDigest(d,q){
+  if(!d.ok){$("#briefout").innerHTML=`<div class="inner"><div class="bplace">I don't know enough about “${esc(q)}” yet — it needs to read more first.</div></div>`;return;}
+  const g=d.digest||{}, cl=d.claims||[];
+  const sec=(t,items,cls)=>asArr(items).length?`<h2>${t}</h2><ul class="${cls||''}">${asArr(items).map(x=>`<li>${citeLinks(esc(x),cl)}</li>`).join("")}</ul>`:'';
+  let h=`<div class="inner"><div class="bmeta">${d.n_claims} claims · ${d.n_sources} papers${d.evolution&&d.evolution.length?` · ${d.evolution.length} beliefs with an evolution trail`:''}</div>`;
+  h+=`<div class="tldr" style="margin-top:8px">${citeLinks(esc(g.tldr||''),cl)}</div>`;
+  h+=sec("what's settled",g.settled)+sec("what's contested",g.contested,"contested")+sec("open questions",g.open_questions);
+  if(g.narrative)h+=`<h2>synthesis</h2><div class="nar">${citeLinks(esc(g.narrative),cl)}</div>`;
+  if((d.contradictions||[]).length)h+=`<h2>live contradictions</h2>`+d.contradictions.map(c=>`<div style="color:var(--contra);font-family:var(--mono);font-size:12px;margin:3px 0">⚡ ${esc(c.subject)} → ${esc(c.object)}: +${c.pos_sources} vs −${c.neg_sources} labs</div>`).join("");
+  h+=`<h2>sources · click any [n] above</h2><div class="bmeta">${srcList(cl)}</div></div>`;
+  $("#briefout").innerHTML=h;
+}
+async function runAsk(){
+  const q=$("#briefq").value.trim(); if(!q) return;
+  $("#briefout").innerHTML='<div class="inner"><div class="bplace">consulting my graph…</div></div>';
+  try{
+    const a=await (await fetch(A("/ask"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})})).json();
+    const cl=a.claims||[];
+    $("#briefout").innerHTML=`<div class="inner"><div class="bmeta">answered from ${cl.length} evidence-backed claims · every [n] clicks to its source</div>`+
+      `<div class="nar" style="margin-top:10px">${citeLinks(esc(a.answer||'(no answer)'),cl)}</div>`+
+      (cl.length?`<h2>sources</h2><div class="bmeta">${srcList(cl)}</div>`:'')+`</div>`;
+  }catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not answer</div></div>'; }
+}
 async function requestBuild(){
   const kind=prompt("Build what?  diagram · art · page · code","diagram"); if(!kind) return;
   const topic=prompt("On what topic / question?"); if(!topic) return;
@@ -348,7 +413,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";$("#briefbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
