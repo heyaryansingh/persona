@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import mimetypes
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 
@@ -273,6 +274,75 @@ def note(pid: str, slug: str):
     if not f.exists():
         raise HTTPException(404, "not found")
     return {"slug": slug, "content": f.read_text(encoding="utf-8")}
+
+
+# --------------------------------------------------------------- file & artifact browser (v6 P1)
+_TEXT_EXT = {".py", ".md", ".txt", ".json", ".jsonl", ".csv", ".tsv", ".tex", ".log", ".yaml",
+             ".yml", ".toml", ".ini", ".cfg", ".ipynb", ".r", ".sh", ".js", ".ts", ".html", ".css"}
+
+
+@app.get("/api/persona/{pid}/files")
+def files(pid: str):
+    """The persona's workspace as a jailed recursive tree (dirs + files, sizes) — so every
+    experiment, script, figure, dataset, and compiled deliverable it made is browsable."""
+    p = _p(pid)
+    root = p.paths.workspace.resolve()
+    budget = [4000]
+
+    def walk(d, depth):
+        out = []
+        try:
+            entries = sorted(d.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+        except Exception:
+            return out
+        for e in entries:
+            if e.name.startswith(".") or budget[0] <= 0:
+                continue
+            budget[0] -= 1
+            rel = str(e.relative_to(root)).replace("\\", "/")
+            if e.is_dir():
+                out.append({"name": e.name, "path": rel, "type": "dir",
+                            "children": walk(e, depth + 1) if depth < 7 else []})
+            else:
+                try:
+                    sz = e.stat().st_size
+                except Exception:
+                    sz = 0
+                out.append({"name": e.name, "path": rel, "type": "file",
+                            "ext": e.suffix.lower().lstrip("."), "size": sz})
+        return out
+
+    return {"root": p.name, "tree": walk(root, 0)}
+
+
+@app.get("/api/persona/{pid}/file")
+def get_file(pid: str, path: str):
+    """Serve ONE workspace file inline with the right media type — PDF, code, image, CSV, md.
+    Path-jailed to the persona workspace (traversal/symlink escape -> 400)."""
+    p = _p(pid)
+    try:
+        target = p.paths.safe(path)
+    except ValueError:
+        raise HTTPException(400, "bad path")
+    if not target.exists() or not target.is_file():
+        raise HTTPException(404, "not found")
+    mt = mimetypes.guess_type(str(target))[0]
+    if target.suffix.lower() in _TEXT_EXT:      # show code/notes in-browser, don't force download
+        mt = "text/plain; charset=utf-8"
+    return FileResponse(str(target), media_type=(mt or "application/octet-stream"))  # inline (no filename)
+
+
+@app.post("/api/persona/{pid}/upload")
+async def upload(pid: str, file: UploadFile = File(...)):
+    """Upload a file into the persona's workspace (uploads/). P5 reads these into the 'my work' corpus."""
+    p = _p(pid)
+    up = p.paths.uploads_dir
+    up.mkdir(parents=True, exist_ok=True)
+    name = "".join(c for c in (file.filename or "upload.bin") if c.isalnum() or c in "._- ")[:120]
+    dest = up / (name or "upload.bin")
+    data = await file.read()
+    dest.write_bytes(data)
+    return {"ok": True, "path": f"uploads/{dest.name}", "bytes": len(data)}
 
 
 @app.get("/api/persona/{pid}/workspace")

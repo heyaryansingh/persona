@@ -104,12 +104,39 @@
   .ctl button{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s}
   .ctl button:hover{border-color:var(--anchor)}
   .ctl button.halt:hover{border-color:var(--contra);color:var(--contra)}
+  /* file & artifact browser (v6 P1) */
+  #filesview{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column}
+  #filesview .fhead{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  #filesview .fhead .ttl{font-family:var(--serif);font-size:16px}
+  #filesview .fbody{flex:1;display:grid;grid-template-columns:310px 1fr;min-height:0}
+  #ftree{overflow:auto;border-right:1px solid var(--line);background:var(--panel2);padding:8px 4px;font-size:12px;font-family:var(--mono)}
+  #ftree .node{padding:3px 8px;cursor:pointer;white-space:nowrap;border-radius:5px;display:flex;gap:7px;align-items:center;overflow:hidden}
+  #ftree .node:hover{background:#141821}
+  #ftree .node.sel{background:#1a2130;color:#fff}
+  #ftree .node .ic{width:12px;text-align:center;color:var(--dim);flex-shrink:0}
+  #ftree .node.dir .ic{color:var(--anchor)}
+  #ftree .node .ext{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+  #ftree .kids{margin-left:11px;border-left:1px solid #171a22}
+  #ftree .sz{color:var(--faint);font-size:9.5px;margin-left:auto;padding-left:8px;flex-shrink:0}
+  #fview{overflow:auto;position:relative;background:#07080b;min-height:0;display:flex;flex-direction:column}
+  #fview .fplace{color:var(--faint);margin:auto;font-size:12px;text-align:center}
+  #fview pre{margin:0;padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:1.55;white-space:pre;color:#cdd2db;tab-size:4}
+  #fview .mdv{padding:22px 32px;font-family:var(--serif);font-size:15px;line-height:1.65;color:#dfe3ea;max-width:840px}
+  #fview img{max-width:100%;margin:20px auto;display:block;background:#fff;border-radius:4px}
+  #fview iframe,#fview embed{flex:1;width:100%;border:0;background:#fff}
+  #fview table.csv{border-collapse:collapse;font-family:var(--mono);font-size:11.5px;margin:12px}
+  #fview table.csv td,#fview table.csv th{border:1px solid var(--line);padding:3px 9px;white-space:nowrap}
+  #fview table.csv th{background:#141821;position:sticky;top:0;color:var(--ink)}
+  #fview table.csv tr:nth-child(even) td{background:#0d0f14}
+  .fbar{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-family:var(--mono);font-size:11px;color:var(--dim);flex-shrink:0}
+  .fbar b{color:var(--ink)} .fbar a.dl{margin-left:auto;color:var(--anchor);cursor:pointer;text-decoration:none}
 </style>
 </head>
 <body>
   <header>
     <span class="dot"></span><span class="brand" onclick="toGallery()">PERSONA</span>
     <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
+    <button class="back" id="filesbtn" style="display:none" onclick="openFiles()">⧉ files</button>
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
     <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ request review/paper</button>
     <span class="ctl" id="controlbar">
@@ -153,6 +180,23 @@
     </div>
   </div>
   <div id="modal"><div class="box" id="modalbox"></div></div>
+
+  <!-- FILE & ARTIFACT BROWSER -->
+  <div id="filesview">
+    <div class="fhead">
+      <span class="ttl" id="fttl">workspace</span>
+      <button class="back" onclick="$('#fupload').click()">⭱ upload</button>
+      <button class="back" style="margin-left:auto" onclick="closeFiles()">✕ close</button>
+    </div>
+    <div class="fbody">
+      <div id="ftree"></div>
+      <div style="display:flex;flex-direction:column;min-height:0">
+        <div class="fbar" id="fbar" style="display:none"></div>
+        <div id="fview"><div class="fplace">select a file — code, PDFs, figures, data, reports</div></div>
+      </div>
+    </div>
+    <input type="file" id="fupload" style="display:none" onchange="doUpload(this)">
+  </div>
 
 <script>
 const $=s=>document.querySelector(s), esc=s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -203,7 +247,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -224,7 +268,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
@@ -265,6 +309,70 @@ async function editBudget(){
   const v=prompt("Daily budget cap (USD) — the persona hard-stops spending at this:",cur); if(v===null) return;
   const cap=parseFloat(v); if(isNaN(cap)||cap<0){alert("enter a non-negative number");return;}
   await fetch(A("/budget"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cap_usd:cap})}); refreshSpend();
+}
+/* ---------- file & artifact browser (v6 P1) ---------- */
+const IMG_EXT=["png","jpg","jpeg","gif","webp","bmp","svg"], TXT_EXT=["py","md","txt","json","jsonl","csv","tsv","tex","log","yaml","yml","toml","ini","cfg","r","sh","js","ts","css"];
+function fmtSize(b){b=b||0;return b<1024?b+" B":b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";}
+function renderTree(nodes){
+  return nodes.map(n=>{
+    if(n.type==="dir")
+      return `<div class="node dir" data-p="${esc(n.path)}"><span class="ic">▸</span>${esc(n.name)}</div>`+
+             `<div class="kids" style="display:none">${renderTree(n.children||[])}</div>`;
+    return `<div class="node file" data-p="${esc(n.path)}" data-ext="${esc(n.ext||'')}"><span class="ic">·</span>`+
+           `<span style="overflow:hidden;text-overflow:ellipsis">${esc(n.name)}</span>`+
+           `<span class="ext">${esc(n.ext||'')}</span><span class="sz">${fmtSize(n.size)}</span></div>`;
+  }).join("");
+}
+async function openFiles(){
+  $("#filesview").style.display="flex"; $("#fttl").textContent="workspace · loading…";
+  try{
+    const d=await (await fetch(A("/files"))).json();
+    $("#fttl").textContent=d.root+" · workspace";
+    $("#ftree").innerHTML=renderTree(d.tree)||'<div class="empty">empty</div>';
+  }catch(e){ $("#ftree").innerHTML='<div class="empty">could not load</div>'; }
+}
+function closeFiles(){ $("#filesview").style.display="none"; }
+$("#ftree").onclick=e=>{
+  const node=e.target.closest(".node"); if(!node) return;
+  if(node.classList.contains("dir")){
+    const kids=node.nextElementSibling, open=kids.style.display!=="none";
+    kids.style.display=open?"none":"block"; node.querySelector(".ic").textContent=open?"▸":"▾"; return;
+  }
+  document.querySelectorAll("#ftree .node.sel").forEach(x=>x.classList.remove("sel"));
+  node.classList.add("sel");
+  viewFile(node.dataset.p, node.dataset.ext);
+};
+async function viewFile(path, ext){
+  const url=A("/file?path="+encodeURIComponent(path)), v=$("#fview"), bar=$("#fbar");
+  bar.style.display="flex";
+  bar.innerHTML=`<b>${esc(path.split("/").pop())}</b><span>${esc(path)}</span>`+
+    `<a class="dl" href="${url}" download>download ↓</a>`;
+  v.innerHTML='<div class="fplace">loading…</div>';
+  ext=(ext||"").toLowerCase();
+  if(IMG_EXT.includes(ext)){ v.innerHTML=`<img src="${url}" alt="${esc(path)}">`; return; }
+  if(ext==="pdf"){ v.innerHTML=`<iframe src="${url}"></iframe>`; return; }
+  if(ext==="html"||ext==="htm"){ v.innerHTML=`<iframe sandbox src="${url}"></iframe>`; return; }
+  try{
+    const txt=await (await fetch(url)).text();
+    if(ext==="md"){ v.innerHTML=`<div class="mdv">${md(txt)}</div>`; }
+    else if(ext==="csv"||ext==="tsv"){ v.innerHTML=csvTable(txt, ext==="tsv"?"\t":","); }
+    else { const pre=document.createElement("pre"); pre.textContent=txt; v.innerHTML=""; v.appendChild(pre); }
+  }catch{ v.innerHTML='<div class="fplace">could not render — try download</div>'; }
+}
+function csvTable(txt, sep){
+  const rows=txt.split(/\r?\n/).filter(r=>r.length).slice(0,400).map(r=>r.split(sep));
+  if(!rows.length) return '<div class="fplace">empty</div>';
+  const head=rows[0].map(c=>`<th>${esc(c)}</th>`).join("");
+  const body=rows.slice(1).map(r=>"<tr>"+r.map(c=>`<td>${esc(c)}</td>`).join("")+"</tr>").join("");
+  return `<table class="csv"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`+
+    (txt.split(/\r?\n/).length>400?'<div class="fbar">…truncated to 400 rows</div>':'');
+}
+async function doUpload(input){
+  if(!input.files||!input.files[0]) return;
+  const fd=new FormData(); fd.append("file", input.files[0]);
+  try{ await fetch(A("/upload"),{method:"POST",body:fd}); await openFiles(); }
+  catch{ alert("upload failed"); }
+  input.value="";
 }
 
 /* ---------- dashboard fetches (per persona) ---------- */

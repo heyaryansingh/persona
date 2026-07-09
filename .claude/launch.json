@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "persona", "--port", "8137"],
       "port": 8137
+    },
+    {
+      "name": "persona-v6",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "persona.api.app:app", "--port", "8188"],
+      "port": 8188
     }
   ]
 }

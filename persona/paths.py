@@ -36,8 +36,20 @@ class Paths:
     @property
     def vectors_db(self): return self.ops_dir / "vectors.db"
 
+    @property
+    def uploads_dir(self): return self.workspace / "uploads"
+
     def ensure(self) -> None:
         for d in (self.self_dir, self.notes_dir, self.sources_dir, self.datasets_dir,
                   self.projects_dir, self.drafts_dir, self.deliverables_dir, self.runs_dir,
                   self.ops_dir):
             d.mkdir(parents=True, exist_ok=True)
+
+    def safe(self, relpath: str) -> Path:
+        """Resolve `relpath` under the workspace, jailing against traversal/symlink escape.
+        The one boundary every file/exec path routes through (v6). Raises ValueError on escape."""
+        base = self.workspace.resolve()
+        target = (base / (relpath or "").lstrip("/\\")).resolve()
+        if target != base and base not in target.parents:
+            raise ValueError(f"path escapes workspace: {relpath!r}")
+        return target
