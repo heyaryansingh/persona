@@ -242,6 +242,31 @@ class KG:
         cols = ["subject", "object", "volume", "independent_labs", "anchored_claim"]
         return [dict(zip(cols, row)) for row in r.result_set]
 
+    def claims_in(self, entities: list, limit: int = 60) -> list:
+        """All claims whose subject AND object are within a set of entities (a subtopic community),
+        with their supporting sources + verbatim quotes — the grounded input for a synthesis note."""
+        r = self._q(
+            """
+            MATCH (c:Claim)-[:ABOUT_SUBJECT]->(subj:Entity), (c)-[:ABOUT_OBJECT]->(obj:Entity)
+            WHERE subj.name IN $ents AND obj.name IN $ents
+            OPTIONAL MATCH (c)-[sr:SUPPORTED_BY]->(s:Source)
+            WITH c, collect(DISTINCT {slug:s.slug, title:s.title, lab:s.lab, doi:s.doi, quote:sr.quote}) AS srcs
+            RETURN c.claim_id, c.subject, c.relation, c.object, c.effect_sign, c.confidence,
+                   c.independent_source_count, srcs
+            ORDER BY c.independent_source_count DESC, c.confidence DESC LIMIT $lim
+            """, {"ents": list(entities), "lim": limit})
+        cols = ["claim_id", "subject", "relation", "object", "effect_sign", "confidence",
+                "independent_sources", "sources"]
+        return [dict(zip(cols, row)) for row in r.result_set]
+
+    def add_synthesis_note(self, slug: str, title: str, entities: list, claim_ids: list) -> None:
+        """Record a synthesis note as a KG node linked to the claims it synthesizes."""
+        self._q("MERGE (n:SynthesisNote {slug:$slug}) SET n.title=$title, n.entities=$ents, "
+                "n.updated=$now", {"slug": slug, "title": title[:200], "ents": entities, "now": _now()})
+        for cid in claim_ids:
+            self._q("MATCH (n:SynthesisNote {slug:$slug}), (c:Claim {claim_id:$cid}) "
+                    "MERGE (n)-[:SYNTHESIZES]->(c)", {"slug": slug, "cid": cid})
+
     def graph_snapshot(self, limit: int = 2000) -> dict:
         """Nodes+edges for the UI (entities + claim topology)."""
         nodes = self._q(

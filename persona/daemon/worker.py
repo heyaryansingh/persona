@@ -114,6 +114,17 @@ async def _harvest(task, queue) -> str:
     return f"harvest: +{res['ingested']} sources, {res['beliefs']} beliefs, {res['new_contradictions']} new contradiction(s)"
 
 
+@handler("consolidate")
+async def _consolidate(task, queue) -> str:
+    """Sleep-time synthesis: turn accumulated claims into cited per-topic understanding (notes)."""
+    import asyncio
+    from ..synthesis import consolidator
+    res = await asyncio.to_thread(consolidator.consolidate, 6, task.parent_id)
+    if not res.get("ok"):
+        return f"consolidate: {res.get('reason')}"
+    return f"consolidate: {res['synthesized']} note(s) from {res['communities']} subtopic(s)"
+
+
 @handler("deliberate")
 async def _deliberate(task, queue) -> str:
     """The reflecting self (Opus): reads what it's learned and EVOLVES — reweights + spawns new

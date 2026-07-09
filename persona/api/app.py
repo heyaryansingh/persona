@@ -170,6 +170,30 @@ def inbox_resolve(pid: str, payload: dict):
         return res
 
 
+@app.get("/api/persona/{pid}/synthesis")
+def synthesis(pid: str):
+    """The persona's cited synthesis notes — what it has UNDERSTOOD per subtopic."""
+    p = _p(pid)
+    nd = p.paths.notes_dir
+    notes = []
+    if nd.exists():
+        for f in sorted(nd.glob("*.md"), key=lambda x: -x.stat().st_mtime):
+            first = f.read_text(encoding="utf-8").splitlines()
+            title = next((l[2:] for l in first if l.startswith("# ")), f.stem)
+            notes.append({"slug": f.stem, "title": title})
+    return {"notes": notes}
+
+
+@app.get("/api/persona/{pid}/note/{slug}")
+def note(pid: str, slug: str):
+    if "/" in slug or "\\" in slug:
+        raise HTTPException(400, "bad slug")
+    f = _p(pid).paths.notes_dir / f"{slug}.md"
+    if not f.exists():
+        raise HTTPException(404, "not found")
+    return {"slug": slug, "content": f.read_text(encoding="utf-8")}
+
+
 @app.get("/api/persona/{pid}/workspace")
 def workspace(pid: str):
     p = _p(pid)

@@ -125,8 +125,21 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
             return {"ok": False, "error": str(e)[:300]}
         return {"ok": False, "error": "unknown tool"}
 
+    # ground the analyst in what this persona already understands (its synthesis notes)
+    known = ""
+    try:
+        hits = get_persona().vectors.search(question, k=3)
+        notes = []
+        for h in hits:
+            f = get_persona().paths.notes_dir / f"{h.get('slug','')}.md"
+            if f.exists():
+                notes.append(f.read_text(encoding="utf-8")[:1500])
+        if notes:
+            known = "\n\nWHAT I ALREADY UNDERSTAND (my synthesis notes — build on & cite these):\n\n" + "\n\n---\n\n".join(notes)
+    except Exception:
+        pass
     messages = [{"role": "user", "content": f"Question to investigate:\n\n{question}\n\n"
-                 f"Project dir is /work (mounted); write outputs to /work/results/."}]
+                 f"Project dir is /work (mounted); write outputs to /work/results/.{known}"}]
     ran_code, finished = False, None
     for turn in range(max_turns):
         if not budget().can_spend():

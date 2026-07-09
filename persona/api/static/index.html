@@ -107,7 +107,8 @@
       <div class="col left">
         <div class="sec" style="flex:0 0 auto"><h2>self · interests</h2><div id="interests"></div></div>
         <div class="sec" style="flex:1 1 auto"><h2>open questions</h2><div id="questions"></div></div>
-        <div class="sec" style="flex:0 0 auto;max-height:34%"><h2>body of work</h2><div id="drafts"><div class="empty">no reports yet</div></div></div>
+        <div class="sec" style="flex:0 0 auto;max-height:30%"><h2>understanding · synthesis</h2><div id="notes"><div class="empty">nothing synthesized yet</div></div></div>
+        <div class="sec" style="flex:0 0 auto;max-height:26%"><h2>body of work</h2><div id="drafts"><div class="empty">no reports yet</div></div></div>
       </div>
       <div class="col"><div class="stream" id="stream"></div></div>
       <div class="col right">
@@ -159,10 +160,11 @@ function openPersona(id){
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
-    if(["belief_update","contradiction","artifact","escalate"].includes(e.type)){refreshKG();refreshInbox();refreshWork();}}catch{}};
-  refreshStatus();refreshSelf();refreshWork();refreshKG();refreshInbox();
+    if(["belief_update","contradiction","artifact","escalate"].includes(e.type)){refreshKG();refreshInbox();refreshWork();}
+    if(e.type==="synthesis"){refreshNotes();}}catch{}};
+  refreshStatus();refreshSelf();refreshWork();refreshNotes();refreshKG();refreshInbox();
   timers=[setInterval(refreshStatus,2500),setInterval(refreshSelf,8000),setInterval(refreshKG,9000),
-          setInterval(refreshInbox,9000),setInterval(refreshWork,12000)];
+          setInterval(refreshInbox,9000),setInterval(refreshWork,12000),setInterval(refreshNotes,12000)];
 }
 
 /* ---------- dashboard fetches (per persona) ---------- */
@@ -186,6 +188,10 @@ async function refreshWork(){try{const w=await (await fetch(A("/workspace"))).js
   const items=[...(w.deliverables||[]),...(w.drafts||[])];
   $("#drafts").innerHTML=items.map(d=>`<span class="draft" onclick="openDraft('${encodeURIComponent(d)}')"><span class="k">▸</span>${esc(d.replace(/\.md$/,''))}</span>`).join("")||'<div class="empty">no reports yet</div>';}catch{}}
 async function openDraft(name){const r=await (await fetch(A("/draft/")+name)).json();
+  $("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
+async function refreshNotes(){try{const w=await (await fetch(A("/synthesis"))).json();
+  $("#notes").innerHTML=(w.notes||[]).map(n=>`<span class="draft" onclick="openNote('${encodeURIComponent(n.slug)}')"><span class="k" style="color:var(--live)">◆</span>${esc(n.title)}</span>`).join("")||'<div class="empty">nothing synthesized yet</div>';}catch{}}
+async function openNote(slug){const r=await (await fetch(A("/note/")+slug)).json();
   $("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
 $("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").style.display="none";};
 function md(t){return t.split("\n").map(l=>{
