@@ -17,9 +17,10 @@ from . import worker
 
 
 class Daemon:
-    def __init__(self, n_workers: int = None, queue: TaskQueue = None):
+    def __init__(self, n_workers: int = None, queue: TaskQueue = None, scheduler: bool = True):
         self.n_workers = n_workers or config.N_WORKERS
         self.queue = queue or TaskQueue()
+        self.scheduler = scheduler          # False -> worker-only process (horizontal scale-out)
         self._stop = asyncio.Event()
         self.started_at = None
         self._tasks: list[asyncio.Task] = []
@@ -70,7 +71,7 @@ class Daemon:
                    f"daemon up — {self.n_workers} workers"
                    + (f", recovered {recovered} in-flight task(s)" if recovered else ""),
                    actor="daemon", seeded=selfmind.is_seeded())
-        self._tasks = [asyncio.create_task(self._scheduler_loop())]
+        self._tasks = [asyncio.create_task(self._scheduler_loop())] if self.scheduler else []
         self._tasks += [asyncio.create_task(self._worker_loop(i)) for i in range(self.n_workers)]
         await self._stop.wait()
         for t in self._tasks:

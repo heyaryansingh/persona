@@ -22,9 +22,18 @@ def main() -> None:
     ap.add_argument("--seed", default=None, help="comma-separated seed interests (blank-slate spawn)")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8137)
+    ap.add_argument("--worker", action="store_true",
+                    help="run a WORKER-ONLY process (no API/scheduler) against the shared queue "
+                         "— horizontal scale-out; run several pointing at the same PERSONA_WORKSPACE")
     args = ap.parse_args()
 
     config.ensure_workspace()
+    if args.worker:
+        import asyncio
+        from .daemon.supervisor import Daemon
+        print(f"Persona worker draining {config.QUEUE_DB}")
+        asyncio.run(Daemon(scheduler=False).run())
+        return
     if args.seed:
         interests = [s.strip() for s in args.seed.split(",") if s.strip()]
         if selfmind.seed(interests):
