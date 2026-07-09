@@ -187,6 +187,49 @@
   #briefout .cite:hover{text-decoration:underline}
   #briefout .bmeta{font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.6}
   #briefout .bplace{color:var(--faint);font-size:13px;text-align:center;margin-top:60px;font-family:var(--serif)}
+
+  /* ===== motion + interaction layer (v6 — frontend-design / ui-ux-pro-max) ===== */
+  :root{--eout:cubic-bezier(.22,.68,.28,1); --spring:cubic-bezier(.34,1.4,.5,1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes overlayIn{from{opacity:0;transform:scale(.985) translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes flash{0%{background:rgba(79,208,160,.16)}100%{background:transparent}}
+  @keyframes flashH{0%{background:rgba(224,134,79,.16)}100%{background:transparent}}
+  @keyframes shimmer{0%{background-position:-360px 0}100%{background-position:360px 0}}
+  @keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+  /* live-state motion only (respects reduced-motion) */
+  @media (prefers-reduced-motion: no-preference){
+    #filesview,#graphview,#briefview{animation:overlayIn .22s var(--eout)}
+    #modal{animation:fadeIn .14s ease}
+    #modal .box{animation:slideUp .26s var(--eout)}
+    .row{animation:rowIn .26s var(--eout)}
+    .row.belief_update,.row.claim{animation:rowIn .26s var(--eout), flash 1.6s ease}
+    .row.contradiction,.row.escalate,.row.artifact{animation:rowIn .26s var(--eout), flashH 1.6s ease}
+    .pcard{animation:fadeUp .42s var(--eout) both}
+    .pcard:nth-child(2){animation-delay:.05s}.pcard:nth-child(3){animation-delay:.1s}
+    .pcard:nth-child(4){animation-delay:.15s}.pcard:nth-child(5){animation-delay:.2s}
+    .pcard:nth-child(6){animation-delay:.25s}.newcard{animation:fadeUp .42s var(--eout) both;animation-delay:.3s}
+    #dash .col.left .sec{animation:fadeUp .4s var(--eout) both}
+    #dash .col.left .sec:nth-child(2){animation-delay:.06s}#dash .col.left .sec:nth-child(3){animation-delay:.12s}#dash .col.left .sec:nth-child(4){animation-delay:.18s}
+    #briefout .inner>*{animation:fadeUp .34s var(--eout) both}
+    #briefout .inner>*:nth-child(2){animation-delay:.05s}#briefout .inner>*:nth-child(3){animation-delay:.1s}#briefout .inner>*:nth-child(4){animation-delay:.15s}#briefout .inner>*:nth-child(5){animation-delay:.2s}
+    #ginspect>*{animation:fadeIn .28s ease both}
+    .gchip{animation:popIn .3s var(--spring) both}
+    .bplace,.fplace,.gplace{animation:fadeIn .4s ease}
+  }
+  /* micro-interactions (always on — subtle, pointer feedback) */
+  .pcard{transition:border-color .18s,transform .2s var(--eout),box-shadow .2s}
+  .pcard:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  header button.back,.newcard button,.ctl button,.chatbar button,.gact,.gchip{transition:transform .12s var(--spring),border-color .16s,color .16s,background .16s}
+  header button.back:hover{transform:translateY(-1px)} header button.back:active,.ctl button:active,.chatbar button:active,.newcard button:active{transform:scale(.94)}
+  .belief,.cl,.draft,#ftree .node,.chip{transition:background .14s,color .14s,padding-left .14s,border-color .14s}
+  .belief:hover,.cl:hover{padding-left:4px}
+  .tabs button{transition:color .16s,border-color .2s}
+  .meter .fill{transition:width .6s var(--eout),background .5s}
+  .st.RUNNING::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--live);margin-left:6px;vertical-align:middle;box-shadow:0 0 7px var(--live);animation:pulse 2s infinite}
+  @media (prefers-reduced-motion: reduce){*{animation:none !important}}
 </style>
 </head>
 <body>
@@ -725,6 +768,15 @@ async function refreshNotes(){try{const w=await (await fetch(A("/synthesis"))).j
 async function openNote(slug){const r=await (await fetch(A("/note/")+slug)).json();
   $("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
 $("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").style.display="none";};
+/* Escape closes the topmost overlay (interactive clarity) */
+addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  const shown=id=>getComputedStyle($("#"+id)).display!=="none";
+  if(shown("modal")){$("#modal").style.display="none";}
+  else if(shown("briefview")){$("#briefview").style.display="none";}
+  else if(shown("graphview")){closeGraph();}
+  else if(shown("filesview")){closeFiles();}
+});
 function md(t){return t.split("\n").map(l=>{
   if(/^#\s/.test(l))return`<h1>${esc(l.slice(2))}</h1>`;if(/^##\s/.test(l))return`<h2>${esc(l.slice(3))}</h2>`;
   if(/^\s*[-*]\s/.test(l))return`<li>${esc(l.replace(/^\s*[-*]\s/,''))}</li>`;
