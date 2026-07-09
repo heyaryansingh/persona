@@ -91,12 +91,28 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
         return {"ok": False, "reason": "no-output"}
 
     from .. import coherence
-    prev_interests = {n.lower() for n, _ in selfmind.interests()}
+    prev_pairs = selfmind.interests()
+    prev_interests = {n.lower() for n, _ in prev_pairs}
     prev_sig = coherence.interest_signature()
     new_pairs = [(i["name"], i.get("weight", 1.0)) for i in out.get("interests", [])
                  if isinstance(i, dict) and i.get("name")]
+    THETA = 0.7          # E-DRIFT: above this the interest set is being wholesale-replaced = a spiral
+    applied_pairs = prev_pairs
     if new_pairs:
-        selfmind.set_interests(new_pairs)
+        new_sig = {w for name, _ in new_pairs for w in name.lower().split() if len(w) > 3}
+        pdrift = coherence.drift(prev_sig, new_sig)
+        if pdrift > THETA and prev_pairs:
+            # GUARD THAT ACTS (v6 P6): one reflection may not replace the whole self. Keep the
+            # existing focus and admit at most 2 genuinely-new interests (bounded, healthy growth).
+            fresh = [(n, w) for n, w in new_pairs if n.lower() not in prev_interests][:2]
+            applied_pairs = (list(prev_pairs) + fresh)[:9]
+            selfmind.set_interests(applied_pairs)
+            log().emit("coherence", f"throttled a large interest shift (drift={pdrift:.2f}) — kept my "
+                       f"focus, admitted {len(fresh)} new interest(s) instead of spiraling",
+                       actor="self", parent_id=parent_id)
+        else:
+            selfmind.set_interests(new_pairs)
+            applied_pairs = new_pairs
     if out.get("open_questions"):
         selfmind.set_open_questions(out["open_questions"])
     selfmind.append_section("strategies.md", out.get("strategy_note", ""))
@@ -104,14 +120,10 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
     selfmind.append_section("identity.md", out.get("identity_update", ""))
     selfmind.append_changelog(out.get("changelog", "reflected"))
 
-    # anti-degradation: keep the self bounded (memory-blocks) + flag a sudden interest spiral
+    # anti-degradation: keep the self bounded (memory-blocks); the drift guard above already ACTED
     coherence.enforce_caps()
-    dr = coherence.drift(prev_sig, coherence.interest_signature())
-    if dr > 0.75 and prev_sig:
-        log().emit("coherence", f"large interest shift this reflection (drift={dr:.2f}) — watching "
-                   f"for spiral", actor="self", parent_id=parent_id)
 
-    spawned = [n for n, _ in new_pairs if n.lower() not in prev_interests]
+    spawned = [n for n, _ in applied_pairs if n.lower() not in prev_interests]
     log().emit("thought",
                f"reflected (Opus): {out.get('changelog','')[:120]}"
                + (f" · spawned new interest(s): {', '.join(spawned[:4])}" if spawned else ""),
