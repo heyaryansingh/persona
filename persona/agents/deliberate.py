@@ -67,12 +67,16 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
     from anthropic import Anthropic
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
     s = selfmind.read_self()
+    directives = (s.get('directives.md', '') or '').strip()
+    dir_block = (f"## STANDING DIRECTIVES FROM THE HUMAN (weigh these heavily)\n{directives}\n\n"
+                 if directives else "")
     prompt = (f"MY CURRENT SELF:\n\n## identity\n{s.get('identity.md','')}\n\n"
+              f"{dir_block}"
               f"## interests\n{s.get('interests.md','')}\n\n## open questions\n{s.get('open_questions.md','')}\n\n"
               f"## strategies\n{s.get('strategies.md','')[:1500]}\n\n"
               f"## what I've learned so far\n{_kg_summary(kg)}\n\n"
-              f"Reflect and evolve. Follow the contradictions and surprises; spawn new interests the "
-              f"reading opened up.")
+              f"Reflect and evolve. Honor the human's standing directives first, then follow the "
+              f"contradictions and surprises; spawn new interests the reading opened up.")
     resp = client.messages.create(
         model=config.MODEL_SELF, max_tokens=2048, system=_SYSTEM, tools=[_TOOL],
         tool_choice={"type": "tool", "name": "evolve_self"},

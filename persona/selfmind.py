@@ -124,6 +124,25 @@ def set_open_questions(qs: list[str]) -> None:
     (get_persona().paths.self_dir / "open_questions.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def directives() -> str:
+    """Standing instructions from the human (steering). The reflect/deliberate/discover loops read
+    this each cycle, so a conversational nudge persists and shapes what the persona does next."""
+    p = get_persona().paths.self_dir / "directives.md"
+    return p.read_text(encoding="utf-8") if p.exists() else ""
+
+
+def add_directive(note: str) -> None:
+    """Append a dated standing directive from the human (v6 P2 — steer, don't block)."""
+    if not note or not note.strip():
+        return
+    get_persona().paths.ensure()
+    p = get_persona().paths.self_dir / "directives.md"
+    prev = p.read_text(encoding="utf-8") if p.exists() else (
+        "# directives\n\n_standing instructions from the human. I weigh these heavily but keep my "
+        "own judgment and provenance._\n")
+    p.write_text(prev.rstrip() + f"\n- {_now()} — {note.strip()}\n", encoding="utf-8")
+
+
 def append_section(filename: str, note: str) -> None:
     """Append a dated note to a self file (strategies/taste/identity accrete over time)."""
     if not note or not note.strip():

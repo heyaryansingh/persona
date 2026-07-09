@@ -33,7 +33,7 @@ QUEUE_DB = OPS_DIR / "queue.db"
 EVENTS_DB = OPS_DIR / "events.db"
 
 SELF_FILES = ("identity.md", "interests.md", "beliefs.md", "strategies.md",
-              "taste.md", "open_questions.md", "CHANGELOG.md")
+              "taste.md", "open_questions.md", "directives.md", "CHANGELOG.md")
 
 # models (verified at call time — never assume availability)
 MODEL_READER = os.environ.get("PERSONA_READER_MODEL", "claude-haiku-4-5")

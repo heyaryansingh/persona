@@ -15,7 +15,8 @@ from . import config
 from .context import get_persona
 
 # per-file soft caps (chars) — keep the self small and legible (memory-blocks, not documents)
-_CAPS = {"identity.md": 4000, "strategies.md": 6000, "taste.md": 6000, "CHANGELOG.md": 20000}
+_CAPS = {"identity.md": 4000, "strategies.md": 6000, "taste.md": 6000, "CHANGELOG.md": 20000,
+         "directives.md": 6000}
 
 
 def enforce_caps() -> dict:

@@ -69,6 +69,16 @@
   .belief_update .tag,.belief_update .msg{color:var(--live)} .contradiction .tag,.contradiction .msg{color:var(--contra)}
   .artifact .tag,.artifact .msg{color:var(--human)} .escalate .tag,.escalate .msg{color:var(--human)} .seed .tag,.seed .msg{color:var(--human)}
   .tool .tag{color:#7fa7c9} .error .tag,.error .msg{color:var(--contra)} .boot .msg{color:var(--live)}
+  .say .tag,.say .msg{color:var(--human)} .row.say{border-left-color:var(--human);background:#130f0c}
+  .reply .tag{color:var(--live)} .reply .msg{color:#e4e8ef} .row.reply{border-left-color:#26463a;background:#0b1310}
+  .control .tag,.control .msg{color:var(--dim)}
+  /* chat / steer bar (v6 P2) */
+  .chatbar{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);background:var(--panel);flex-shrink:0}
+  .chatbar input{flex:1;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:9px 12px;border-radius:8px}
+  .chatbar input:focus{outline:none;border-color:var(--anchor)}
+  .chatbar input:disabled{opacity:.5}
+  .chatbar button{background:#191d27;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:14px;padding:0 15px;border-radius:8px;cursor:pointer}
+  .chatbar button:hover{border-color:var(--live);color:#fff}
   #graphwrap{height:52%;position:relative;border-bottom:1px solid var(--line);background:#07080b}
   #graph{width:100%;height:100%;display:block;cursor:grab}
   .glegend{position:absolute;left:10px;bottom:8px;font-size:9.5px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
@@ -167,7 +177,13 @@
         <div class="sec" style="flex:0 0 auto;max-height:30%"><h2>understanding · synthesis</h2><div id="notes"><div class="empty">nothing synthesized yet</div></div></div>
         <div class="sec" style="flex:0 0 auto;max-height:26%"><h2>body of work</h2><div id="drafts"><div class="empty">no reports yet</div></div></div>
       </div>
-      <div class="col"><div class="stream" id="stream"></div></div>
+      <div class="col" style="display:flex;flex-direction:column">
+        <div class="stream" id="stream"></div>
+        <div class="chatbar">
+          <input id="chatin" placeholder="talk to it — steer or ask what it's doing (it keeps working)…" onkeydown="if(event.key==='Enter')sendSay()">
+          <button onclick="sendSay()" title="send">↑</button>
+        </div>
+      </div>
       <div class="col right">
         <div id="graphwrap"><canvas id="graph"></canvas>
           <div class="glegend"><span class="up">● raises</span><span class="down">● lowers</span>
@@ -366,6 +382,13 @@ function csvTable(txt, sep){
   const body=rows.slice(1).map(r=>"<tr>"+r.map(c=>`<td>${esc(c)}</td>`).join("")+"</tr>").join("");
   return `<table class="csv"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`+
     (txt.split(/\r?\n/).length>400?'<div class="fbar">…truncated to 400 rows</div>':'');
+}
+async function sendSay(){
+  const inp=$("#chatin"), t=inp.value.trim(); if(!t) return;
+  inp.value=""; inp.disabled=true;
+  try{ await fetch(A("/say"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:t})}); }
+  catch{ alert("could not send"); }
+  inp.disabled=false; inp.focus(); refreshSpend();
 }
 async function doUpload(input){
   if(!input.files||!input.files[0]) return;

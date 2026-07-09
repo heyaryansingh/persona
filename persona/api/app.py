@@ -276,6 +276,29 @@ def note(pid: str, slug: str):
     return {"slug": slug, "content": f.read_text(encoding="utf-8")}
 
 
+# --------------------------------------------------------------- conversation / steer (v6 P2)
+@app.post("/api/persona/{pid}/say")
+def say(pid: str, payload: dict):
+    """Talk to the persona while it works. It replies (grounded in its self+graph), remembers a
+    standing directive if you steer it, and starts reading any topics you point it at — without
+    stopping. Runs synchronously so it replies immediately in any run-state."""
+    p = _p(pid)
+    text = (payload.get("text") or "").strip()
+    if not text:
+        return {"ok": False, "reason": "empty"}
+    with context.use(p):
+        from ..events import log
+        from ..memory.membrane import get_kg
+        from ..agents.converse import converse
+        log().emit("say", text, actor="human")
+        res = converse(text, get_kg())
+    if res.get("ok") and res.get("focus_now"):     # act on steering: priority reads, but keep working
+        q = p.queue()
+        for topic in res["focus_now"]:
+            q.enqueue("scout", priority=1, params={"interest": topic})
+    return res
+
+
 # --------------------------------------------------------------- file & artifact browser (v6 P1)
 _TEXT_EXT = {".py", ".md", ".txt", ".json", ".jsonl", ".csv", ".tsv", ".tex", ".log", ".yaml",
              ".yml", ".toml", ".ini", ".cfg", ".ipynb", ".r", ".sh", ".js", ".ts", ".html", ".css"}
