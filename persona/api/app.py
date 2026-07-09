@@ -188,6 +188,39 @@ def kg(pid: str):
                 "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
 
 
+# --------------------------------------------------------------- navigable graph (v6 P3)
+@app.get("/api/persona/{pid}/graph/overview")
+def graph_overview(pid: str, limit: int = 60):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        return g.overview(limit) if g else {"nodes": [], "edges": []}
+
+
+@app.get("/api/persona/{pid}/graph/neighbors")
+def graph_neighbors(pid: str, node: str, limit: int = 40):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        return g.neighbors(node, limit) if g else {"nodes": [], "edges": []}
+
+
+@app.get("/api/persona/{pid}/graph/node")
+def graph_node(pid: str, node: str):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        return g.node(node) if g else {}
+
+
+@app.get("/api/persona/{pid}/graph/search")
+def graph_search(pid: str, q: str):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        return {"results": g.search(q) if g else []}
+
+
 @app.get("/api/persona/{pid}/provenance/{claim_id}")
 def provenance(pid: str, claim_id: str):
     """The defensible chain: belief → claim → every supporting source + verbatim quote + DOI/URL."""

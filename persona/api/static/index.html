@@ -140,6 +140,35 @@
   #fview table.csv tr:nth-child(even) td{background:#0d0f14}
   .fbar{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-family:var(--mono);font-size:11px;color:var(--dim);flex-shrink:0}
   .fbar b{color:var(--ink)} .fbar a.dl{margin-left:auto;color:var(--anchor);cursor:pointer;text-decoration:none}
+  /* graph explorer (v6 P3) */
+  #graphview{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column}
+  #graphview .ghead{display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  #graphview .ghead .ttl{font-family:var(--serif);font-size:16px}
+  #gsearch{background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 11px;border-radius:7px;width:240px}
+  #gsearch:focus{outline:none;border-color:var(--anchor)}
+  .gfilters{display:flex;gap:6px;flex-wrap:wrap}
+  .gchip{font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid var(--line);cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px}
+  .gchip .d{width:7px;height:7px;border-radius:50%}
+  .gchip.off{opacity:.35}
+  #gbody{flex:1;display:grid;grid-template-columns:1fr 320px;min-height:0}
+  #gcanvaswrap{position:relative;background:radial-gradient(circle at 50% 40%,#0b0d12,#07080b);overflow:hidden}
+  #gcanvas{width:100%;height:100%;display:block;cursor:grab}
+  #gcanvas:active{cursor:grabbing}
+  #ghint{position:absolute;left:12px;bottom:10px;font-size:10px;color:var(--faint);font-family:var(--mono)}
+  #gtime{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;display:flex;align-items:center;gap:10px;background:rgba(16,18,24,.9);border:1px solid var(--line);border-radius:24px;padding:6px 14px;backdrop-filter:blur(6px)}
+  #gtime button{background:none;border:none;color:var(--live);font-size:13px;cursor:pointer;padding:0 2px}
+  #gtime input[type=range]{width:280px;accent-color:var(--anchor)}
+  #gtlabel{font-family:var(--mono);font-size:11px;color:var(--dim);min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+  #ginspect{border-left:1px solid var(--line);background:var(--panel2);overflow-y:auto;padding:16px 16px 40px}
+  #ginspect .kind{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  #ginspect h3{font-family:var(--serif);font-weight:500;font-size:18px;margin:4px 0 10px;line-height:1.25;word-break:break-word}
+  #ginspect .meta{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5}
+  #ginspect .meta a{color:var(--anchor)}
+  #ginspect .cl{font-family:var(--mono);font-size:11.5px;line-height:1.4;padding:6px 0;border-bottom:1px solid #14171e;cursor:pointer}
+  #ginspect .cl:hover{color:#fff} #ginspect .cl .m{color:var(--dim);font-size:10px}
+  #ginspect .gact{display:inline-block;margin:2px 6px 8px 0;background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer}
+  #ginspect .gact:hover{border-color:var(--anchor)}
+  #ginspect .gplace{color:var(--faint);font-size:11.5px;margin-top:30px;text-align:center}
 </style>
 </head>
 <body>
@@ -147,6 +176,7 @@
     <span class="dot"></span><span class="brand" onclick="toGallery()">PERSONA</span>
     <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
     <button class="back" id="filesbtn" style="display:none" onclick="openFiles()">⧉ files</button>
+    <button class="back" id="graphbtn" style="display:none" onclick="openGraph()">◉ explore graph</button>
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
     <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ request review/paper</button>
     <span class="ctl" id="controlbar">
@@ -214,6 +244,28 @@
     <input type="file" id="fupload" style="display:none" onchange="doUpload(this)">
   </div>
 
+  <!-- GRAPH EXPLORER -->
+  <div id="graphview">
+    <div class="ghead">
+      <span class="ttl">knowledge graph</span>
+      <input id="gsearch" placeholder="search entities / papers…" oninput="gxSearch(this.value)">
+      <div class="gfilters" id="gfilters"></div>
+      <button class="back" onclick="openGraph()">⟲ reset</button>
+      <button class="back" style="margin-left:auto" onclick="closeGraph()">✕ close</button>
+    </div>
+    <div id="gbody">
+      <div id="gcanvaswrap"><canvas id="gcanvas"></canvas>
+        <div id="ghint">drag to pan · scroll to zoom · click a node to inspect + expand · drag a node to pin</div>
+        <div id="gtime" style="display:none">
+          <button id="gplay" onclick="gxPlay()" title="replay how the graph grew">▶</button>
+          <input id="gslider" type="range" min="0" max="1000" value="1000" oninput="gxScrub(this.value)">
+          <span id="gtlabel">live</span>
+        </div>
+      </div>
+      <div id="ginspect"><div class="gplace">Click any node to see what it connects to — beliefs, the papers behind them, contradictions, syntheses. Then expand outward to walk the field.</div></div>
+    </div>
+  </div>
+
 <script>
 const $=s=>document.querySelector(s), esc=s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const ftime=iso=>{try{return new Date(iso).toLocaleTimeString([],{hour12:false})}catch{return""}};
@@ -263,7 +315,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -284,7 +336,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
@@ -397,6 +449,143 @@ async function doUpload(input){
   catch{ alert("upload failed"); }
   input.value="";
 }
+/* ---------- graph explorer (v6 P3) ---------- */
+const GX={n:new Map(),e:[],pos:new Map(),sel:null,hover:null,view:{x:0,y:0,s:1},drag:null,raf:null,W:0,H:0,hidden:new Set(),tcut:null,tmin:0,tmax:0,live:true,playIv:null};
+const GXCOLOR={entity:"#8a9cff",source:"#4fd0a0",note:"#e6c86e",claim:"#c9cdd6",experiment:"#e0864f",idea:"#c99cff",question:"#e5544b"};
+const gxColor=t=>GXCOLOR[t]||"#8a9cff", gcv=()=>$("#gcanvas");
+function gxResize(){const w=$("#gcanvaswrap");GX.W=w.clientWidth;GX.H=w.clientHeight;const c=gcv();c.width=GX.W*devicePixelRatio;c.height=GX.H*devicePixelRatio;c.getContext("2d").setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+async function openGraph(){
+  $("#graphview").style.display="flex"; gxResize();
+  GX.n.clear();GX.e=[];GX.pos.clear();GX.sel=null;GX.hidden.clear();GX.view={x:0,y:0,s:1};GX.live=true;GX.tcut=null;if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";}
+  $("#ginspect").innerHTML='<div class="gplace">loading the graph…</div>';
+  try{
+    const d=await (await fetch(A("/graph/overview?limit=70"))).json();
+    gxAdd(d,true); gxRenderFilters();
+    $("#ginspect").innerHTML='<div class="gplace">Click any node to inspect it and expand its connections.</div>';
+  }catch(e){ $("#ginspect").innerHTML='<div class="gplace">could not load graph</div>'; }
+  if(!GX.raf) gxLoop();
+}
+function closeGraph(){ $("#graphview").style.display="none"; if(GX.raf){cancelAnimationFrame(GX.raf);GX.raf=null;} if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";} }
+function gxAdd(d,seed){
+  const cx=GX.W/2,cy=GX.H/2,N=(d.nodes||[]).length;
+  (d.nodes||[]).forEach((nd,i)=>{
+    if(!GX.n.has(nd.id)){
+      GX.n.set(nd.id,nd);
+      let x,y;
+      if(seed){const a=i/Math.max(1,N)*6.283, r=Math.min(GX.W,GX.H)*0.32; x=cx+Math.cos(a)*r; y=cy+Math.sin(a)*r;}
+      else{const s=GX.sel&&GX.pos.get(GX.sel), bx=s?s.x:cx, by=s?s.y:cy; x=bx+(Math.random()-.5)*140; y=by+(Math.random()-.5)*140;}
+      GX.pos.set(nd.id,{x,y,vx:0,vy:0,fixed:false});
+    } else Object.assign(GX.n.get(nd.id),nd);
+  });
+  const have=new Set(GX.e.map(e=>e.source+">"+e.target+">"+(e.claim_id||e.type)));
+  (d.edges||[]).forEach(ed=>{const k=ed.source+">"+ed.target+">"+(ed.claim_id||ed.type); if(!have.has(k)&&GX.n.has(ed.source)&&GX.n.has(ed.target)){have.add(k);if(ed.t)ed._ms=Date.parse(ed.t);GX.e.push(ed);}});
+  gxTimeBounds();
+}
+function gxTimeBounds(){
+  const ms=GX.e.map(e=>e._ms).filter(x=>x); if(ms.length<2){$("#gtime").style.display="none";return;}
+  GX.tmin=Math.min(...ms);GX.tmax=Math.max(...ms);
+  if(GX.tmax-GX.tmin<60000){$("#gtime").style.display="none";return;}   // all essentially same time
+  $("#gtime").style.display="flex";
+  if(GX.live){GX.tcut=null;$("#gslider").value=1000;$("#gtlabel").textContent="live";}
+}
+function gxScrub(v){
+  v=+v; if(v>=1000){GX.live=true;GX.tcut=null;$("#gtlabel").textContent="live";return;}
+  GX.live=false; GX.tcut=GX.tmin+(v/1000)*(GX.tmax-GX.tmin);
+  $("#gtlabel").textContent=new Date(GX.tcut).toISOString().slice(0,10);
+}
+function gxPlay(){
+  if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";return;}
+  $("#gplay").textContent="⏸"; let v=0; $("#gslider").value=0; gxScrub(0);
+  GX.playIv=setInterval(()=>{v+=25; if(v>=1000){v=1000;clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";}
+    $("#gslider").value=v; gxScrub(v);},90);
+}
+function gxStep(){
+  const ids=[...GX.n.keys()].filter(id=>!GX.hidden.has(GX.n.get(id).type));
+  for(let i=0;i<ids.length;i++){const a=GX.pos.get(ids[i]);if(!a)continue;
+    for(let j=i+1;j<ids.length;j++){const b=GX.pos.get(ids[j]);if(!b)continue;
+      let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy||1;if(d2>90000)continue;const d=Math.sqrt(d2),f=1500/d2;a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;}}
+  GX.e.forEach(ed=>{const a=GX.pos.get(ed.source),b=GX.pos.get(ed.target);if(!a||!b)return;let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1,f=(d-115)*0.01;a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;});
+  const cx=GX.W/2,cy=GX.H/2;
+  ids.forEach(id=>{const p=GX.pos.get(id);if(p.fixed)return;p.vx+=(cx-p.x)*0.0008;p.vy+=(cy-p.y)*0.0008;p.vx*=0.85;p.vy*=0.85;p.x+=p.vx;p.y+=p.vy;});
+}
+const gxToScreen=p=>({x:(p.x-GX.W/2)*GX.view.s+GX.W/2+GX.view.x,y:(p.y-GX.H/2)*GX.view.s+GX.H/2+GX.view.y});
+const gxToWorld=(sx,sy)=>({x:(sx-GX.W/2-GX.view.x)/GX.view.s+GX.W/2,y:(sy-GX.H/2-GX.view.y)/GX.view.s+GX.H/2});
+const gxRadius=nd=>nd.type==="entity"?Math.min(15,5+Math.sqrt(nd.degree||1)):nd.type==="source"?5:6.5;
+const gxAdj=id=>GX.e.some(e=>(e.source===GX.sel&&e.target===id)||(e.target===GX.sel&&e.source===id));
+function gxDraw(){
+  const ctx=gcv().getContext("2d"); ctx.clearRect(0,0,GX.W,GX.H);
+  GX.e.forEach(ed=>{const a=GX.n.get(ed.source),b=GX.n.get(ed.target);if(!a||!b||GX.hidden.has(a.type)||GX.hidden.has(b.type))return;
+    if(ed.type==="claim"&&ed._ms&&GX.tcut!=null&&ed._ms>GX.tcut)return;   // time scrubber: not yet learned
+    const pa=gxToScreen(GX.pos.get(ed.source)),pb=gxToScreen(GX.pos.get(ed.target));
+    ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);
+    if(ed.type==="claim"){ctx.strokeStyle=ed.sign==="+"?"rgba(79,208,160,.55)":ed.sign==="-"?"rgba(229,84,75,.55)":"rgba(130,140,160,.4)";ctx.lineWidth=Math.min(3,1+(ed.independent_sources||1)*0.4);}
+    else if(ed.type==="synthesizes"){ctx.strokeStyle="rgba(230,200,110,.5)";ctx.lineWidth=1;ctx.setLineDash([4,3]);}
+    else{ctx.strokeStyle="rgba(90,100,120,.35)";ctx.lineWidth=1;}
+    ctx.stroke();ctx.setLineDash([]);});
+  const showLabel=GX.view.s>0.55;
+  GX.n.forEach((nd,id)=>{if(GX.hidden.has(nd.type))return;const p=gxToScreen(GX.pos.get(id)),r=gxRadius(nd)*Math.max(.6,Math.min(1.7,GX.view.s));
+    ctx.globalAlpha=(GX.sel&&GX.sel!==id&&!gxAdj(id))?0.45:1;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);ctx.fillStyle=gxColor(nd.type);ctx.fill();ctx.globalAlpha=1;
+    if(id===GX.sel){ctx.lineWidth=2.5;ctx.strokeStyle="#fff";ctx.stroke();}
+    else if(id===GX.hover){ctx.lineWidth=1.5;ctx.strokeStyle="rgba(255,255,255,.6)";ctx.stroke();}
+    if(showLabel||id===GX.sel||id===GX.hover){ctx.fillStyle="#aeb4c0";ctx.font="10px ui-monospace,monospace";ctx.fillText((nd.label||"").slice(0,26),p.x+r+3,p.y+3);}});
+}
+function gxLoop(){gxStep();gxDraw();GX.raf=requestAnimationFrame(gxLoop);}
+function gxHit(sx,sy){let best=null,bd=1e9;GX.n.forEach((nd,id)=>{if(GX.hidden.has(nd.type))return;const p=gxToScreen(GX.pos.get(id)),d=(p.x-sx)**2+(p.y-sy)**2,r=(gxRadius(nd)*Math.max(.6,Math.min(1.7,GX.view.s))+7)**2;if(d<r&&d<bd){bd=d;best=id;}});return best;}
+async function gxSelect(id){
+  GX.sel=id; $("#ginspect").innerHTML='<div class="gplace">loading…</div>';
+  try{
+    const det=await (await fetch(A("/graph/node?node="+encodeURIComponent(id)))).json();
+    $("#ginspect").innerHTML=gxInspect(det);
+    const nb=await (await fetch(A("/graph/neighbors?node="+encodeURIComponent(id)+"&limit=40"))).json();
+    gxAdd(nb,false); gxRenderFilters();
+  }catch(e){}
+}
+function gxInspect(d){
+  const t=d.type||"node";
+  let h=`<div class="kind" style="color:${gxColor(t)}">${esc(t)}</div><h3>${esc(d.label||d.subject||"")}</h3>`;
+  if(t==="entity"){
+    h+=`<div class="meta">${d.degree} connections in the graph</div><div class="kind">beliefs about this</div>`;
+    h+=(d.claims||[]).map(c=>`<div class="cl" onclick="prov('${c.claim_id}')">${esc(c.text)}<div class="m">${c.labs} labs · p=${(c.confidence||0).toFixed(2)}${c.anchored?' · ⚓ anchored':''}</div></div>`).join("")||'<div class="gplace">no claims yet</div>';
+  } else if(t==="claim"){
+    h+=`<div class="meta">${d.independent_sources} independent labs · p=${(d.confidence||0).toFixed(2)} · ${esc(d.provenance||'')}${d.anchored?' · ⚓ anchored':''}</div><div class="kind">evidence</div>`;
+    h+=(d.sources||[]).map(s=>`<div class="cl">${esc((s.title||s.slug||'').slice(0,90))}<div class="m">${esc(s.lab||'')}${s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank">${esc(s.doi)}</a>`:''}${s.quote?`<br>“${esc((s.quote||'').slice(0,150))}”`:''}</div></div>`).join("")||'<div class="gplace">no sources</div>';
+  } else if(t==="source"){
+    h+=`<div class="meta">${d.year||''} · ${esc(d.lab||'')}${d.doi?`<br><a href="https://doi.org/${esc(d.doi)}" target="_blank">${esc(d.doi)}</a>`:''}${d.url?`<br><a href="${esc(d.url)}" target="_blank">open paper ↗</a>`:''}</div>`;
+  } else if(t==="note"){
+    h+=`<div class="meta">${esc((d.entities||[]).slice(0,8).join(', '))}</div><span class="gact" onclick="openNote('${encodeURIComponent(d.slug)}')">read synthesis →</span>`;
+  }
+  h+=`<div style="margin-top:14px"><span class="gact" onclick="gxExpand('${esc(d.id)}')">expand connections ⤢</span></div>`;
+  return h;
+}
+async function gxExpand(id){try{const nb=await (await fetch(A("/graph/neighbors?node="+encodeURIComponent(id)+"&limit=60"))).json();gxAdd(nb,false);gxRenderFilters();}catch(e){}}
+function gxRenderFilters(){
+  const types=[...new Set([...GX.n.values()].map(n=>n.type))];
+  $("#gfilters").innerHTML=types.map(t=>`<span class="gchip ${GX.hidden.has(t)?'off':''}" onclick="gxToggle('${t}')"><span class="d" style="background:${gxColor(t)}"></span>${t}</span>`).join("");
+}
+function gxToggle(t){GX.hidden.has(t)?GX.hidden.delete(t):GX.hidden.add(t);gxRenderFilters();}
+let gxST=null;
+function gxSearch(q){clearTimeout(gxST);gxST=setTimeout(async()=>{
+  q=q.trim(); if(!q){$("#ginspect").innerHTML='<div class="gplace">Click any node to inspect and expand.</div>';return;}
+  try{const r=await (await fetch(A("/graph/search?q="+encodeURIComponent(q)))).json();
+    $("#ginspect").innerHTML=`<div class="kind">search · ${esc(q)}</div>`+((r.results||[]).map(n=>`<div class="cl" onclick="gxGoto('${esc(n.id)}','${esc(n.label)}')"><span style="color:${gxColor(n.type)}">●</span> ${esc(n.label)} <span class="m">${n.type}</span></div>`).join("")||'<div class="gplace">no matches</div>');
+  }catch(e){}
+},250);}
+async function gxGoto(id,label){
+  if(!GX.n.has(id)){GX.n.set(id,{id,type:(id.split(':')[0]),label});GX.pos.set(id,{x:GX.W/2,y:GX.H/2,vx:0,vy:0,fixed:false});}
+  GX.view={x:0,y:0,s:1}; await gxSelect(id);
+}
+(function gxInit(){
+  const c=$("#gcanvas");
+  c.addEventListener("mousedown",e=>{const id=gxHit(e.offsetX,e.offsetY);GX.drag=id?{id,moved:false}:{pan:true,x:e.offsetX,y:e.offsetY,vx:GX.view.x,vy:GX.view.y,moved:false};});
+  c.addEventListener("mousemove",e=>{GX.hover=gxHit(e.offsetX,e.offsetY);c.style.cursor=GX.hover?"pointer":"grab";
+    if(!GX.drag)return;GX.drag.moved=true;
+    if(GX.drag.pan){GX.view.x=GX.drag.vx+(e.offsetX-GX.drag.x);GX.view.y=GX.drag.vy+(e.offsetY-GX.drag.y);}
+    else{const w=gxToWorld(e.offsetX,e.offsetY),p=GX.pos.get(GX.drag.id);p.x=w.x;p.y=w.y;p.vx=0;p.vy=0;p.fixed=true;}});
+  c.addEventListener("mouseup",()=>{if(GX.drag&&!GX.drag.moved&&GX.drag.id)gxSelect(GX.drag.id);GX.drag=null;});
+  c.addEventListener("wheel",e=>{e.preventDefault();GX.view.s=Math.max(0.2,Math.min(5,GX.view.s*(e.deltaY<0?1.1:0.9)));},{passive:false});
+  addEventListener("resize",()=>{if($("#graphview").style.display!=="none")gxResize();});
+})();
 
 /* ---------- dashboard fetches (per persona) ---------- */
 const A=p=>`/api/persona/${PID}${p}`;

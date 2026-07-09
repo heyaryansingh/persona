@@ -268,7 +268,7 @@ class KG:
                     "MERGE (n)-[:SYNTHESIZES]->(c)", {"slug": slug, "cid": cid})
 
     def graph_snapshot(self, limit: int = 2000) -> dict:
-        """Nodes+edges for the UI (entities + claim topology)."""
+        """Nodes+edges for the dashboard mini-graph (entities + claim topology)."""
         nodes = self._q(
             "MATCH (e:Entity) RETURN e.name LIMIT $lim", {"lim": limit}).result_set
         edges = self._q(
@@ -278,3 +278,128 @@ class KG:
         return {"nodes": [{"id": n[0]} for n in nodes],
                 "edges": [{"source": e[0], "target": e[1], "sign": e[2],
                            "independent_sources": e[3], "confidence": e[4]} for e in edges]}
+
+    # ------------------------------------------- navigable graph (v6 P3): walk from ANY node
+    # Node ids are "type:key" (entity:name, claim:claim_id, source:slug, note:slug,
+    # experiment:id, idea:id, question:id). overview() = a RANKED seed (top entities by degree,
+    # not an arbitrary cap); neighbors() expands from one node; node() is the inspector detail.
+    def overview(self, limit: int = 60) -> dict:
+        top = self._q(
+            "MATCH (e:Entity)<-[:ABOUT_SUBJECT|ABOUT_OBJECT]-(c:Claim) "
+            "WITH e, count(c) AS deg ORDER BY deg DESC LIMIT $lim RETURN e.name, deg",
+            {"lim": limit}).result_set
+        names = [r[0] for r in top]
+        nodes = [{"id": f"entity:{n}", "type": "entity", "label": n, "degree": int(d)}
+                 for n, d in top]
+        edges = []
+        if names:
+            er = self._q(
+                "MATCH (c:Claim)-[:ABOUT_SUBJECT]->(s:Entity), (c)-[:ABOUT_OBJECT]->(o:Entity) "
+                "WHERE s.name IN $names AND o.name IN $names "
+                "RETURN s.name, o.name, c.claim_id, c.effect_sign, c.independent_source_count, "
+                "c.confidence, c.ingest_time", {"names": names}).result_set
+            for s, o, cid, sign, isc, conf, ing in er:
+                edges.append({"source": f"entity:{s}", "target": f"entity:{o}", "type": "claim",
+                              "claim_id": cid, "sign": sign, "independent_sources": isc,
+                              "confidence": conf, "t": ing})
+        return {"nodes": nodes, "edges": edges}
+
+    def neighbors(self, node_id: str, limit: int = 40) -> dict:
+        kind, _, key = (node_id or "").partition(":")
+        nodes, edges, seen = [], [], set()
+
+        def add(nid, typ, label, **extra):
+            if nid not in seen:
+                seen.add(nid)
+                nodes.append({"id": nid, "type": typ, "label": (label or "")[:70], **extra})
+
+        if kind == "entity":
+            rows = self._q(
+                "MATCH (c:Claim)-[:ABOUT_SUBJECT]->(s:Entity), (c)-[:ABOUT_OBJECT]->(o:Entity) "
+                "WHERE s.name=$n OR o.name=$n "
+                "RETURN s.name, o.name, c.claim_id, c.effect_sign, c.independent_source_count, "
+                "c.confidence, c.ingest_time ORDER BY c.independent_source_count DESC LIMIT $lim",
+                {"n": key, "lim": limit}).result_set
+            for s, o, cid, sign, isc, conf, ing in rows:
+                add(f"entity:{s}", "entity", s); add(f"entity:{o}", "entity", o)
+                edges.append({"source": f"entity:{s}", "target": f"entity:{o}", "type": "claim",
+                              "claim_id": cid, "sign": sign, "independent_sources": isc,
+                              "confidence": conf, "t": ing})
+            for slug, title, doi in self._q(
+                    "MATCH (c:Claim)-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(e:Entity {name:$n}), "
+                    "(c)-[:SUPPORTED_BY]->(s:Source) RETURN DISTINCT s.slug, s.title, s.doi LIMIT 12",
+                    {"n": key}).result_set:
+                add(f"source:{slug}", "source", title or slug, doi=doi)
+                edges.append({"source": f"entity:{key}", "target": f"source:{slug}", "type": "paper"})
+            for slug, title in self._q(
+                    "MATCH (nt:SynthesisNote)-[:SYNTHESIZES]->(c:Claim)"
+                    "-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(e:Entity {name:$n}) "
+                    "RETURN DISTINCT nt.slug, nt.title LIMIT 6", {"n": key}).result_set:
+                add(f"note:{slug}", "note", title or slug)
+                edges.append({"source": f"note:{slug}", "target": f"entity:{key}", "type": "synthesizes"})
+        elif kind == "source":
+            for a, b, cid, sign in self._q(
+                    "MATCH (c:Claim)-[:SUPPORTED_BY]->(s:Source {slug:$k}), "
+                    "(c)-[:ABOUT_SUBJECT]->(a:Entity), (c)-[:ABOUT_OBJECT]->(b:Entity) "
+                    "RETURN DISTINCT a.name, b.name, c.claim_id, c.effect_sign LIMIT $lim",
+                    {"k": key, "lim": limit}).result_set:
+                add(f"entity:{a}", "entity", a); add(f"entity:{b}", "entity", b)
+                edges.append({"source": f"source:{key}", "target": f"entity:{a}", "type": "paper"})
+                edges.append({"source": f"entity:{a}", "target": f"entity:{b}", "type": "claim",
+                              "claim_id": cid, "sign": sign})
+        elif kind == "note":
+            for a, b, cid in self._q(
+                    "MATCH (nt:SynthesisNote {slug:$k})-[:SYNTHESIZES]->(c:Claim)"
+                    "-[:ABOUT_SUBJECT]->(a:Entity), (c)-[:ABOUT_OBJECT]->(b:Entity) "
+                    "RETURN DISTINCT a.name, b.name, c.claim_id LIMIT $lim",
+                    {"k": key, "lim": limit}).result_set:
+                add(f"entity:{a}", "entity", a); add(f"entity:{b}", "entity", b)
+                edges.append({"source": f"note:{key}", "target": f"entity:{a}", "type": "synthesizes"})
+                edges.append({"source": f"entity:{a}", "target": f"entity:{b}", "type": "claim",
+                              "claim_id": cid})
+        return {"nodes": nodes, "edges": edges}
+
+    def node(self, node_id: str) -> dict:
+        kind, _, key = (node_id or "").partition(":")
+        if kind == "entity":
+            deg = self._q("MATCH (e:Entity {name:$n})<-[:ABOUT_SUBJECT|ABOUT_OBJECT]-(c:Claim) "
+                          "RETURN count(c)", {"n": key}).result_set
+            claims = self._q(
+                "MATCH (c:Claim)-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(e:Entity {name:$n}) "
+                "RETURN c.claim_id, c.subject, c.effect_sign, c.object, c.independent_source_count, "
+                "c.confidence, c.anchored ORDER BY c.independent_source_count DESC LIMIT 25",
+                {"n": key}).result_set
+            return {"id": node_id, "type": "entity", "label": key,
+                    "degree": int(deg[0][0]) if deg else 0,
+                    "claims": [{"claim_id": r[0], "text": f"{r[1]} [{r[2]}] {r[3]}", "labs": r[4],
+                                "confidence": r[5], "anchored": r[6]} for r in claims]}
+        if kind == "claim":
+            p = self.provenance(key); p["id"] = node_id; p["type"] = "claim"; return p
+        if kind == "source":
+            r = self._q("MATCH (s:Source {slug:$k}) RETURN s.title, s.doi, s.url, s.year, s.lab",
+                        {"k": key}).result_set
+            row = r[0] if r else [key, "", "", 0, ""]
+            return {"id": node_id, "type": "source", "label": row[0] or key, "doi": row[1],
+                    "url": row[2], "year": row[3], "lab": row[4]}
+        if kind == "note":
+            r = self._q("MATCH (n:SynthesisNote {slug:$k}) RETURN n.title, n.entities, n.updated",
+                        {"k": key}).result_set
+            row = r[0] if r else [key, [], ""]
+            return {"id": node_id, "type": "note", "label": row[0] or key, "slug": key,
+                    "entities": row[1], "updated": row[2]}
+        return {"id": node_id, "type": kind or "unknown", "label": key}
+
+    def search(self, q: str, limit: int = 20) -> list:
+        ql = (q or "").lower().strip()
+        if not ql:
+            return []
+        out = [{"id": f"entity:{r[0]}", "type": "entity", "label": r[0]} for r in self._q(
+            "MATCH (e:Entity) WHERE toLower(e.name) CONTAINS $q RETURN e.name LIMIT $l",
+            {"q": ql, "l": limit}).result_set]
+        rem = max(0, limit - len(out))
+        if rem:
+            out += [{"id": f"source:{r[0]}", "type": "source", "label": (r[1] or r[0])[:70]}
+                    for r in self._q(
+                        "MATCH (s:Source) WHERE toLower(s.title) CONTAINS $q "
+                        "RETURN s.slug, s.title LIMIT $l", {"q": ql, "l": rem}).result_set]
+        return out[:limit]
