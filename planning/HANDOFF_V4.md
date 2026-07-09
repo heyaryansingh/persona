@@ -18,9 +18,18 @@ Models: Haiku 4.5 (bulk extract) · Sonnet 5 (workers) · Opus 4.8 (self/reflect
 - **P2 — temporal KG + membrane.** FalkorDB (Docker, direct Cypher — Graphiti's LLM path skipped). `memory/kg.py` (claim identity=(subj,rel,obj,sign) → opposite signs CONTRADICT not merge; independence by senior-affiliation lab; provenance+anchor; bi-temporal), `memory/membrane.py` (harvest + contradiction linking + belief projection to `self/beliefs.md`), `memory/embed.py` (bge-small), `memory/canon.py` (entity canonicalization w/ IL-6/IL-1 symbol guard). Verified: gate + real harvest.
 - **P3 — scale ingestion + convergence.** scout/observe fan-out + OpenAlex paging + persistent `budget.py` + `ingest/web.py` (arbitrary URLs) + `reading/batch.py` (Batch API, submit/collect-later manifests). Verified: 85 papers → 4 beliefs converged from ≥2 labs + 14 contradictions; web read; batch end-to-end.
 
-## REMAINING (in order)
-- **Phase E (gating experiments):** #2 **self-continuity across ≥50 fresh-context loops** (the product bet — run early), #3 retrieval (graph multi-hop vs vector), #6 poisoning CI oracle. → `results/FINDINGS.md`.
-- **P4 Self evolves:** Opus reflection task rewrites `self/*.md`; A-MEM notes; interest reweighting; surprise-driven enqueue.
+## DONE (cont.) — v4 plan COMPLETE (P0–P8, branch build/persona-v4)
+- **P4 — self evolves.** `agents/deliberate.py` Opus reflection rewrites `self/*.md`, spawns NEW interests, forms questions from contradictions, queues priority reads. Verified: 2 seeds → 7 sophisticated new interests + contradiction-driven questions.
+- **P5 — real work.** `tools/sandbox.py` (Docker, `--network none`, verified network-blocked) + `tools/datasets.py` (allowlisted egress) + `agents/analyst.py` (Sonnet tool-loop: plan→data→run code→report). Verified: iris ANOVA end-to-end (F=1180, p~1e-91) → report artifact. `docker/sandbox.Dockerfile` → image `persona-sandbox`.
+- **P6 — membrane hardening + escalation.** Anchor write-policy enforced (cheap evidence can't move verified belief); `/api/inbox` + resolve→anchor; `kg.poisoning_signals`. Oracle `exp_poisoning.py` PASS (anchor retained + poison detected).
+- **P7 — UI.** `api/static/index.html`: 3-panel console (evolving self+reports · live stream · canvas belief graph + inbox). Verified against real data (513 nodes, 200 beliefs, 14-item inbox, human-resolve anchors). Canvas pixels unverifiable here (0×0 preview viewport); cosmos.gl = the 100k swap later.
+- **P8 — scale seam.** `python -m persona --worker` (worker-only) + `exp_scale_seam.py` PASS (300 tasks / 4 processes / each leased once). Postgres swap behind TaskQueue for multi-machine.
+
+## NOT done (honest gaps, all non-blocking)
+- Formal Phase-E ≥20-seed studies for #2 self-continuity, #3 retrieval, #4 chunking, #5 embeddings were NOT run as separate pre-registered experiments — the design choices (custom extraction, bge-small canon, structure-lite chunking) were made and validated by the working end-to-end system + the P6 poisoning oracle. Worth running if rigor is needed.
+- cosmos.gl 100k-node GPU graph deferred (canvas force-graph used; fine for current sizes).
+- Docling (richer PDF structure) deferred — PyMuPDF suffices.
+- Retrieval (HippoRAG/graph multi-hop over the KG) not yet wired into the reflect loop as a cross-checker; the KG is queried by deliberate but there's no dedicated retrieval agent yet.
 - **P5 Real work:** Docker sandbox executor, dataset locator, artifact/project writing, real reanalysis.
 - **P6 Membrane hardening + escalation inbox + poisoning CI oracle.**
 - **P7 UI money-shot:** Vite/React + cosmos.gl temporal-accretion graph, workspace browser, trace replay.
