@@ -28,8 +28,11 @@
   #gallery h1{font-family:var(--serif);font-weight:500;font-size:26px;margin:0 0 4px}
   #gallery .sub{color:var(--dim);margin-bottom:24px}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-  .pcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:border-color .15s}
+  .pcard{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:border-color .15s}
   .pcard:hover{border-color:var(--anchor)}
+  .pcard .del{position:absolute;top:9px;right:10px;background:none;border:none;color:var(--faint);font-family:var(--mono);font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:5px;opacity:0;transition:opacity .12s}
+  .pcard:hover .del{opacity:1}
+  .pcard .del:hover{color:var(--contra);background:#1a1113}
   .pcard .n{font-family:var(--serif);font-size:19px;margin-bottom:2px}
   .pcard .st{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
   .st.RUNNING{color:var(--live)} .st.SEEDED{color:var(--claim)} .st.UNSEEDED{color:var(--dim)}
@@ -134,8 +137,11 @@ let PID=null, es=null, timers=[];
 /* ---------- gallery ---------- */
 async function loadGallery(){
   const d=await (await fetch("/api/personas")).json();
+  window.__personas={}; (d.personas||[]).forEach(p=>window.__personas[p.id]=p);
   const cards=(d.personas||[]).map(p=>
-    `<div class="pcard" onclick="openPersona('${p.id}')"><div class="n">${esc(p.name)}</div>`+
+    `<div class="pcard" onclick="openPersona('${p.id}')">`+
+    `<button class="del" title="delete this persona" onclick="event.stopPropagation();deletePersona('${p.id}')">✕</button>`+
+    `<div class="n">${esc(p.name)}</div>`+
     `<div class="st ${p.status}">${p.status}</div><div class="stats">`+
     `<span><b>${p.claims}</b> claims</span><span><b>${p.entities}</b> entities</span>`+
     `<span>$<b>${(p.spent_today||0).toFixed(2)}</b></span></div></div>`).join("");
@@ -160,6 +166,15 @@ async function createPersona(){
     alert("Could not create persona — "+e.message);
     if(btn){btn.disabled=false;btn.textContent="create & seed";}
   }
+}
+async function deletePersona(id){
+  const p=(window.__personas||{})[id]||{name:id,claims:0};
+  if(!confirm(`Delete "${p.name}"? This wipes its graph, notes, and ${p.claims||0} claims permanently.`)) return;
+  try{
+    const res=await fetch(`/api/persona/${id}/delete`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({wipe:true})});
+    if(!res.ok) throw new Error("server "+res.status);
+    loadGallery();
+  }catch(e){ alert("Delete failed — "+e.message); }
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
