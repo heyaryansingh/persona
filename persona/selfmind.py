@@ -21,11 +21,26 @@ def is_seeded() -> bool:
     return (config.SELF_DIR / "interests.md").exists()
 
 
+def reset() -> None:
+    """Wipe the durable self back to blank (a truly fresh start). Does NOT touch the KG."""
+    config.ensure_workspace()
+    for f in config.SELF_FILES:
+        p = config.SELF_DIR / f
+        if p.exists():
+            p.unlink()
+
+
 def seed(interests: list[str], name: str = "Persona") -> bool:
-    """Born blank: lay down the initial self from seed interests. No-op if already seeded.
-    Returns True if it seeded, False if a self already existed."""
+    """Seed / re-seed the persona. If blank, born fresh. If already has a self, APPLY the new
+    interests (never silently drop the user's input — that was the v4 bug); accumulated beliefs/
+    strategies/taste are kept. Returns True if this was a fresh birth, False if a re-seed."""
     config.ensure_workspace()
     if is_seeded():
+        set_interests([(i.strip(), 1.0) for i in interests if i.strip()])
+        set_open_questions([f"What is currently known about {i.strip()}?"
+                            for i in interests if i.strip()])
+        append_changelog(f"re-seeded by human — interests set to: "
+                         f"{', '.join(i.strip() for i in interests if i.strip())}")
         return False
     (config.SELF_DIR / "identity.md").write_text(
         f"# identity\n\nname: {name}\nborn: {_now()}\n\n"

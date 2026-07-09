@@ -116,10 +116,18 @@ def seed(payload: dict):
     interests = payload.get("interests") or []
     if isinstance(interests, str):
         interests = [s.strip() for s in interests.split(",") if s.strip()]
-    seeded = selfmind.seed(interests, name=payload.get("name", "Persona"))
-    log().emit("seed", f"{'seeded' if seeded else 'already seeded'}: "
+    fresh_birth = selfmind.seed(interests, name=payload.get("name", "Persona"))
+    log().emit("seed", f"{'born' if fresh_birth else 're-seeded'} with interests: "
                f"{', '.join(interests)}", actor="human")
-    return {"seeded": seeded, "interests": selfmind.interests()}
+    return {"applied": True, "fresh_birth": fresh_birth, "interests": selfmind.interests()}
+
+
+@app.post("/api/reset")
+def reset():
+    """Wipe the durable self to a blank slate (does not touch the belief graph)."""
+    selfmind.reset()
+    log().emit("seed", "reset to a blank slate by human", actor="human")
+    return {"reset": True}
 
 
 @app.post("/api/read_url")

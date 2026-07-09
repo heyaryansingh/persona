@@ -4,17 +4,17 @@ Docling + structure-aware chunking for the full pipeline lands in P3; P1 gets re
 """
 from __future__ import annotations
 
-import urllib.request
-
-_UA = "persona-researcher/4.0 (mailto:persona-researcher@example.org)"
 _MAX_PAGES = 18
 _MAX_CHARS = 45000
 
 
-def _fetch_pdf_text(url: str, timeout: float = 30.0) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": _UA, "Accept": "application/pdf"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        data = r.read()
+def _fetch_pdf_text(url: str) -> str:
+    from .service import service
+    data = service().get_bytes(url, accept="application/pdf")   # cached + rate-limited + backoff
+    if b"<fullTextXML" in data[:200] or b"<article" in data[:400]:   # Europe PMC full-text XML
+        import re
+        txt = re.sub(r"<[^>]+>", " ", data.decode("utf-8", "replace"))
+        return re.sub(r"\s+", " ", txt).strip()
     import fitz  # PyMuPDF
     doc = fitz.open(stream=data, filetype="pdf")
     parts = []

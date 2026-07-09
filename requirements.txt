@@ -9,6 +9,7 @@ python-dotenv
 falkordb             # temporal knowledge graph client (needs Docker: falkordb/falkordb on :6379)
 fastembed            # local bge-small embeddings (entity canonicalization / retrieval)
 trafilatura          # web main-content extraction (arbitrary URLs)
+hishel               # persistent HTTP cache (v5 ingestion: kills re-scout churn); httpx-based
 
 # Planned (install per phase):
 # docling                    # richer PDF structure (heavier); PyMuPDF suffices for now

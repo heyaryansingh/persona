@@ -25,9 +25,14 @@ def main() -> None:
     ap.add_argument("--worker", action="store_true",
                     help="run a WORKER-ONLY process (no API/scheduler) against the shared queue "
                          "— horizontal scale-out; run several pointing at the same PERSONA_WORKSPACE")
+    ap.add_argument("--fresh", action="store_true",
+                    help="wipe the durable self to a true blank slate before starting")
     args = ap.parse_args()
 
     config.ensure_workspace()
+    if args.fresh:
+        selfmind.reset()
+        print("reset to a blank slate — seed interests to begin")
     if args.worker:
         import asyncio
         from .daemon.supervisor import Daemon

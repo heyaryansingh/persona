@@ -35,24 +35,22 @@ def _already_read(slug: str) -> bool:
 
 
 def scout(interest: str, want: int = 20, max_pages: int = 3, per_page: int = 25) -> list[dict]:
-    """Return up to `want` UNREAD works for an interest (paged). Slim dicts (for task params)."""
-    out, page = [], 1
-    seen = set()
-    while len(out) < want and page <= max_pages:
-        try:
-            works = openalex.search(interest, limit=per_page, page=page)
-        except Exception as e:
-            log().emit("error", f"scout failed for “{interest}” p{page}: {str(e)[:140]}", actor="scout")
-            break
-        if not works:
-            break
-        for w in works:
-            if w.slug and w.slug not in seen and not _already_read(w.slug):
-                seen.add(w.slug)
-                out.append(w.to_dict())
-                if len(out) >= want:
-                    break
-        page += 1
+    """Return up to `want` UNREAD works for an interest, via multi-source failover (OpenAlex →
+    Crossref → Europe PMC → arXiv). Cached + rate-limited + backed-off by the IngestService, so a
+    single host's 429 no longer starves discovery."""
+    from ..ingest.sources import search_multi
+    works, src = search_multi(interest, max(want, per_page),
+                              log=lambda m: log().emit("thought", m, actor="scout", interest=interest))
+    seen, out = set(), []
+    for w in works:
+        if w.slug and w.slug not in seen and not _already_read(w.slug):
+            seen.add(w.slug)
+            out.append(w.to_dict())
+            if len(out) >= want:
+                break
+    if not out and src == "none":
+        log().emit("error", f"no source returned results for “{interest}” (all rate-limited/empty)",
+                   actor="scout")
     return out
 
 

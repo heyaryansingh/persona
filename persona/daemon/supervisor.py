@@ -42,12 +42,25 @@ class Daemon:
                            actor=f"worker-{wid}", task_id=task.id)
 
     async def _scheduler_loop(self) -> None:
-        # seed the very first pulse of work so the mind starts thinking immediately
-        self.queue.enqueue("reflect", priority=0)
+        from .. import selfmind
         self_every = max(1, int(config.SELF_INTERVAL_S / config.SCHEDULER_INTERVAL_S))
         tick = 0
+        started = False
+        announced_wait = False
         while not self._stop.is_set():
             try:
+                # SEEDED-GATE: do NO work until the user has given this persona its interests.
+                # (Fixes "it runs before I set it / with vanilla interests".)
+                if not selfmind.is_seeded():
+                    if not announced_wait:
+                        log().emit("thought", "blank slate — waiting for a human to seed my "
+                                   "interests before I start.", actor="self")
+                        announced_wait = True
+                    await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
+                    continue
+                if not started:                         # seeded → fire the first pulse of work
+                    self.queue.enqueue("reflect", priority=0)
+                    started = True
                 tick += 1
                 depth = self.queue.depth()
                 if depth < config.QUEUE_MIN_DEPTH:
