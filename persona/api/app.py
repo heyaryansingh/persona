@@ -184,6 +184,19 @@ def synthesis(pid: str):
     return {"notes": notes}
 
 
+@app.get("/api/persona/{pid}/fieldmap")
+def fieldmap(pid: str):
+    """A navigable map through the field: subtopics → beliefs → contradictions → open-questions → papers."""
+    p = _p(pid)
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        from ..synthesis import fieldmap as fm
+        g = get_kg()
+        if g is None:
+            return {"n_subtopics": 0, "subtopics": []}
+        return fm.build(g, p.paths.notes_dir)
+
+
 @app.get("/api/persona/{pid}/note/{slug}")
 def note(pid: str, slug: str):
     if "/" in slug or "\\" in slug:

@@ -91,6 +91,7 @@
   <header>
     <span class="dot"></span><span class="brand" onclick="toGallery()">PERSONA</span>
     <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
+    <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
     <span class="status" id="status"></span>
   </header>
 
@@ -152,11 +153,23 @@ async function createPersona(){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
+async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json();
+  const html=(m.subtopics||[]).map(s=>`<div style="margin:16px 0;border-left:3px solid var(--anchor);padding-left:14px">`+
+    `<div style="font-family:var(--serif);font-size:18px">${esc(s.title)} `+
+    (s.has_note?`<span style="font-size:11px;font-family:var(--mono)"><a href="#" onclick="openNote('${encodeURIComponent(s.slug)}');return false">read synthesis →</a></span>`:'')+`</div>`+
+    `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin:2px 0 8px">${s.n_claims} claims · ${s.n_sources} papers · ${esc((s.entities||[]).slice(0,6).join(', '))}</div>`+
+    (s.beliefs.length?`<div style="font-family:var(--mono);font-size:12px">${s.beliefs.map(b=>`<div style="cursor:pointer" onclick="prov('${b.claim_id}')">• ${esc(b.text)} <span style="color:var(--dim)">(${b.labs} labs)</span></div>`).join("")}</div>`:'')+
+    (s.contradictions.length?`<div style="font-family:var(--mono);font-size:12px;color:var(--contra);margin-top:6px">${s.contradictions.map(c=>`⚡ ${esc(c.subject)} → ${esc(c.object)}: +${c.pos} vs −${c.neg}`).join("<br>")}</div>`:'')+
+    (s.open_questions.length?`<div style="font-family:var(--serif);font-size:13px;color:var(--claim);margin-top:6px">${s.open_questions.map(q=>`? ${esc(q)}`).join("<br>")}</div>`:'')+
+    `</div>`).join("");
+  $("#modalbox").innerHTML=`<h1>Field map — ${m.n_subtopics} subtopics, ${m.total_contradictions} open contradictions</h1>`+
+    `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
+  $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
