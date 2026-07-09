@@ -113,13 +113,15 @@ class KG:
             MATCH (s:Source {slug:$slug})
             MERGE (c)-[:SUPPORTED_BY]->(s)
             """, params)
-        # recompute support + independence (distinct labs) + running-mean confidence
+        # recompute support + independence (distinct labs) + running-mean confidence.
+        # ANCHOR WRITE-POLICY: a human/tested-anchored belief's confidence is PINNED — cheap READ
+        # evidence updates its support counts (informational) but cannot move the belief itself.
         self._q(
             """
             MATCH (c:Claim {claim_id:$cid})-[:SUPPORTED_BY]->(s:Source)
             WITH c, count(s) AS n, count(DISTINCT s.lab) AS labs
             SET c.support_count = n, c.independent_source_count = labs,
-                c.confidence = c.conf_sum / n
+                c.confidence = CASE WHEN c.anchored THEN c.confidence ELSE c.conf_sum / n END
             """, {"cid": cid})
         return cid
 
@@ -148,11 +150,27 @@ class KG:
         return int(r.result_set[0][0]) if r.result_set else 0
 
     def anchor(self, claim_id: str, provenance: str, truth: bool) -> None:
-        """Human/tested sign-off pins a belief (anchor write-policy)."""
+        """Human/tested sign-off pins a belief (anchor write-policy). truth=False retires it."""
         self._q(
             "MATCH (c:Claim {claim_id:$cid}) SET c.anchored=true, c.provenance=$prov, "
+            "c.confidence = CASE WHEN $truth THEN 0.99 ELSE 0.01 END, "
             "c.valid_to = CASE WHEN $truth THEN null ELSE $now END",
             {"cid": claim_id, "prov": provenance, "truth": truth, "now": _now()})
+
+    def human_resolve(self, claim_id: str, truth: bool, provenance: str = "HUMAN_CONFIRMED") -> dict:
+        """A human resolves an escalated contradiction: anchor the chosen side (protected henceforth)."""
+        self.anchor(claim_id, provenance, truth)
+        r = self._q("MATCH (c:Claim {claim_id:$cid}) RETURN c.subject, c.relation, c.object, "
+                    "c.effect_sign, c.provenance, c.anchored", {"cid": claim_id})
+        if not r.result_set:
+            return {"ok": False}
+        row = r.result_set[0]
+        return {"ok": True, "claim_id": claim_id, "subject": row[0], "object": row[2],
+                "effect_sign": row[3], "provenance": row[4], "anchored": row[5], "truth": truth}
+
+    def is_anchored(self, claim_id: str) -> bool:
+        r = self._q("MATCH (c:Claim {claim_id:$cid}) RETURN c.anchored", {"cid": claim_id})
+        return bool(r.result_set and r.result_set[0][0])
 
     # ---------------------------------------------------------------- reads
     def stats(self) -> dict:
@@ -184,6 +202,20 @@ class KG:
                    a.claim_id, b.claim_id LIMIT $lim
             """, {"lim": limit})
         cols = ["subject", "object", "pos_sources", "neg_sources", "pos_claim", "neg_claim"]
+        return [dict(zip(cols, row)) for row in r.result_set]
+
+    def poisoning_signals(self, min_volume: int = 8, max_indep_ratio: float = 0.4) -> list:
+        """Correlated-poisoning signature: a high-volume, LOW-independence claim that contradicts
+        an anchored belief (many copies from few labs trying to overturn verified knowledge)."""
+        r = self._q(
+            """
+            MATCH (attacker:Claim)-[:CONTRADICTS]->(anchored:Claim {anchored:true})
+            WHERE attacker.support_count >= $vol
+              AND (toFloat(attacker.independent_source_count) / attacker.support_count) <= $ratio
+            RETURN attacker.subject, attacker.object, attacker.support_count,
+                   attacker.independent_source_count, anchored.claim_id
+            """, {"vol": min_volume, "ratio": max_indep_ratio})
+        cols = ["subject", "object", "volume", "independent_labs", "anchored_claim"]
         return [dict(zip(cols, row)) for row in r.result_set]
 
     def graph_snapshot(self, limit: int = 2000) -> dict:

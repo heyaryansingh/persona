@@ -60,6 +60,31 @@ def kg():
             "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
 
 
+@app.get("/api/inbox")
+def inbox():
+    """Human-escalation inbox: contradictions the researcher wants a human to adjudicate."""
+    from ..memory.membrane import get_kg
+    g = get_kg()
+    if g is None:
+        return {"available": False, "items": []}
+    return {"available": True, "items": g.contradictions(limit=50)}
+
+
+@app.post("/api/inbox/resolve")
+def inbox_resolve(payload: dict):
+    """Human adjudicates: anchor the chosen side (protected from cheap evidence henceforth)."""
+    from ..memory.membrane import get_kg
+    g = get_kg()
+    if g is None:
+        return {"ok": False, "reason": "no-kg"}
+    res = g.human_resolve(payload["claim_id"], bool(payload.get("truth", True)),
+                          payload.get("provenance", "HUMAN_CONFIRMED"))
+    if res.get("ok"):
+        log().emit("escalate", f"human anchored: {res['subject']} → {res['object']} "
+                   f"({'holds' if payload.get('truth', True) else 'refuted'})", actor="human")
+    return res
+
+
 @app.get("/api/self")
 def get_self():
     return {"seeded": selfmind.is_seeded(), "interests": selfmind.interests(),

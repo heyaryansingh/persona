@@ -296,3 +296,17 @@ argument screen. Passing E5 needs a richer real-Claude corpus spanning more year
 
 Net: both engine "predictive" claims remain **descriptive with evidence attached** — exactly the
 plan's allowed outcome, and consistent with what the UI already tells the user.
+
+---
+
+# Persona v4 findings
+
+## P6 — anchor write-policy resists correlated poisoning (CI oracle)
+
+`experiments/exp_poisoning.py` (FalkorDB): a human-verified belief "drugX reduces mortality"
+(anchored HUMAN_CONFIRMED) is attacked by 24 contrary "increases" claims from only 2 labs.
+Result: the anchored belief is **RETAINED** (confidence 0.99 → 0.99, sign unchanged, still
+anchored) because the anchor write-policy pins verified knowledge against cheap READ evidence;
+and the poison pattern is **DETECTED** (volume 24, independent_labs 2, contradicting an anchor).
+Mirrors the v3 corruption-resistance result. The human-escalation inbox (/api/inbox) surfaces
+contradictions; a human resolve anchors the chosen side, which is then protected henceforth.
