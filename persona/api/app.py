@@ -34,7 +34,7 @@ async def _supervisor():
     while True:
         try:
             for p in manager().list():
-                if p.is_seeded():
+                if p.is_seeded() and not p.is_halted():   # HALTED personas stay down until resumed
                     manager().start(p)      # no-op if already running
         except Exception:
             pass
@@ -89,6 +89,59 @@ def reset(pid: str):
     with context.use(_p(pid)):
         selfmind.reset()
     return {"reset": True}
+
+
+# --------------------------------------------------------------- control plane (v6 P0)
+@app.post("/api/persona/{pid}/pause")
+def pause(pid: str):
+    p = _p(pid)
+    p.set_run_state("PAUSED")
+    with context.use(p):
+        from ..events import log
+        log().emit("control", "paused by human — no new work or spend until resumed", actor="human")
+    return {"run_state": "PAUSED"}
+
+
+@app.post("/api/persona/{pid}/resume")
+def resume(pid: str):
+    p = _p(pid)
+    p.set_run_state("RUNNING")   # the startup supervisor restarts a halted daemon within ~3s
+    with context.use(p):
+        from ..events import log
+        log().emit("control", "resumed by human", actor="human")
+    return {"run_state": "RUNNING"}
+
+
+@app.post("/api/persona/{pid}/halt")
+def halt(pid: str):
+    p = _p(pid)
+    p.set_run_state("HALTED")
+    manager().stop(pid)          # stop the daemon; supervisor won't restart while HALTED
+    with context.use(p):
+        from ..events import log
+        log().emit("control", "halted by human — daemon stopped", actor="human")
+    return {"run_state": "HALTED"}
+
+
+@app.get("/api/persona/{pid}/spend")
+def spend(pid: str):
+    p = _p(pid)
+    b = p.budget
+    with context.use(p):
+        from ..events import log
+        recent = [e for e in log().since(max(0, log().latest_id() - 400))
+                  if e.get("type") == "cost"][-12:]
+    return {"spent_today": round(b.spent_today(), 4), "cap_usd": round(p.cap_usd, 2),
+            "remaining": round(b.remaining(), 4), "run_state": p.run_state(),
+            "recent_costs": [{"task": e["data"].get("task_type"), "usd": e["data"].get("cost"),
+                              "at": e["ts"]} for e in recent]}
+
+
+@app.post("/api/persona/{pid}/budget")
+def set_budget(pid: str, payload: dict):
+    p = _p(pid)
+    p.set_cap(float(payload["cap_usd"]))
+    return {"cap_usd": round(p.cap_usd, 2), "remaining": round(p.budget.remaining(), 4)}
 
 
 @app.post("/api/persona/{pid}/delete")

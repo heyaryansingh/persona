@@ -88,6 +88,22 @@
   #modal .box, #modal .box *{font-family:var(--serif);font-size:15px;line-height:1.6;color:#dfe3ea}
   #modal .box h1{font-size:22px} #modal .box code,#modal .box pre{font-family:var(--mono);font-size:12.5px}
   .empty{color:var(--faint);font-size:11px;padding:8px}
+  /* cost / control bar (v6 P0) */
+  .ctl{display:none;align-items:center;gap:12px;margin-left:6px}
+  .pill{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;border:1px solid var(--line);position:relative}
+  .pill::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .pill.RUNNING{color:var(--live);border-color:#1e3a30}.pill.RUNNING::before{background:var(--live);box-shadow:0 0 8px var(--live);animation:pulse 2.4s infinite}
+  .pill.PAUSED{color:var(--claim);border-color:#3a3420}.pill.PAUSED::before{background:var(--claim)}
+  .pill.HALTED{color:var(--contra);border-color:#3a2320}.pill.HALTED::before{background:var(--contra)}
+  .meter{display:flex;flex-direction:column;gap:3px;min-width:132px}
+  .meter .lab{font-size:10px;color:var(--dim);display:flex;justify-content:space-between;gap:10px;font-family:var(--mono)}
+  .meter .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .meter .cap{cursor:pointer;border-bottom:1px dotted var(--faint)}
+  .meter .bar{height:4px;background:#171a22;border-radius:3px;overflow:hidden}
+  .meter .fill{height:100%;width:0;background:var(--live);border-radius:3px;transition:width .5s ease,background .5s}
+  .ctl button{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s}
+  .ctl button:hover{border-color:var(--anchor)}
+  .ctl button.halt:hover{border-color:var(--contra);color:var(--contra)}
 </style>
 </head>
 <body>
@@ -96,6 +112,15 @@
     <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
     <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ request review/paper</button>
+    <span class="ctl" id="controlbar">
+      <span class="pill RUNNING" id="runpill">running</span>
+      <span class="meter" title="today's spend / daily cap">
+        <span class="lab"><span>today</span><span><b id="spentv">$0.00</b> / <span class="cap" id="capv" onclick="editBudget()" title="click to change the daily cap">$0.00</span></span></span>
+        <span class="bar"><span class="fill" id="spendfill"></span></span>
+      </span>
+      <button id="pausebtn" onclick="togglePause()">⏸ pause</button>
+      <button class="halt" onclick="haltPersona()">■ halt</button>
+    </span>
     <span class="status" id="status"></span>
   </header>
 
@@ -178,7 +203,7 @@ async function deletePersona(id){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
 async function requestDeliverable(){
@@ -199,15 +224,47 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
     if(["belief_update","contradiction","artifact","escalate"].includes(e.type)){refreshKG();refreshInbox();refreshWork();}
+    if(e.type==="cost"||e.type==="control"){refreshSpend();}
     if(e.type==="synthesis"){refreshNotes();}}catch{}};
-  refreshStatus();refreshSelf();refreshWork();refreshNotes();refreshKG();refreshInbox();
+  refreshStatus();refreshSelf();refreshWork();refreshNotes();refreshKG();refreshInbox();refreshSpend();
   timers=[setInterval(refreshStatus,2500),setInterval(refreshSelf,8000),setInterval(refreshKG,9000),
-          setInterval(refreshInbox,9000),setInterval(refreshWork,12000),setInterval(refreshNotes,12000)];
+          setInterval(refreshInbox,9000),setInterval(refreshWork,12000),setInterval(refreshNotes,12000),
+          setInterval(refreshSpend,2500)];
+}
+/* ---------- cost / control bar (v6 P0) ---------- */
+async function refreshSpend(){
+  if(!PID) return;
+  try{
+    const s=await (await fetch(A("/spend"))).json();
+    $("#spentv").textContent="$"+s.spent_today.toFixed(2);
+    $("#capv").textContent="$"+s.cap_usd.toFixed(2);
+    const pct=s.cap_usd>0?Math.min(100,100*s.spent_today/s.cap_usd):0;
+    const f=$("#spendfill"); f.style.width=pct+"%";
+    f.style.background=pct>=99?"var(--contra)":pct>80?"var(--claim)":"var(--live)";
+    const rs=s.run_state,pill=$("#runpill");
+    pill.className="pill "+rs; pill.textContent=rs.toLowerCase();
+    $("#pausebtn").textContent=rs==="PAUSED"?"▶ resume":"⏸ pause";
+    $("#pausebtn").title=rs==="HALTED"?"halted — press to resume":"";
+  }catch{}
+}
+async function togglePause(){
+  const rs=$("#runpill").textContent.toUpperCase();
+  await fetch(A(rs==="RUNNING"?"/pause":"/resume"),{method:"POST"}); refreshSpend();
+}
+async function haltPersona(){
+  if(!confirm("Halt this persona? Its daemon stops — no reading, no building, no spend — until you resume.")) return;
+  await fetch(A("/halt"),{method:"POST"}); refreshSpend();
+}
+async function editBudget(){
+  const cur=$("#capv").textContent.replace("$","");
+  const v=prompt("Daily budget cap (USD) — the persona hard-stops spending at this:",cur); if(v===null) return;
+  const cap=parseFloat(v); if(isNaN(cap)||cap<0){alert("enter a non-negative number");return;}
+  await fetch(A("/budget"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cap_usd:cap})}); refreshSpend();
 }
 
 /* ---------- dashboard fetches (per persona) ---------- */

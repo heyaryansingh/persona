@@ -7,6 +7,7 @@ Personas coexist in one process with zero shared mutable state; the current-pers
 """
 from __future__ import annotations
 
+import json
 import threading
 
 from . import config
@@ -42,8 +43,48 @@ class Persona:
     def budget(self):
         if self._budget is None:
             from .budget import DailyBudget
-            self._budget = DailyBudget(self.paths.budget_db, self.budget_usd)
+            self._budget = DailyBudget(self.paths.budget_db, self.cap_usd)
         return self._budget
+
+    # ---- control plane (v6 P0): run-state + writable cap, persisted so it survives restarts ----
+    @property
+    def _control_path(self):
+        return self.paths.ops_dir / "control.json"
+
+    def _control(self) -> dict:
+        p = self._control_path
+        if p.exists():
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return {}
+
+    def _write_control(self, d: dict) -> None:
+        self.paths.ops_dir.mkdir(parents=True, exist_ok=True)
+        self._control_path.write_text(json.dumps(d), encoding="utf-8")
+
+    def run_state(self) -> str:
+        return self._control().get("run_state", "RUNNING")
+
+    def is_paused(self) -> bool:
+        return self.run_state() == "PAUSED"
+
+    def is_halted(self) -> bool:
+        return self.run_state() == "HALTED"
+
+    def set_run_state(self, state: str) -> None:
+        assert state in ("RUNNING", "PAUSED", "HALTED"), state
+        c = self._control(); c["run_state"] = state; self._write_control(c)
+
+    @property
+    def cap_usd(self) -> float:
+        return float(self._control().get("cap_usd", self.budget_usd))
+
+    def set_cap(self, cap: float) -> None:
+        c = self._control(); c["cap_usd"] = max(0.0, float(cap)); self._write_control(c)
+        if self._budget is not None:
+            self._budget.cap = max(0.0, float(cap))
 
     @property
     def kg(self):
@@ -75,8 +116,10 @@ class Persona:
         return (self.paths.self_dir / "interests.md").exists()
 
     def status(self) -> str:
+        if self.is_halted():
+            return "HALTED"
         if self.daemon is not None and not self.daemon.done():
-            return "RUNNING"
+            return "PAUSED" if self.is_paused() else "RUNNING"
         return "SEEDED" if self.is_seeded() else "UNSEEDED"
 
     def to_card(self) -> dict:
@@ -88,4 +131,5 @@ class Persona:
                 "seeded": self.is_seeded(), "claims": st.get("claims", 0),
                 "entities": st.get("entities", 0),
                 "spent_today": round(self.budget.spent_today(), 3),
+                "cap_usd": round(self.cap_usd, 2), "run_state": self.run_state(),
                 "latest_event": self.events.latest_id()}

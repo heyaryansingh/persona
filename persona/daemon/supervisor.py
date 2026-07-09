@@ -30,15 +30,24 @@ class Daemon:
 
     async def _worker_loop(self, wid: int) -> None:
         while not self._stop.is_set():
+            if self.persona.is_paused():         # PAUSE: lease nothing new; in-flight tasks drain
+                await asyncio.sleep(0.4)
+                continue
             task = self.queue.lease()
             if task is None:
                 await asyncio.sleep(0.5)          # queue empty; scheduler will feed it
                 continue
             log().emit("lease", f"worker-{wid} picked up task#{task.id} ({task.type})",
                        actor=f"worker-{wid}", parent_id=task.parent_id, task_id=task.id)
+            before = self.persona.budget.spent_today()
             try:
                 ref = await worker.dispatch(task, self.queue)
                 self.queue.complete(task.id, ref)
+                cost = self.persona.budget.spent_today() - before
+                if cost > 1e-6:                  # per-task cost attribution (the value/$ denominator)
+                    log().emit("cost", f"task#{task.id} ({task.type}) cost ${cost:.4f}",
+                               actor=f"worker-{wid}", task_id=task.id, cost=round(cost, 5),
+                               task_type=task.type)
             except Exception as e:                # never let one task kill a worker
                 status = self.queue.fail(task.id)
                 log().emit("error", f"task#{task.id} ({task.type}) failed: {str(e)[:200]} [{status}]",
@@ -59,6 +68,9 @@ class Daemon:
                         log().emit("thought", "blank slate — waiting for a human to seed my "
                                    "interests before I start.", actor="self")
                         announced_wait = True
+                    await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
+                    continue
+                if self.persona.is_paused():             # PAUSE: generate no new work, no spend
                     await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
                     continue
                 if not started:                         # seeded → fire the first pulse of work
