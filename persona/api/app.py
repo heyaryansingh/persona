@@ -1,7 +1,10 @@
-"""FastAPI app (v4) — starts the always-on daemon and streams its live thought to the UI.
+"""FastAPI app (v5 P3) — multi-persona: a gallery of fully-isolated researcher minds.
+
+Every persona has its own workspace, graph, events, budget, and daemon. Endpoints are routed by
+persona_id and set the current-persona context so the shared code (log/get_kg/budget/selfmind)
+resolves to the right mind. `GET /` serves the gallery UI.
 
 Run: python -m persona   (or: uvicorn persona.api.app:app --port 8137)
-The daemon runs as a startup background task in the same process (shared SQLite files).
 """
 from __future__ import annotations
 
@@ -9,159 +12,210 @@ import asyncio
 import json
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 
-from .. import config, selfmind
-from ..events import log
-from ..daemon.supervisor import Daemon
+from .. import config, context, selfmind
+from ..manager import manager
 
-app = FastAPI(title="Persona v4", version="4.0.0")
+app = FastAPI(title="Persona v5", version="5.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
 _STATIC = Path(__file__).resolve().parent / "static"
-_daemon: Daemon | None = None
 
 
 @app.on_event("startup")
 async def _startup():
-    global _daemon
-    config.ensure_workspace()
-    _daemon = Daemon()
-    asyncio.create_task(_daemon.run())          # never-idle loop begins immediately
+    asyncio.create_task(_supervisor())    # start/resume seeded personas' daemons in the loop
+
+
+async def _supervisor():
+    """Ensure every SEEDED persona has a running daemon (resume on boot + start newly-seeded)."""
+    while True:
+        try:
+            for p in manager().list():
+                if p.is_seeded():
+                    manager().start(p)      # no-op if already running
+        except Exception:
+            pass
+        await asyncio.sleep(3)
 
 
 @app.on_event("shutdown")
 async def _shutdown():
-    if _daemon:
-        _daemon.stop()
+    manager().stop_all()
 
 
-@app.get("/api/status")
-def status():
-    st = _daemon.status() if _daemon else {"workers": 0}
-    return {**st, "latest_event": log().latest_id(), "have_key": config.have_key()}
+def _p(pid: str):
+    p = manager().get(pid)
+    if p is None:
+        raise HTTPException(status_code=404, detail=f"no persona {pid!r}")
+    return p
 
 
-@app.get("/api/events")
-def events(after: int = 0, limit: int = 500):
-    return {"events": log().since(after, limit), "latest": log().latest_id()}
+# --------------------------------------------------------------- gallery
+@app.get("/api/personas")
+def personas():
+    return {"personas": [p.to_card() for p in manager().list()]}
 
 
-@app.get("/api/kg")
-def kg():
-    """Knowledge-graph stats + beliefs + contradictions + a snapshot for the graph view."""
-    from ..memory.membrane import get_kg
-    g = get_kg()
-    if g is None:
-        return {"available": False}
-    return {"available": True, "stats": g.stats(), "beliefs": g.beliefs(min_independent=1),
-            "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
-
-
-@app.get("/api/inbox")
-def inbox():
-    """Human-escalation inbox: contradictions the researcher wants a human to adjudicate."""
-    from ..memory.membrane import get_kg
-    g = get_kg()
-    if g is None:
-        return {"available": False, "items": []}
-    return {"available": True, "items": g.contradictions(limit=50)}
-
-
-@app.post("/api/inbox/resolve")
-def inbox_resolve(payload: dict):
-    """Human adjudicates: anchor the chosen side (protected from cheap evidence henceforth)."""
-    from ..memory.membrane import get_kg
-    g = get_kg()
-    if g is None:
-        return {"ok": False, "reason": "no-kg"}
-    res = g.human_resolve(payload["claim_id"], bool(payload.get("truth", True)),
-                          payload.get("provenance", "HUMAN_CONFIRMED"))
-    if res.get("ok"):
-        log().emit("escalate", f"human anchored: {res['subject']} → {res['object']} "
-                   f"({'holds' if payload.get('truth', True) else 'refuted'})", actor="human")
-    return res
-
-
-@app.get("/api/self")
-def get_self():
-    return {"seeded": selfmind.is_seeded(), "interests": selfmind.interests(),
-            "open_questions": selfmind.open_questions(), "files": selfmind.read_self()}
-
-
-@app.get("/api/workspace")
-def workspace():
-    """The mind on disk: self files, drafts (reports), and projects."""
-    drafts = sorted(p.name for p in config.DRAFTS_DIR.glob("*.md")) if config.DRAFTS_DIR.exists() else []
-    projects = sorted(p.name for p in config.PROJECTS_DIR.glob("*") if p.is_dir()) \
-        if config.PROJECTS_DIR.exists() else []
-    n_sources = len(list(config.SOURCES_DIR.glob("*/meta.json"))) if config.SOURCES_DIR.exists() else 0
-    return {"self": selfmind.read_self(), "drafts": drafts, "projects": projects,
-            "n_sources": n_sources}
-
-
-@app.get("/api/draft/{name}")
-def draft(name: str):
-    p = config.DRAFTS_DIR / name
-    if not p.exists() or p.suffix != ".md" or "/" in name or "\\" in name:
-        return {"error": "not found"}
-    return {"name": name, "content": p.read_text(encoding="utf-8")}
-
-
-@app.post("/api/seed")
-def seed(payload: dict):
-    """Blank-slate spawn: give it interests and it starts on its own."""
+@app.post("/api/personas")
+def create_persona(payload: dict):
     interests = payload.get("interests") or []
     if isinstance(interests, str):
         interests = [s.strip() for s in interests.split(",") if s.strip()]
-    fresh_birth = selfmind.seed(interests, name=payload.get("name", "Persona"))
-    log().emit("seed", f"{'born' if fresh_birth else 're-seeded'} with interests: "
-               f"{', '.join(interests)}", actor="human")
-    return {"applied": True, "fresh_birth": fresh_birth, "interests": selfmind.interests()}
+    p = manager().create(payload["name"], interests=interests,
+                         budget_usd=payload.get("budget_usd"))
+    if interests:                       # seeded at birth -> start researching
+        manager().start(p)
+    return p.to_card()
 
 
-@app.post("/api/reset")
-def reset():
-    """Wipe the durable self to a blank slate (does not touch the belief graph)."""
-    selfmind.reset()
-    log().emit("seed", "reset to a blank slate by human", actor="human")
+@app.post("/api/persona/{pid}/seed")
+def seed(pid: str, payload: dict):
+    interests = payload.get("interests") or []
+    if isinstance(interests, str):
+        interests = [s.strip() for s in interests.split(",") if s.strip()]
+    fresh = manager().seed(pid, interests)
+    with context.use(_p(pid)):
+        from ..events import log
+        log().emit("seed", f"{'born' if fresh else 're-seeded'}: {', '.join(interests)}", actor="human")
+    return {"applied": True, "fresh_birth": fresh}
+
+
+@app.post("/api/persona/{pid}/reset")
+def reset(pid: str):
+    with context.use(_p(pid)):
+        selfmind.reset()
     return {"reset": True}
 
 
-@app.post("/api/read_url")
-def read_url(payload: dict):
-    """Feed the researcher an arbitrary web/online source to read."""
-    if _daemon is None:
-        return {"ok": False, "reason": "daemon down"}
-    tid = _daemon.queue.enqueue("read_url", priority=2,
-                                params={"url": payload["url"], "interest": payload.get("interest", "web")})
+@app.post("/api/persona/{pid}/delete")
+def delete(pid: str, payload: dict = None):
+    return {"deleted": manager().delete(pid, wipe=(payload or {}).get("wipe", False))}
+
+
+# --------------------------------------------------------------- per-persona views
+@app.get("/api/persona/{pid}/status")
+def status(pid: str):
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    with context.use(p):
+        from ..events import log
+        return {**p.to_card(), "workers": (d.n_workers if d else 0),
+                "queue": (d.queue.counts() if d else {}), "latest_event": log().latest_id(),
+                "have_key": config.have_key()}
+
+
+@app.get("/api/persona/{pid}/events")
+def events(pid: str, after: int = 0, limit: int = 500):
+    with context.use(_p(pid)):
+        from ..events import log
+        return {"events": log().since(after, limit), "latest": log().latest_id()}
+
+
+@app.get("/api/persona/{pid}/self")
+def get_self(pid: str):
+    with context.use(_p(pid)):
+        return {"seeded": selfmind.is_seeded(), "interests": selfmind.interests(),
+                "open_questions": selfmind.open_questions(), "files": selfmind.read_self()}
+
+
+@app.get("/api/persona/{pid}/kg")
+def kg(pid: str):
+    p = _p(pid)
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        if g is None:
+            return {"available": False}
+        return {"available": True, "stats": g.stats(), "beliefs": g.beliefs(min_independent=1),
+                "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
+
+
+@app.get("/api/persona/{pid}/inbox")
+def inbox(pid: str):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        return {"available": g is not None, "items": (g.contradictions(limit=50) if g else [])}
+
+
+@app.post("/api/persona/{pid}/inbox/resolve")
+def inbox_resolve(pid: str, payload: dict):
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        from ..events import log
+        g = get_kg()
+        if g is None:
+            return {"ok": False}
+        res = g.human_resolve(payload["claim_id"], bool(payload.get("truth", True)))
+        if res.get("ok"):
+            log().emit("escalate", f"human anchored {res['subject']} → {res['object']}", actor="human")
+        return res
+
+
+@app.get("/api/persona/{pid}/workspace")
+def workspace(pid: str):
+    p = _p(pid)
+    pa = p.paths
+    drafts = sorted(x.name for x in pa.drafts_dir.glob("*.md")) if pa.drafts_dir.exists() else []
+    deliv = sorted(x.name for x in pa.deliverables_dir.glob("*")) if pa.deliverables_dir.exists() else []
+    projects = sorted(x.name for x in pa.projects_dir.glob("*") if x.is_dir()) if pa.projects_dir.exists() else []
+    n_sources = len(list(pa.sources_dir.glob("*/meta.json"))) if pa.sources_dir.exists() else 0
+    with context.use(p):
+        return {"self": selfmind.read_self(), "drafts": drafts, "deliverables": deliv,
+                "projects": projects, "n_sources": n_sources}
+
+
+@app.get("/api/persona/{pid}/draft/{name}")
+def draft(pid: str, name: str):
+    if "/" in name or "\\" in name or not name.endswith(".md"):
+        raise HTTPException(400, "bad name")
+    p = _p(pid)
+    f = p.paths.drafts_dir / name
+    if not f.exists():
+        f = p.paths.deliverables_dir / name
+    if not f.exists():
+        raise HTTPException(404, "not found")
+    return {"name": name, "content": f.read_text(encoding="utf-8")}
+
+
+@app.post("/api/persona/{pid}/read_url")
+def read_url(pid: str, payload: dict):
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    if d is None:
+        return {"ok": False, "reason": "daemon not running"}
+    tid = d.queue.enqueue("read_url", priority=2,
+                          params={"url": payload["url"], "interest": payload.get("interest", "web")})
     return {"ok": True, "task": tid}
 
 
-@app.get("/api/stream")
-async def stream():
+@app.get("/api/persona/{pid}/stream")
+async def stream(pid: str):
+    p = _p(pid)
+
     async def gen():
-        seen = max(0, log().latest_id() - 80)     # replay a little recent context on connect
-        while True:
-            evs = log().since(seen)
-            if evs:
-                for e in evs:
-                    yield f"data: {json.dumps(e)}\n\n"
-                seen = evs[-1]["id"]
-            else:
-                yield ": keepalive\n\n"
-            await asyncio.sleep(0.4)
+        with context.use(p):
+            from ..events import log
+            seen = max(0, log().latest_id() - 80)
+            while True:
+                evs = log().since(seen)
+                if evs:
+                    for e in evs:
+                        yield f"data: {json.dumps(e)}\n\n"
+                    seen = evs[-1]["id"]
+                else:
+                    yield ": keepalive\n\n"
+                await asyncio.sleep(0.4)
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/")
 def root():
     idx = _STATIC / "index.html"
-    if idx.exists():
-        return FileResponse(str(idx))
-    return {"service": "Persona v4", "hint": "UI missing; API under /api/*"}
+    return FileResponse(str(idx)) if idx.exists() else {"service": "Persona v5", "hint": "UI missing"}
 
 
 if __name__ == "__main__":

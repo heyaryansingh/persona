@@ -3,29 +3,47 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Persona — a mind at work</title>
+<title>Persona — a gallery of minds</title>
 <style>
   :root{
     --bg:#0a0b0e; --panel:#101218; --panel2:#0d0f14; --line:#1c1f29; --ink:#c9cdd6;
     --dim:#6b7180; --faint:#454b58;
     --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-    --serif:"Newsreader",Georgia,"Times New Roman",serif;
+    --serif:"Newsreader",Georgia,serif;
     --live:#4fd0a0; --human:#e0864f; --contra:#e5544b; --anchor:#8a9cff; --claim:#e6c86e;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:12.5px;overflow:hidden}
   body{display:flex;flex-direction:column}
-  a{color:var(--anchor)}
   ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#20242e;border-radius:8px}
   header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-  header .brand{font-weight:600;letter-spacing:.14em;font-size:13px}
+  header .brand{font-weight:600;letter-spacing:.14em;font-size:13px;cursor:pointer}
   header .dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 12px var(--live);animation:pulse 2.4s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  header input{flex:1;min-width:120px;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:6px}
-  header button{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);padding:6px 13px;border-radius:6px;cursor:pointer}
-  header button:hover{border-color:var(--live);color:#fff}
-  header .status{color:var(--dim);font-size:11px;white-space:nowrap}
-  .grid{flex:1;display:grid;grid-template-columns:262px 1fr 430px;min-height:0}
+  header .status{color:var(--dim);font-size:11px;margin-left:auto}
+  header button.back{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);padding:5px 12px;border-radius:6px;cursor:pointer}
+
+  /* ---------- gallery ---------- */
+  #gallery{flex:1;overflow-y:auto;padding:26px 32px}
+  #gallery h1{font-family:var(--serif);font-weight:500;font-size:26px;margin:0 0 4px}
+  #gallery .sub{color:var(--dim);margin-bottom:24px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .pcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:border-color .15s}
+  .pcard:hover{border-color:var(--anchor)}
+  .pcard .n{font-family:var(--serif);font-size:19px;margin-bottom:2px}
+  .pcard .st{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+  .st.RUNNING{color:var(--live)} .st.SEEDED{color:var(--claim)} .st.UNSEEDED{color:var(--dim)}
+  .pcard .stats{display:flex;gap:16px;color:var(--dim);font-size:11px}
+  .pcard .stats b{color:var(--ink);font-weight:600}
+  .newcard{background:var(--panel2);border:1px dashed var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px}
+  .newcard input{background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:6px}
+  .newcard button{background:#191d27;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);padding:8px;border-radius:6px;cursor:pointer}
+  .newcard button:hover{border-color:var(--live);color:#fff}
+  .newcard .h{font-family:var(--serif);font-size:16px;color:var(--ink)}
+
+  /* ---------- dashboard ---------- */
+  #dash{flex:1;display:none;min-height:0}
+  .grid{flex:1;display:grid;grid-template-columns:262px 1fr 430px;min-height:0;height:100%}
   .col{min-height:0;display:flex;flex-direction:column;overflow:hidden}
   .col.left{border-right:1px solid var(--line);background:var(--panel2)}
   .col.right{border-left:1px solid var(--line);background:var(--panel2)}
@@ -34,9 +52,7 @@
   .chip{display:inline-block;background:#161922;border:1px solid var(--line);border-radius:20px;padding:2px 9px;margin:0 4px 5px 0;font-size:11px}
   .q{color:var(--ink);font-size:11.5px;line-height:1.45;margin:0 0 7px;padding-left:10px;border-left:2px solid #23262f}
   .draft{display:block;padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;cursor:pointer;color:var(--ink);font-size:11.5px;background:#0f1117}
-  .draft:hover{border-color:var(--claim)}
-  .draft .k{color:var(--claim);margin-right:5px}
-  /* center: thought stream */
+  .draft:hover{border-color:var(--claim)} .draft .k{color:var(--claim);margin-right:5px}
   .stream{flex:1;overflow-y:auto;padding:6px 0}
   .row{display:flex;gap:10px;padding:3px 16px;line-height:1.5;border-left:2px solid transparent}
   .row:hover{background:#0e1015}
@@ -46,168 +62,185 @@
   .row .who{color:var(--faint);font-size:10.5px}
   .row.child{padding-left:34px}
   .thought .msg{color:#d7dbe3}.thought{border-left-color:#242833}
-  .spawn .tag,.spawn .msg{color:var(--anchor)}.spawn{border-left-color:#2b3050}
-  .read .tag{color:var(--live)} .claim .tag{color:var(--claim)} .claim .msg{color:#cbb56a}
-  .belief_update .tag,.belief_update .msg{color:var(--live)}.belief_update{border-left-color:#1f5a44}
-  .contradiction .tag,.contradiction .msg{color:var(--contra)}.contradiction{border-left-color:#5a2320}
-  .artifact .tag,.artifact .msg{color:var(--human)}.artifact{border-left-color:#5a3a20}
-  .escalate .tag,.escalate .msg{color:var(--human)} .seed .tag,.seed .msg{color:var(--human)}
-  .tool .tag{color:#7fa7c9} .error .tag,.error .msg{color:var(--contra)}
-  .boot .msg{color:var(--live)}
-  /* right: graph + tabs */
+  .spawn .tag,.spawn .msg{color:var(--anchor)} .read .tag{color:var(--live)} .claim .tag{color:var(--claim)} .claim .msg{color:#cbb56a}
+  .belief_update .tag,.belief_update .msg{color:var(--live)} .contradiction .tag,.contradiction .msg{color:var(--contra)}
+  .artifact .tag,.artifact .msg{color:var(--human)} .escalate .tag,.escalate .msg{color:var(--human)} .seed .tag,.seed .msg{color:var(--human)}
+  .tool .tag{color:#7fa7c9} .error .tag,.error .msg{color:var(--contra)} .boot .msg{color:var(--live)}
   #graphwrap{height:52%;position:relative;border-bottom:1px solid var(--line);background:#07080b}
   #graph{width:100%;height:100%;display:block;cursor:grab}
   .glegend{position:absolute;left:10px;bottom:8px;font-size:9.5px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
-  .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);background:var(--panel)}
+  .tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel)}
   .tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-family:var(--mono);padding:8px;cursor:pointer;font-size:11px}
   .tabs button.on{color:var(--ink);border-bottom-color:var(--live)}
   .list{flex:1;overflow-y:auto;padding:8px 12px}
   .belief{padding:6px 0;border-bottom:1px solid #14171e;font-size:11.5px;line-height:1.4}
-  .belief .s{color:#fff} .belief .o{color:var(--ink)} .belief .m{color:var(--dim);font-size:10.5px}
+  .belief .s{color:#fff} .belief .m{color:var(--dim);font-size:10.5px}
   .up{color:var(--live)} .down{color:var(--contra)}
   .contra{padding:8px;border:1px solid #3a2320;border-radius:6px;margin-bottom:8px;background:#130f0e}
   .contra .h{color:var(--contra);font-size:11.5px;margin-bottom:6px}
   .contra button{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer;margin-right:6px}
   .contra button:hover{border-color:var(--live)}
-  /* modal */
   #modal{position:fixed;inset:0;background:rgba(4,5,7,.72);display:none;align-items:center;justify-content:center;z-index:50}
   #modal .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:760px;max-height:82vh;overflow-y:auto;padding:26px 30px}
   #modal .box, #modal .box *{font-family:var(--serif);font-size:15px;line-height:1.6;color:#dfe3ea}
   #modal .box h1{font-size:22px} #modal .box code,#modal .box pre{font-family:var(--mono);font-size:12.5px}
-  #modal .x{position:absolute;top:18px;right:24px;color:var(--dim);cursor:pointer;font-family:var(--mono);font-size:20px}
   .empty{color:var(--faint);font-size:11px;padding:8px}
 </style>
 </head>
 <body>
   <header>
-    <span class="dot"></span><span class="brand">PERSONA</span>
-    <input id="seedbox" placeholder="seed interests (blank-slate spawn) — e.g. topological superconductors, urban heat islands" />
-    <button id="seedbtn">spawn</button>
-    <span class="status" id="status">connecting…</span>
+    <span class="dot"></span><span class="brand" onclick="toGallery()">PERSONA</span>
+    <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
+    <span class="status" id="status"></span>
   </header>
-  <div class="grid">
-    <div class="col left">
-      <div class="sec" style="flex:0 0 auto"><h2>self · interests</h2><div id="interests"></div></div>
-      <div class="sec" style="flex:1 1 auto"><h2>open questions</h2><div id="questions"></div></div>
-      <div class="sec" style="flex:0 0 auto;max-height:34%"><h2>body of work · reports</h2><div id="drafts"><div class="empty">no reports yet</div></div></div>
-    </div>
-    <div class="col"><div class="stream" id="stream"></div></div>
-    <div class="col right">
-      <div id="graphwrap"><canvas id="graph"></canvas>
-        <div class="glegend"><span class="up">● raises</span><span class="down">● lowers</span>
-          <span style="color:var(--contra)">— contradiction</span><span style="color:var(--anchor)">● anchored</span></div>
+
+  <!-- GALLERY -->
+  <div id="gallery">
+    <h1>Your research minds</h1>
+    <div class="sub">Each persona is a separate, persistent researcher — its own interests, knowledge, and deliverables. Spawn one, give it interests, watch it grow.</div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dash">
+    <div class="grid">
+      <div class="col left">
+        <div class="sec" style="flex:0 0 auto"><h2>self · interests</h2><div id="interests"></div></div>
+        <div class="sec" style="flex:1 1 auto"><h2>open questions</h2><div id="questions"></div></div>
+        <div class="sec" style="flex:0 0 auto;max-height:34%"><h2>body of work</h2><div id="drafts"><div class="empty">no reports yet</div></div></div>
       </div>
-      <div class="tabs"><button class="on" data-t="beliefs" id="tabB">beliefs</button>
-        <button data-t="inbox" id="tabI">needs human <span id="inboxn"></span></button></div>
-      <div class="list" id="panelBeliefs"></div>
-      <div class="list" id="panelInbox" style="display:none"></div>
+      <div class="col"><div class="stream" id="stream"></div></div>
+      <div class="col right">
+        <div id="graphwrap"><canvas id="graph"></canvas>
+          <div class="glegend"><span class="up">● raises</span><span class="down">● lowers</span>
+            <span style="color:var(--contra)">— contradiction</span></div></div>
+        <div class="tabs"><button class="on" data-t="beliefs" id="tabB">beliefs</button>
+          <button data-t="inbox" id="tabI">needs human <span id="inboxn"></span></button></div>
+        <div class="list" id="panelBeliefs"></div>
+        <div class="list" id="panelInbox" style="display:none"></div>
+      </div>
     </div>
   </div>
-  <div id="modal"><span class="x" onclick="document.getElementById('modal').style.display='none'">✕</span><div class="box" id="modalbox"></div></div>
+  <div id="modal"><div class="box" id="modalbox"></div></div>
 
 <script>
-const $ = s=>document.querySelector(s);
-const esc = s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const ftime = iso=>{try{return new Date(iso).toLocaleTimeString([],{hour12:false})}catch{return""}};
+const $=s=>document.querySelector(s), esc=s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const ftime=iso=>{try{return new Date(iso).toLocaleTimeString([],{hour12:false})}catch{return""}};
+let PID=null, es=null, timers=[];
 
-/* ---------- live thought stream ---------- */
-const stream=$("#stream"); const MAX=1000;
+/* ---------- gallery ---------- */
+async function loadGallery(){
+  const d=await (await fetch("/api/personas")).json();
+  const cards=(d.personas||[]).map(p=>
+    `<div class="pcard" onclick="openPersona('${p.id}')"><div class="n">${esc(p.name)}</div>`+
+    `<div class="st ${p.status}">${p.status}</div><div class="stats">`+
+    `<span><b>${p.claims}</b> claims</span><span><b>${p.entities}</b> entities</span>`+
+    `<span>$<b>${(p.spent_today||0).toFixed(2)}</b></span></div></div>`).join("");
+  $("#cards").innerHTML = cards +
+    `<div class="newcard"><div class="h">+ spawn a new mind</div>`+
+    `<input id="pname" placeholder="name (e.g. Curie)"/>`+
+    `<input id="pint" placeholder="interests, comma-separated"/>`+
+    `<button onclick="createPersona()">create & seed</button></div>`;
+}
+async function createPersona(){
+  const name=$("#pname").value.trim(), interests=$("#pint").value.trim();
+  if(!name) return;
+  const p=await (await fetch("/api/personas",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,interests})})).json();
+  if(interests) openPersona(p.id); else loadGallery();
+}
+function toGallery(){
+  PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none";
+  $("#status").textContent=""; loadGallery();
+}
+function openPersona(id){
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";
+  $("#stream").innerHTML="";
+  es=new EventSource(`/api/persona/${id}/stream`);
+  es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
+    if(["belief_update","contradiction","artifact","escalate"].includes(e.type)){refreshKG();refreshInbox();refreshWork();}}catch{}};
+  refreshStatus();refreshSelf();refreshWork();refreshKG();refreshInbox();
+  timers=[setInterval(refreshStatus,2500),setInterval(refreshSelf,8000),setInterval(refreshKG,9000),
+          setInterval(refreshInbox,9000),setInterval(refreshWork,12000)];
+}
+
+/* ---------- dashboard fetches (per persona) ---------- */
+const A=p=>`/api/persona/${PID}${p}`;
+const stream=$("#stream"), MAX=1000;
 function addEvent(e){
-  const near = stream.scrollHeight-stream.scrollTop-stream.clientHeight<90;
+  const near=stream.scrollHeight-stream.scrollTop-stream.clientHeight<90;
   const d=document.createElement("div");
   d.className="row "+(e.type||"thought")+(e.parent_id?" child":"");
   d.innerHTML=`<span class="t">${ftime(e.ts)}</span><span class="tag">${e.type}</span>`+
     `<span class="msg">${esc(e.message)} <span class="who">· ${esc(e.actor||"")}</span></span>`;
-  stream.appendChild(d);
-  while(stream.childNodes.length>MAX) stream.removeChild(stream.firstChild);
-  if(near) stream.scrollTop=stream.scrollHeight;
+  stream.appendChild(d); while(stream.childNodes.length>MAX)stream.removeChild(stream.firstChild);
+  if(near)stream.scrollTop=stream.scrollHeight;
 }
-const es=new EventSource("/api/stream");
-es.onmessage=m=>{try{const e=JSON.parse(m.data); addEvent(e);
-  if(["belief_update","contradiction","artifact","escalate"].includes(e.type)){refreshKG();refreshWork();refreshInbox();}
-}catch{}};
-es.onopen=()=>$("#status").textContent="● live";
-
-/* ---------- status + self + workspace ---------- */
-async function refreshStatus(){try{const s=await (await fetch("/api/status")).json();const q=s.queue||{};
-  $("#status").textContent=`● live · ${s.workers}w · ${q.pending||0} queued · ${q.done||0} done`+(s.seeded?"":" · unseeded");}catch{}}
-async function refreshSelf(){try{const s=await (await fetch("/api/self")).json();
-  $("#interests").innerHTML=(s.interests||[]).map(([n,w])=>`<span class="chip">${esc(n)}</span>`).join("")||'<div class="empty">not seeded</div>';
-  $("#questions").innerHTML=(s.open_questions||[]).slice(0,10).map(q=>`<p class="q">${esc(q)}</p>`).join("")||'<div class="empty">—</div>';
-}catch{}}
-async function refreshWork(){try{const w=await (await fetch("/api/workspace")).json();
-  $("#drafts").innerHTML=(w.drafts||[]).map(d=>`<span class="draft" onclick="openDraft('${encodeURIComponent(d)}')"><span class="k">▸</span>${esc(d.replace(/\.md$/,''))}</span>`).join("")||'<div class="empty">no reports yet</div>';
-}catch{}}
-async function openDraft(name){const r=await (await fetch("/api/draft/"+name)).json();
-  $("#modalbox").innerHTML=mdToHtml(r.content||"(empty)");$("#modal").style.display="flex";}
-function mdToHtml(md){return md.split("\n").map(l=>{
+async function refreshStatus(){try{const s=await (await fetch(A("/status"))).json();const q=s.queue||{};
+  $("#status").textContent=`${esc(s.name)} · ${s.status} · ${s.workers||0}w · ${q.pending||0} queued · $${(s.spent_today||0).toFixed(2)}`;}catch{}}
+async function refreshSelf(){try{const s=await (await fetch(A("/self"))).json();
+  $("#interests").innerHTML=(s.interests||[]).map(([n])=>`<span class="chip">${esc(n)}</span>`).join("")||'<div class="empty">not seeded</div>';
+  $("#questions").innerHTML=(s.open_questions||[]).slice(0,10).map(q=>`<p class="q">${esc(q)}</p>`).join("")||'<div class="empty">—</div>';}catch{}}
+async function refreshWork(){try{const w=await (await fetch(A("/workspace"))).json();
+  const items=[...(w.deliverables||[]),...(w.drafts||[])];
+  $("#drafts").innerHTML=items.map(d=>`<span class="draft" onclick="openDraft('${encodeURIComponent(d)}')"><span class="k">▸</span>${esc(d.replace(/\.md$/,''))}</span>`).join("")||'<div class="empty">no reports yet</div>';}catch{}}
+async function openDraft(name){const r=await (await fetch(A("/draft/")+name)).json();
+  $("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
+$("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").style.display="none";};
+function md(t){return t.split("\n").map(l=>{
   if(/^#\s/.test(l))return`<h1>${esc(l.slice(2))}</h1>`;if(/^##\s/.test(l))return`<h2>${esc(l.slice(3))}</h2>`;
-  if(/^###\s/.test(l))return`<h3>${esc(l.slice(4))}</h3>`;if(/^\s*[-*]\s/.test(l))return`<li>${esc(l.replace(/^\s*[-*]\s/,''))}</li>`;
-  if(/^\|/.test(l))return`<div style="font-family:var(--mono);font-size:12px">${esc(l)}</div>`;
+  if(/^\s*[-*]\s/.test(l))return`<li>${esc(l.replace(/^\s*[-*]\s/,''))}</li>`;
   if(!l.trim())return"<br>";return`<p>${esc(l)}</p>`;}).join("");}
 
-/* ---------- beliefs + inbox ---------- */
 let CUR="beliefs";
-$("#tabB").onclick=()=>switchTab("beliefs");$("#tabI").onclick=()=>switchTab("inbox");
-function switchTab(t){CUR=t;$("#tabB").classList.toggle("on",t=="beliefs");$("#tabI").classList.toggle("on",t=="inbox");
+$("#tabB").onclick=()=>swi("beliefs");$("#tabI").onclick=()=>swi("inbox");
+function swi(t){CUR=t;$("#tabB").classList.toggle("on",t=="beliefs");$("#tabI").classList.toggle("on",t=="inbox");
   $("#panelBeliefs").style.display=t=="beliefs"?"block":"none";$("#panelInbox").style.display=t=="inbox"?"block":"none";}
 let KG={nodes:[],edges:[]};
-async function refreshKG(){try{const k=await (await fetch("/api/kg")).json();if(!k.available)return;
-  KG=k.graph||{nodes:[],edges:[]};layoutSeed();
-  const arrow=s=>s=="+"?'<span class="up">↑</span>':s=="-"?'<span class="down">↓</span>':'·';
+async function refreshKG(){try{const k=await (await fetch(A("/kg"))).json();if(!k.available)return;
+  KG=k.graph||{nodes:[],edges:[]};seed();
+  const ar=s=>s=="+"?'<span class="up">↑</span>':s=="-"?'<span class="down">↓</span>':'·';
   $("#panelBeliefs").innerHTML=(k.beliefs||[]).map(b=>
-    `<div class="belief"><span class="s">${esc(b.subject)}</span> ${arrow(b.effect_sign)} <span class="o">${esc(b.object)}</span>`+
-    `<div class="m">${b.independent_sources} lab${b.independent_sources>1?'s':''} · p=${(b.confidence||0).toFixed(2)} · ${b.provenance}${b.anchored?' ⚓':''}</div></div>`
-  ).join("")||'<div class="empty">no beliefs yet — it needs to read more</div>';
-}catch{}}
-async function refreshInbox(){try{const r=await (await fetch("/api/inbox")).json();const items=r.items||[];
-  $("#inboxn").textContent=items.length?`(${items.length})`:"";
-  $("#panelInbox").innerHTML=items.map(c=>
-    `<div class="contra"><div class="h">⚡ ${esc(c.subject)} → ${esc(c.object)}</div>`+
-    `<div class="m" style="color:var(--dim);font-size:10.5px;margin-bottom:6px">+${c.pos_sources} lab(s) say raises · −${c.neg_sources} lab(s) say lowers</div>`+
-    `<button onclick="resolve('${c.pos_claim}',true)">raises ✓</button>`+
-    `<button onclick="resolve('${c.neg_claim}',true)">lowers ✓</button></div>`
-  ).join("")||'<div class="empty">nothing needs a human right now</div>';
-}catch{}}
-async function resolve(cid,truth){await fetch("/api/inbox/resolve",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({claim_id:cid,truth})});refreshInbox();refreshKG();}
+    `<div class="belief"><span class="s">${esc(b.subject)}</span> ${ar(b.effect_sign)} ${esc(b.object)}`+
+    `<div class="m">${b.independent_sources} lab${b.independent_sources>1?'s':''} · p=${(b.confidence||0).toFixed(2)}${b.anchored?' ⚓':''}</div></div>`).join("")||'<div class="empty">no beliefs yet</div>';}catch{}}
+async function refreshInbox(){try{const r=await (await fetch(A("/inbox"))).json();const it=r.items||[];
+  $("#inboxn").textContent=it.length?`(${it.length})`:"";
+  $("#panelInbox").innerHTML=it.map(c=>`<div class="contra"><div class="h">⚡ ${esc(c.subject)} → ${esc(c.object)}</div>`+
+    `<div class="m" style="color:var(--dim);font-size:10.5px;margin-bottom:6px">+${c.pos_sources} lab(s) raises · −${c.neg_sources} lab(s) lowers</div>`+
+    `<button onclick="resolve('${c.pos_claim}')">raises ✓</button><button onclick="resolve('${c.neg_claim}')">lowers ✓</button></div>`).join("")||'<div class="empty">nothing needs a human</div>';}catch{}}
+async function resolve(cid){await fetch(A("/inbox/resolve"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({claim_id:cid,truth:true})});refreshInbox();refreshKG();}
 
-/* ---------- canvas force graph ---------- */
+/* canvas graph */
 const cv=$("#graph"),ctx=cv.getContext("2d");let P={},V={},drag=null,view={s:1,x:0,y:0},sel=null;
-function layoutSeed(){const ids=KG.nodes.map(n=>n.id);
+function seed(){const ids=KG.nodes.map(n=>n.id);
   ids.forEach((id,i)=>{if(!(id in P)){const a=i*2.399;P[id]={x:Math.cos(a)*(40+i*3),y:Math.sin(a)*(40+i*3)};V[id]={x:0,y:0};}});
   Object.keys(P).forEach(id=>{if(!ids.includes(id)){delete P[id];delete V[id];}});}
-function step(){const ids=Object.keys(P);
+function stepf(){const ids=Object.keys(P);
   for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const a=P[ids[i]],b=P[ids[j]];
-    let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+0.01,f=280/d2,d=Math.sqrt(d2);dx/=d;dy/=d;
+    let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+.01,f=280/d2,d=Math.sqrt(d2);dx/=d;dy/=d;
     V[ids[i]].x+=dx*f;V[ids[i]].y+=dy*f;V[ids[j]].x-=dx*f;V[ids[j]].y-=dy*f;}
   KG.edges.forEach(e=>{const a=P[e.source],b=P[e.target];if(!a||!b)return;
-    let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.01,f=(d-70)*0.008;dx/=d;dy/=d;
+    let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.01,f=(d-70)*.008;dx/=d;dy/=d;
     V[e.source].x+=dx*f;V[e.source].y+=dy*f;V[e.target].x-=dx*f;V[e.target].y-=dy*f;});
   ids.forEach(id=>{V[id].x*=.86;V[id].y*=.86;P[id].x+=V[id].x;P[id].y+=V[id].y;});}
-function draw(){const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;
+function draw(){if(!cv.clientWidth)return;const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;
   if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr;}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
-  const T=(p)=>[w/2+(p.x*view.s)+view.x,h/2+(p.y*view.s)+view.y];
+  const T=p=>[w/2+p.x*view.s+view.x,h/2+p.y*view.s+view.y];
   KG.edges.forEach(e=>{const a=P[e.source],b=P[e.target];if(!a||!b)return;const A=T(a),B=T(b);
     ctx.strokeStyle=e.sign=="+"?"rgba(79,208,160,.35)":e.sign=="-"?"rgba(229,84,75,.32)":"rgba(120,126,140,.2)";
     ctx.lineWidth=Math.min(2.4,.4+(e.independent_sources||1)*.5);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();});
   KG.nodes.forEach(n=>{const p=P[n.id];if(!p)return;const[x,y]=T(p);const r=4*Math.sqrt(view.s);
     ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=n.id===sel?"#fff":"#8a9cff";ctx.fill();
-    if(view.s>0.7){ctx.fillStyle="rgba(160,168,182,.8)";ctx.font="9px monospace";ctx.fillText(n.id.slice(0,22),x+r+2,y+3);}});}
-function loop(){step();draw();requestAnimationFrame(loop);}
+    if(view.s>.7){ctx.fillStyle="rgba(160,168,182,.8)";ctx.font="9px monospace";ctx.fillText(n.id.slice(0,22),x+r+2,y+3);}});}
+function loop(){if(PID){stepf();draw();}requestAnimationFrame(loop);}
 cv.addEventListener("wheel",e=>{e.preventDefault();view.s=Math.max(.2,Math.min(6,view.s*(e.deltaY<0?1.1:.9)));},{passive:false});
 cv.addEventListener("mousedown",e=>drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y});
 addEventListener("mousemove",e=>{if(drag){view.x=drag.vx+(e.clientX-drag.x);view.y=drag.vy+(e.clientY-drag.y);}});
-addEventListener("mouseup",e=>{if(drag){const rect=cv.getBoundingClientRect();const w=cv.clientWidth,h=cv.clientHeight;
-  let best=null,bd=200;KG.nodes.forEach(n=>{const p=P[n.id];if(!p)return;const x=w/2+p.x*view.s+view.x,y=h/2+p.y*view.s+view.y;
-    const d=(x-(e.clientX-rect.left))**2+(y-(e.clientY-rect.top))**2;if(d<bd){bd=d;best=n.id;}});if(bd<200)sel=best;}drag=null;});
+addEventListener("mouseup",()=>drag=null);
 requestAnimationFrame(loop);
 
-/* ---------- seed + boot ---------- */
-$("#seedbtn").onclick=async()=>{const v=$("#seedbox").value;if(!v.trim())return;
-  await fetch("/api/seed",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({interests:v})});
-  $("#seedbox").value="";setTimeout(()=>{refreshSelf();refreshStatus();},400);};
-refreshStatus();refreshSelf();refreshWork();refreshKG();refreshInbox();
-setInterval(refreshStatus,2500);setInterval(refreshSelf,8000);setInterval(refreshKG,9000);setInterval(refreshInbox,9000);setInterval(refreshWork,12000);
+toGallery();
 </script>
 </body>
 </html>

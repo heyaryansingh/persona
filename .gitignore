@@ -22,3 +22,6 @@ runs/
 
 # v4 runtime mind (has/gets its own git for artifact versioning; not part of main repo)
 persona-workspace/
+
+# v5 multi-persona homes (each persona has its own workspace + graph)
+personas/
