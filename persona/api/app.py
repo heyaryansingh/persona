@@ -133,6 +133,21 @@ def kg(pid: str):
                 "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
 
 
+@app.get("/api/persona/{pid}/provenance/{claim_id}")
+def provenance(pid: str, claim_id: str):
+    """The defensible chain: belief → claim → every supporting source + verbatim quote + DOI/URL."""
+    with context.use(_p(pid)):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        return g.provenance(claim_id) if g else {}
+
+
+@app.get("/api/persona/{pid}/history/{claim_id}")
+def history(pid: str, claim_id: str):
+    p = _p(pid)
+    return {"series": p.history.series(claim_id)}
+
+
 @app.get("/api/persona/{pid}/inbox")
 def inbox(pid: str):
     with context.use(_p(pid)):

@@ -79,7 +79,14 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
     (project / "data").mkdir(parents=True, exist_ok=True)
     (project / "plan.md").write_text(f"# {question}\n\n_started {_now()}_\n", encoding="utf-8")
     logf = project / "log.md"
-    logf.write_text(f"# log — {question}\n\n", encoding="utf-8")
+    logf.write_text(f"# log — {question}\n\n_started {_now()}_\n", encoding="utf-8")
+    import hashlib as _hl
+    steps = []
+
+    def _logstep(kind, detail):
+        steps.append({"kind": kind, "detail": detail, "at": _now()})
+        with logf.open("a", encoding="utf-8") as f:
+            f.write(f"\n**{_now()} · {kind}** — {detail}\n")
 
     def _tool(name, inp) -> dict:
         try:
@@ -92,12 +99,24 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
                 return {"ok": True, "wrote": inp["path"]}
             if name == "fetch_dataset":
                 r = datasets.fetch(inp["url"], project / "data", inp.get("filename"))
+                if r.get("ok"):
+                    sha = _hl.sha256(Path(r["path"]).read_bytes()).hexdigest()[:16]
+                    _logstep("fetch_dataset", f"{inp['url']} → {r['rel']} ({r['bytes']}B, sha256:{sha})")
+                    r["sha256"] = sha
+                else:
+                    _logstep("fetch_dataset", f"{inp['url']} → FAILED: {r.get('error','')}")
                 log().emit("tool", f"fetch dataset {inp['url'][:70]} → "
                            f"{'ok '+str(r.get('bytes',0))+'B' if r.get('ok') else 'FAIL: '+r.get('error','')}",
                            actor="analyst", parent_id=parent_id)
                 return r
             if name == "run_python":
-                r = sandbox.run_python(inp["code"], project, timeout=90)
+                code = inp["code"]
+                ch = _hl.sha256(code.encode()).hexdigest()[:12]
+                (project / "analysis").mkdir(exist_ok=True)
+                (project / "analysis" / f"step_{len(steps)}_{ch}.py").write_text(code, encoding="utf-8")
+                r = sandbox.run_python(code, project, timeout=90)
+                _logstep("run_python", f"code sha256:{ch} → exit {r['exit_code']}"
+                         + (" (timeout)" if r.get("timeout") else ""))
                 log().emit("tool", f"ran code in sandbox → exit {r['exit_code']}"
                            + (" (timeout)" if r.get("timeout") else ""), actor="analyst",
                            parent_id=parent_id)
@@ -142,6 +161,19 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8) -> dict:
     get_persona().paths.drafts_dir.mkdir(parents=True, exist_ok=True)
     draft.write_text(f"# {title}\n\n_{_now()} · question: {question}_\n\n{report}\n", encoding="utf-8")
     (project / "REPORT.md").write_text(f"# {title}\n\n{report}\n", encoding="utf-8")
+    # reproducibility manifest: env pin + hashed inputs/outputs + the full step trace
+    def _hashes(d):
+        out = {}
+        if d.exists():
+            for f in sorted(d.glob("*")):
+                if f.is_file():
+                    out[f.name] = _hl.sha256(f.read_bytes()).hexdigest()[:16]
+        return out
+    manifest = {"question": question, "title": title, "at": _now(),
+                "sandbox_image": sandbox.IMAGE, "sandbox_image_digest": sandbox.image_digest(),
+                "steps": steps, "datasets": _hashes(project / "data"),
+                "results": _hashes(project / "results")}
+    (project / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     log().emit("artifact", f"wrote a report: “{title}” (real analysis{' with code' if ran_code else ''})",
                actor="analyst", parent_id=parent_id, draft=str(draft.name), ran_code=ran_code)
     return {"ok": True, "title": title, "draft": str(draft), "project": _slug(question),

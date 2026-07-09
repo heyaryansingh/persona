@@ -53,3 +53,13 @@ def image_ready(image: str = IMAGE) -> bool:
         return r.returncode == 0
     except Exception:
         return False
+
+
+def image_digest(image: str = IMAGE) -> str:
+    """The image content id — pins the environment so a rebuilt image can't silently change results."""
+    try:
+        r = subprocess.run(["docker", "image", "inspect", "--format", "{{.Id}}", image],
+                           capture_output=True, text=True, timeout=15)
+        return (r.stdout or "").strip() if r.returncode == 0 else ""
+    except Exception:
+        return ""

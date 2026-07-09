@@ -202,8 +202,17 @@ async function refreshKG(){try{const k=await (await fetch(A("/kg"))).json();if(!
   KG=k.graph||{nodes:[],edges:[]};seed();
   const ar=s=>s=="+"?'<span class="up">↑</span>':s=="-"?'<span class="down">↓</span>':'·';
   $("#panelBeliefs").innerHTML=(k.beliefs||[]).map(b=>
-    `<div class="belief"><span class="s">${esc(b.subject)}</span> ${ar(b.effect_sign)} ${esc(b.object)}`+
-    `<div class="m">${b.independent_sources} lab${b.independent_sources>1?'s':''} · p=${(b.confidence||0).toFixed(2)}${b.anchored?' ⚓':''}</div></div>`).join("")||'<div class="empty">no beliefs yet</div>';}catch{}}
+    `<div class="belief" style="cursor:pointer" onclick="prov('${b.claim_id}')" title="click for sources + quotes"><span class="s">${esc(b.subject)}</span> ${ar(b.effect_sign)} ${esc(b.object)}`+
+    `<div class="m">${b.independent_sources} lab${b.independent_sources>1?'s':''} · p=${(b.confidence||0).toFixed(2)}${b.anchored?' ⚓':''} · ▸ evidence</div></div>`).join("")||'<div class="empty">no beliefs yet</div>';}catch{}}
+async function prov(cid){const p=await (await fetch(A("/provenance/")+cid)).json();
+  const srcs=(p.sources||[]).map(s=>`<div style="margin:12px 0;padding-left:12px;border-left:2px solid var(--anchor)">`+
+    `<div style="font-family:var(--mono);font-size:12px;color:var(--anchor)">${esc(s.title||s.slug)} · ${esc(s.lab||'')} · ${s.year||''}`+
+    (s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank">${esc(s.doi)}</a>`:(s.url?` · <a href="${esc(s.url)}" target="_blank">link</a>`:''))+`</div>`+
+    `<div style="margin-top:4px">“${esc(s.quote||'(no quote)')}”</div></div>`).join("");
+  $("#modalbox").innerHTML=`<h1>${esc(p.subject)} ${p.effect_sign=='+'?'raises':p.effect_sign=='-'?'lowers':'relates to'} ${esc(p.object)}</h1>`+
+    `<div style="font-family:var(--mono);font-size:12px;color:var(--dim)">${p.independent_sources} independent lab(s) · p=${(p.confidence||0).toFixed(2)} · ${esc(p.provenance)}${p.anchored?' · ⚓ anchored':''}</div>`+
+    `<h2>evidence</h2>${srcs||'<p>no sources</p>'}`;
+  $("#modal").style.display="flex";}
 async function refreshInbox(){try{const r=await (await fetch(A("/inbox"))).json();const it=r.items||[];
   $("#inboxn").textContent=it.length?`(${it.length})`:"";
   $("#panelInbox").innerHTML=it.map(c=>`<div class="contra"><div class="h">⚡ ${esc(c.subject)} → ${esc(c.object)}</div>`+

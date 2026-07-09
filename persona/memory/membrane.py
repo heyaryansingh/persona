@@ -97,6 +97,10 @@ def _harvest(min_independent: int, parent_id) -> dict:
     _save_announced(announced)
 
     beliefs = kg.beliefs(min_independent=min_independent)
+    try:
+        get_persona().history.snapshot(kg.beliefs(min_independent=1, limit=400))   # confidence-over-time
+    except Exception:
+        pass
     if ingested:
         log().emit("belief_update",
                    f"harvested {ingested} source(s), {n_claims} claim(s) → "

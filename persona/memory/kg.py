@@ -77,11 +77,13 @@ class KG:
     def upsert_source(self, meta: dict) -> None:
         self._q(
             "MERGE (s:Source {slug:$slug}) "
-            "ON CREATE SET s.title=$title, s.year=$year, s.lab=$lab, s.affiliations=$affs",
+            "ON CREATE SET s.title=$title, s.year=$year, s.lab=$lab, s.affiliations=$affs, "
+            "s.doi=$doi, s.url=$url",
             {"slug": meta["slug"], "title": (meta.get("title") or "")[:200],
              "year": meta.get("year") or 0,
              "lab": lab_of(meta.get("affiliations") or [], meta["slug"]),
-             "affs": meta.get("affiliations") or []})
+             "affs": meta.get("affiliations") or [],
+             "doi": meta.get("doi") or "", "url": meta.get("url") or ""})
 
     def add_claim(self, rec: dict, source_slug: str) -> str:
         """Add one observation of a claim from one source; (re)compute support + independence.
@@ -90,13 +92,16 @@ class KG:
         subj = self.canon.canon(rec["subject"])
         obj = self.canon.canon(rec["object"])
         sign = rec.get("effect_sign", "na")
-        cid = "clm_" + hashlib.sha1(
-            f"{subj}|{rec.get('relation','').lower()}|{obj}|{sign}".encode()).hexdigest()[:12]
+        # claim identity = (subject, object, effect_sign) — the DIRECTIONAL belief. The relation verb
+        # ("exhibits"/"shows"/"increases") is descriptive and varies across papers; keying on it would
+        # fragment synonymous claims and kill convergence. Opposite signs still contradict via pair_key.
+        cid = "clm_" + hashlib.sha1(f"{subj}|{obj}|{sign}".encode()).hexdigest()[:12]
         pk = pair_key(subj, obj)
         params = {"cid": cid, "subj": subj, "obj": obj,
                   "rel": rec.get("relation", ""), "sign": rec.get("effect_sign", "na"),
                   "pk": pk, "conf": float(rec.get("confidence", 0.6) or 0.6),
-                  "prov": rec.get("provenance", "READ"), "now": _now(), "slug": source_slug}
+                  "prov": rec.get("provenance", "READ"), "now": _now(), "slug": source_slug,
+                  "quote": (rec.get("quote", "") or "")[:600]}
         self._q(
             """
             MERGE (subj:Entity {name:$subj})
@@ -105,24 +110,23 @@ class KG:
               ON CREATE SET c.subject=$subj, c.object=$obj, c.relation=$rel, c.effect_sign=$sign,
                             c.pair_key=$pk, c.provenance=$prov, c.anchored=false,
                             c.ingest_time=$now, c.valid_from=$now, c.valid_to=null,
-                            c.conf_sum=$conf, c.support_count=0, c.independent_source_count=0,
-                            c.confidence=$conf
-              ON MATCH SET c.conf_sum = c.conf_sum + $conf
+                            c.support_count=0, c.independent_source_count=0, c.confidence=$conf
             MERGE (c)-[:ABOUT_SUBJECT]->(subj)
             MERGE (c)-[:ABOUT_OBJECT]->(obj)
             WITH c
             MATCH (s:Source {slug:$slug})
-            MERGE (c)-[:SUPPORTED_BY]->(s)
+            MERGE (c)-[r:SUPPORTED_BY]->(s)
+              ON CREATE SET r.quote=$quote, r.conf=$conf
             """, params)
-        # recompute support + independence (distinct labs) + running-mean confidence.
-        # ANCHOR WRITE-POLICY: a human/tested-anchored belief's confidence is PINNED — cheap READ
-        # evidence updates its support counts (informational) but cannot move the belief itself.
+        # recompute support + independence (distinct labs) + confidence = AVG per-source confidence
+        # (bounded [0,1]; one source can't inflate it). ANCHOR WRITE-POLICY: an anchored belief's
+        # confidence is PINNED — cheap READ evidence updates counts but cannot move verified belief.
         self._q(
             """
-            MATCH (c:Claim {claim_id:$cid})-[:SUPPORTED_BY]->(s:Source)
-            WITH c, count(s) AS n, count(DISTINCT s.lab) AS labs
+            MATCH (c:Claim {claim_id:$cid})-[r:SUPPORTED_BY]->(s:Source)
+            WITH c, count(s) AS n, count(DISTINCT s.lab) AS labs, avg(r.conf) AS mconf
             SET c.support_count = n, c.independent_source_count = labs,
-                c.confidence = CASE WHEN c.anchored THEN c.confidence ELSE c.conf_sum / n END
+                c.confidence = CASE WHEN c.anchored THEN c.confidence ELSE mconf END
             """, {"cid": cid})
         return cid
 
@@ -204,6 +208,25 @@ class KG:
             """, {"lim": limit})
         cols = ["subject", "object", "pos_sources", "neg_sources", "pos_claim", "neg_claim"]
         return [dict(zip(cols, row)) for row in r.result_set]
+
+    def provenance(self, claim_id: str) -> dict:
+        """The full defensible chain for a belief: claim → every supporting source + verbatim quote."""
+        r = self._q(
+            """
+            MATCH (c:Claim {claim_id:$cid})
+            OPTIONAL MATCH (c)-[r:SUPPORTED_BY]->(s:Source)
+            RETURN c.subject, c.relation, c.object, c.effect_sign, c.confidence, c.provenance,
+                   c.anchored, c.independent_source_count,
+                   collect({slug:s.slug, title:s.title, lab:s.lab, doi:s.doi, url:s.url,
+                            year:s.year, quote:r.quote})
+            """, {"cid": claim_id})
+        if not r.result_set:
+            return {}
+        row = r.result_set[0]
+        srcs = [s for s in (row[8] or []) if s.get("slug")]
+        return {"claim_id": claim_id, "subject": row[0], "relation": row[1], "object": row[2],
+                "effect_sign": row[3], "confidence": row[4], "provenance": row[5],
+                "anchored": row[6], "independent_sources": row[7], "sources": srcs}
 
     def poisoning_signals(self, min_volume: int = 8, max_indep_ratio: float = 0.4) -> list:
         """Correlated-poisoning signature: a high-volume, LOW-independence claim that contradicts

@@ -28,6 +28,7 @@ class Persona:
         self._budget = None
         self._kg = None
         self._vectors = None
+        self._history = None
 
     # ---- lazily-built, per-persona services ----
     @property
@@ -57,6 +58,13 @@ class Persona:
             from .memory.vectors import VectorIndex
             self._vectors = VectorIndex(self.paths.vectors_db)
         return self._vectors
+
+    @property
+    def history(self):
+        if self._history is None:
+            from .memory.history import BeliefHistory
+            self._history = BeliefHistory(self.paths.ops_dir / "belief_history.db")
+        return self._history
 
     def queue(self):
         from .daemon.queue import TaskQueue
