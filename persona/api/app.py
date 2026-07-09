@@ -66,6 +66,25 @@ def get_self():
             "open_questions": selfmind.open_questions(), "files": selfmind.read_self()}
 
 
+@app.get("/api/workspace")
+def workspace():
+    """The mind on disk: self files, drafts (reports), and projects."""
+    drafts = sorted(p.name for p in config.DRAFTS_DIR.glob("*.md")) if config.DRAFTS_DIR.exists() else []
+    projects = sorted(p.name for p in config.PROJECTS_DIR.glob("*") if p.is_dir()) \
+        if config.PROJECTS_DIR.exists() else []
+    n_sources = len(list(config.SOURCES_DIR.glob("*/meta.json"))) if config.SOURCES_DIR.exists() else 0
+    return {"self": selfmind.read_self(), "drafts": drafts, "projects": projects,
+            "n_sources": n_sources}
+
+
+@app.get("/api/draft/{name}")
+def draft(name: str):
+    p = config.DRAFTS_DIR / name
+    if not p.exists() or p.suffix != ".md" or "/" in name or "\\" in name:
+        return {"error": "not found"}
+    return {"name": name, "content": p.read_text(encoding="utf-8")}
+
+
 @app.post("/api/seed")
 def seed(payload: dict):
     """Blank-slate spawn: give it interests and it starts on its own."""

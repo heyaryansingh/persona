@@ -127,8 +127,26 @@ async def _deliberate(task, queue) -> str:
         return f"deliberate: {res.get('reason')}"
     for topic in res.get("priority_reads", [])[:4]:
         queue.enqueue("scout", priority=2, params={"interest": topic}, parent_id=task.parent_id)
+    # act on the sharpest open question: do REAL work on it (analyst: data + code + report)
+    from ..selfmind import open_questions
+    qs = open_questions()
+    if qs:
+        queue.enqueue("investigate", priority=4, params={"question": qs[0]}, parent_id=task.parent_id)
     return f"deliberate: evolved self, spawned {len(res.get('new_interests', []))} interest(s), " \
-           f"queued {len(res.get('priority_reads', [])[:4])} priority read(s)"
+           f"queued {len(res.get('priority_reads', [])[:4])} priority read(s) + 1 investigation"
+
+
+@handler("investigate")
+async def _investigate(task, queue) -> str:
+    """The analyst does REAL work on a question: fetches data, runs code in the sandbox, writes a report."""
+    import asyncio
+    from ..agents import analyst
+    q = task.params.get("question", task.prompt)
+    log().emit("thought", f"investigating: {q[:110]}", actor="analyst", parent_id=task.parent_id)
+    res = await asyncio.to_thread(analyst.investigate, q, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"investigate: {res.get('reason')}"
+    return f"investigate: wrote “{res.get('title','')[:60]}” (code={res.get('ran_code')})"
 
 
 @handler("observe")
