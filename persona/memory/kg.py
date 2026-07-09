@@ -50,7 +50,16 @@ class KG:
         self.name = name or os.environ.get("PERSONA_KG_NAME", "persona")
         self.db = FalkorDB(host=self.host, port=self.port)
         self.g = self.db.select_graph(self.name)
+        self._canon = None
         self._init()
+
+    @property
+    def canon(self):
+        """Lazy entity canonicalizer (embeddings) — so the same concept converges to one node."""
+        if self._canon is None:
+            from .canon import Canonicalizer
+            self._canon = Canonicalizer()
+        return self._canon
 
     def _q(self, cypher: str, params: dict = None):
         return self.g.query(cypher, params or {})
@@ -73,11 +82,17 @@ class KG:
              "lab": lab_of(meta.get("affiliations") or [], meta["slug"]),
              "affs": meta.get("affiliations") or []})
 
-    def add_claim(self, rec: dict, source_slug: str) -> None:
-        """Add one observation of a claim from one source; (re)compute support + independence."""
-        subj, obj = rec["subject"], rec["object"]
+    def add_claim(self, rec: dict, source_slug: str) -> str:
+        """Add one observation of a claim from one source; (re)compute support + independence.
+        Entities are CANONICALIZED here (not at read time) so the same concept from different
+        papers converges, and the claim_id is derived from the canonical form. Returns claim_id."""
+        subj = self.canon.canon(rec["subject"])
+        obj = self.canon.canon(rec["object"])
+        sign = rec.get("effect_sign", "na")
+        cid = "clm_" + hashlib.sha1(
+            f"{subj}|{rec.get('relation','').lower()}|{obj}|{sign}".encode()).hexdigest()[:12]
         pk = pair_key(subj, obj)
-        params = {"cid": rec["claim_id"], "subj": subj, "obj": obj,
+        params = {"cid": cid, "subj": subj, "obj": obj,
                   "rel": rec.get("relation", ""), "sign": rec.get("effect_sign", "na"),
                   "pk": pk, "conf": float(rec.get("confidence", 0.6) or 0.6),
                   "prov": rec.get("provenance", "READ"), "now": _now(), "slug": source_slug}
@@ -105,7 +120,8 @@ class KG:
             WITH c, count(s) AS n, count(DISTINCT s.lab) AS labs
             SET c.support_count = n, c.independent_source_count = labs,
                 c.confidence = c.conf_sum / n
-            """, {"cid": rec["claim_id"]})
+            """, {"cid": cid})
+        return cid
 
     def link_contradictions(self, pair_key_val: str) -> int:
         """Any two claims on the same (subject,object) pair with opposite signs contradict."""
@@ -117,6 +133,18 @@ class KG:
             MERGE (b)-[:CONTRADICTS]->(a)
             RETURN count(*) AS n
             """, {"pk": pair_key_val})
+        return int(r.result_set[0][0]) if r.result_set else 0
+
+    def link_all_contradictions(self) -> int:
+        """Link every (subject,object) pair that has both a + and a - claim. pair_key is indexed."""
+        r = self._q(
+            """
+            MATCH (a:Claim), (b:Claim)
+            WHERE a.pair_key = b.pair_key AND a.effect_sign='+' AND b.effect_sign='-'
+            MERGE (a)-[:CONTRADICTS]->(b)
+            MERGE (b)-[:CONTRADICTS]->(a)
+            RETURN count(*) AS n
+            """)
         return int(r.result_set[0][0]) if r.result_set else 0
 
     def anchor(self, claim_id: str, provenance: str, truth: bool) -> None:

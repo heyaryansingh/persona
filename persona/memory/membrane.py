@@ -8,12 +8,14 @@ into the legible `self/beliefs.md`. A "belief" = a claim converged from >= K IND
 from __future__ import annotations
 
 import json
+import threading
 
 from .. import config
 from ..events import log
-from .kg import KG, pair_key
+from .kg import KG
 
 _KG = None
+_HARVEST_LOCK = threading.Lock()   # one harvest at a time (single FalkorDB connection)
 
 
 def get_kg():
@@ -46,10 +48,19 @@ def _save_announced(s: set) -> None:
 
 def harvest(min_independent: int = 2, parent_id=None) -> dict:
     """Ingest all not-yet-ingested sources into the KG; fire contradictions; project beliefs."""
+    if not _HARVEST_LOCK.acquire(blocking=False):
+        return {"ok": True, "ingested": 0, "reason": "harvest-already-running"}
+    try:
+        return _harvest(min_independent, parent_id)
+    finally:
+        _HARVEST_LOCK.release()
+
+
+def _harvest(min_independent: int, parent_id) -> dict:
     kg = get_kg()
     if kg is None:
         return {"ok": False, "reason": "no-kg"}
-    ingested, n_claims, touched_pairs = 0, 0, set()
+    ingested, n_claims = 0, 0
     for src_dir in sorted(config.SOURCES_DIR.glob("*")):
         claims_f = src_dir / "claims.jsonl"
         marker = src_dir / ".ingested"
@@ -61,17 +72,16 @@ def harvest(min_independent: int = 2, parent_id=None) -> dict:
             if not line.strip():
                 continue
             rec = json.loads(line)
-            kg.add_claim(rec, meta["slug"])
-            touched_pairs.add(pair_key(rec["subject"], rec["object"]))
+            kg.add_claim(rec, meta["slug"])          # canonicalizes entities inside
             n_claims += 1
         marker.write_text("", encoding="utf-8")
         ingested += 1
 
-    # link + announce contradictions
+    # link + announce contradictions (on canonical pairs)
     announced = _announced()
     new_contra = 0
-    for pk in touched_pairs:
-        kg.link_contradictions(pk)
+    if ingested:
+        kg.link_all_contradictions()
     for c in kg.contradictions():
         key = f"{c['subject']}||{c['object']}"
         if key not in announced:

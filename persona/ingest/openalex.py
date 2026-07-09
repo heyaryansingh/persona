@@ -36,6 +36,18 @@ class Work:
     def slug(self) -> str:
         return self.id.rsplit("/", 1)[-1]
 
+    def to_dict(self) -> dict:
+        return {"id": self.id, "title": self.title, "abstract": self.abstract, "year": self.year,
+                "doi": self.doi, "authors": self.authors, "affiliations": self.affiliations,
+                "pdf_url": self.pdf_url, "landing_url": self.landing_url, "venue": self.venue,
+                "cited_by": self.cited_by}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Work":
+        return cls(**{k: d.get(k) for k in ("id", "title", "abstract", "year", "doi", "authors",
+                                            "affiliations", "pdf_url", "landing_url", "venue",
+                                            "cited_by")})
+
 
 def _reconstruct_abstract(inv: Optional[dict]) -> str:
     if not inv:
@@ -55,14 +67,15 @@ def _get(url: str, timeout: float = 25.0) -> dict:
 
 
 def search(query: str, limit: int = 5, *, oa_only: bool = False,
-           min_year: Optional[int] = None) -> list[Work]:
-    """Search works by relevance. `oa_only` restricts to open-access (fetchable full text)."""
+           min_year: Optional[int] = None, page: int = 1) -> list[Work]:
+    """Search works by relevance. `oa_only` restricts to open-access (fetchable full text).
+    `page` (1-based) pages through results for volume (OpenAlex allows up to page*per_page<=10000)."""
     filters = []
     if oa_only:
         filters.append("open_access.is_oa:true")
     if min_year:
         filters.append(f"from_publication_date:{min_year}-01-01")
-    params = {"search": query, "per_page": max(1, min(limit, 50)),
+    params = {"search": query, "per_page": max(1, min(limit, 50)), "page": max(1, page),
               "mailto": _MAILTO, "sort": "relevance_score:desc"}
     if filters:
         params["filter"] = ",".join(filters)

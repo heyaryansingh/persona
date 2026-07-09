@@ -1,9 +1,10 @@
-"""The reader (v4 P1): interest -> a real paper -> structured claims on disk.
+"""The reader (v4 P1/P3): interest -> many real papers -> structured claims on disk.
 
-Blank-slate → first read. Picks the top not-yet-read work for an interest, fetches its full text
-(OA PDF) or abstract, extracts auditable claims with Claude, and writes them into the workspace
-under sources/<slug>/. Idempotent: a work already in sources/ is skipped. Emits real READ/CLAIM
-events so the live stream shows an actual read happening.
+P3 splits discovery from reading so one interest fans out into MANY atomic reads (that's how
+claims recur across independent labs and beliefs converge):
+- `scout(interest)` pages OpenAlex for the top UNREAD works and returns slim dicts to enqueue.
+- `read_work(work)` fetches ONE paper's full text, extracts auditable claims (budget-gated), and
+  writes sources/<slug>/{meta.json, clean.md, claims.jsonl}. Idempotent per work.
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ import json
 from datetime import datetime, timezone
 
 from .. import config
+from ..budget import budget
 from ..events import log
 from ..ingest import openalex, fetch
 from . import extract
@@ -30,20 +32,34 @@ def _already_read(slug: str) -> bool:
     return (config.SOURCES_DIR / slug / "claims.jsonl").exists()
 
 
-def read_interest(interest: str, *, parent_id=None, limit: int = 6) -> dict:
-    """Read one unread paper for `interest`. Returns a summary dict."""
+def scout(interest: str, want: int = 20, max_pages: int = 3, per_page: int = 25) -> list[dict]:
+    """Return up to `want` UNREAD works for an interest (paged). Slim dicts (for task params)."""
+    out, page = [], 1
+    seen = set()
+    while len(out) < want and page <= max_pages:
+        try:
+            works = openalex.search(interest, limit=per_page, page=page)
+        except Exception as e:
+            log().emit("error", f"scout failed for “{interest}” p{page}: {str(e)[:140]}", actor="scout")
+            break
+        if not works:
+            break
+        for w in works:
+            if w.slug and w.slug not in seen and not _already_read(w.slug):
+                seen.add(w.slug)
+                out.append(w.to_dict())
+                if len(out) >= want:
+                    break
+        page += 1
+    return out
+
+
+def read_work(work_dict: dict, interest: str = "", *, parent_id=None) -> dict:
+    """Read one specific paper -> claims on disk. Budget-gated extraction."""
     config.ensure_workspace()
-    try:
-        works = openalex.search(interest, limit=limit, oa_only=False)
-    except Exception as e:
-        log().emit("error", f"OpenAlex search failed for “{interest}”: {str(e)[:160]}",
-                   actor="reader", parent_id=parent_id)
-        return {"ok": False, "error": str(e)[:160]}
-    work = next((w for w in works if w.slug and not _already_read(w.slug)), None)
-    if work is None:
-        log().emit("thought", f"already read the top results for “{interest}”; nothing new here yet.",
-                   actor="reader", parent_id=parent_id)
-        return {"ok": True, "read": False, "reason": "all-read"}
+    work = openalex.Work.from_dict(work_dict)
+    if not work.slug or _already_read(work.slug):
+        return {"ok": True, "read": False, "reason": "already-read"}
 
     text, kind = fetch.fulltext(work)
     src_dir = config.SOURCES_DIR / work.slug
@@ -55,38 +71,36 @@ def read_interest(interest: str, *, parent_id=None, limit: int = 6) -> dict:
             "venue": work.venue, "cited_by": work.cited_by,
             "url": work.landing_url or work.pdf_url, "text_kind": kind,
             "interest": interest, "read_at": _now()}
-    (src_dir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False),
-                                       encoding="utf-8")
+    (src_dir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
 
     read_ev = log().emit("read",
-                         f"read “{work.title[:80]}” ({kind}, {work.year}) — {len(work.authors)} "
-                         f"authors, {len(work.affiliations)} affiliations",
-                         actor="reader", parent_id=parent_id, slug=work.slug, kind=kind,
-                         interest=interest)
+                         f"read “{work.title[:80]}” ({kind}, {work.year}) — {len(work.affiliations)} "
+                         f"affiliation(s)", actor="reader", parent_id=parent_id, slug=work.slug,
+                         kind=kind, interest=interest)
+
+    # budget gate: store the text regardless; only spend on extraction if we can afford it
+    if not budget().can_spend():
+        log().emit("thought", "daily budget reached — stored the text, deferring claim extraction.",
+                   actor="reader", parent_id=read_ev)
+        (src_dir / "claims.jsonl").write_text("", encoding="utf-8")   # marks read; harvest skips empties
+        return {"ok": True, "read": True, "slug": work.slug, "n_claims": 0, "deferred": True}
 
     claims, usage = extract.extract_claims(text, work.title)
+    budget().add(usage.get("cost", 0.0))
     lines = []
     for c in claims:
         cid = _claim_id(c.get("subject", ""), c.get("relation", ""),
                         c.get("object", ""), c.get("effect_sign", "na"))
-        rec = {"claim_id": cid, "source_id": work.slug, "subject": c.get("subject", ""),
-               "relation": c.get("relation", ""), "object": c.get("object", ""),
-               "effect_sign": c.get("effect_sign", "na"), "quote": c.get("quote", ""),
-               "confidence": c.get("confidence", 0.6), "provenance": "READ",
-               "affiliations": work.affiliations, "extracted_at": _now()}
-        lines.append(json.dumps(rec, ensure_ascii=False))
-    (src_dir / "claims.jsonl").write_text("\n".join(lines) + ("\n" if lines else ""),
-                                          encoding="utf-8")
-
-    for c in claims[:8]:
-        sign = c.get("effect_sign", "na")
-        arrow = {"+": "↑", "-": "↓", "0": "∅"}.get(sign, "·")
-        log().emit("claim",
-                   f"{c.get('subject','?')} {arrow} {c.get('object','?')} "
-                   f"({c.get('relation','?')})", actor="reader", parent_id=read_ev,
-                   source=work.slug, effect_sign=sign)
-    if not config.have_key():
-        log().emit("thought", "stored the text; claim extraction needs an API key (none set).",
-                   actor="reader", parent_id=read_ev)
-    return {"ok": True, "read": True, "slug": work.slug, "title": work.title,
-            "n_claims": len(claims), "cost": usage.get("cost", 0.0), "kind": kind}
+        lines.append(json.dumps({"claim_id": cid, "source_id": work.slug,
+            "subject": c.get("subject", ""), "relation": c.get("relation", ""),
+            "object": c.get("object", ""), "effect_sign": c.get("effect_sign", "na"),
+            "quote": c.get("quote", ""), "confidence": c.get("confidence", 0.6),
+            "provenance": "READ", "affiliations": work.affiliations, "extracted_at": _now()},
+            ensure_ascii=False))
+    (src_dir / "claims.jsonl").write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    for c in claims[:6]:
+        a = {"+": "↑", "-": "↓", "0": "∅"}.get(c.get("effect_sign", "na"), "·")
+        log().emit("claim", f"{c.get('subject','?')} {a} {c.get('object','?')}",
+                   actor="reader", parent_id=read_ev, effect_sign=c.get("effect_sign", "na"))
+    return {"ok": True, "read": True, "slug": work.slug, "n_claims": len(claims),
+            "cost": usage.get("cost", 0.0), "kind": kind}

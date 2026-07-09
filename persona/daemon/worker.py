@@ -39,13 +39,28 @@ async def _reflect(task, queue) -> str:
                     f"deciding what to read next.", actor="self")
     spawned = 0
     for name, weight in sorted(ints, key=lambda x: -x[1])[:5]:
-        queue.enqueue("observe", prompt=name, priority=max(1, int(6 - weight * 2)),
+        queue.enqueue("scout", prompt=name, priority=max(1, int(6 - weight * 2)),
                       params={"interest": name}, parent_id=ev)
-        log().emit("spawn", f"queued a reader for “{name}”", actor="self",
+        log().emit("spawn", f"scouting the literature on “{name}”", actor="self",
                    parent_id=ev, interest=name)
         spawned += 1
-    queue.enqueue("harvest", priority=3, parent_id=ev)   # digest new reads into the belief graph
-    return f"reflect: spawned {spawned} reader task(s)"
+    queue.enqueue("harvest", priority=8, parent_id=ev)   # low priority: digest AFTER reads drain
+    return f"reflect: scouting {spawned} interest(s)"
+
+
+@handler("scout")
+async def _scout(task, queue) -> str:
+    """Discover many unread papers for an interest and fan out one reader per paper (volume)."""
+    import asyncio
+    from ..reading import reader
+    interest = task.params.get("interest", task.prompt)
+    works = await asyncio.to_thread(reader.scout, interest, 20)
+    for w in works:
+        queue.enqueue("observe", priority=5, params={"work": w, "interest": interest},
+                      parent_id=task.parent_id)
+    log().emit("spawn", f"found {len(works)} unread paper(s) on “{interest}” → queued readers",
+               actor="scout", parent_id=task.parent_id, interest=interest, n=len(works))
+    return f"scout: queued {len(works)} readers for {interest}"
 
 
 @handler("harvest")
@@ -61,12 +76,15 @@ async def _harvest(task, queue) -> str:
 
 @handler("observe")
 async def _observe(task, queue) -> str:
-    """Reader: fetch a real paper for this interest and extract structured claims (P1).
+    """Reader: fetch ONE specific paper (from the scout) and extract structured claims.
     Runs the blocking fetch+LLM off the event loop so other workers keep going."""
     import asyncio
     from ..reading import reader
-    interest = task.params.get("interest", task.prompt)
-    res = await asyncio.to_thread(reader.read_interest, interest, parent_id=task.parent_id)
+    work = task.params.get("work")
+    interest = task.params.get("interest", "")
+    if not work:
+        return "observe: no work in params"
+    res = await asyncio.to_thread(reader.read_work, work, interest, parent_id=task.parent_id)
     if res.get("read"):
-        return f"observe: read {res.get('slug')} ({res.get('n_claims',0)} claims, ${res.get('cost',0):.4f})"
-    return f"observe: {res.get('reason', res.get('error','no-read'))}"
+        return f"observe: read {res.get('slug')} ({res.get('n_claims',0)} claims)"
+    return f"observe: {res.get('reason','no-read')}"
