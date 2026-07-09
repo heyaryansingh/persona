@@ -92,6 +92,7 @@
     <span class="dot"></span><span class="brand" onclick="toGallery()">PERSONA</span>
     <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
     <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
+    <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ request review/paper</button>
     <span class="status" id="status"></span>
   </header>
 
@@ -153,9 +154,14 @@ async function createPersona(){
 }
 function toGallery(){
   PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
-  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";
   $("#status").textContent=""; loadGallery();
 }
+async function requestDeliverable(){
+  const topic=prompt("Topic for the deliverable:"); if(!topic)return;
+  const kind=confirm("OK = LaTeX paper (compiled PDF)\nCancel = cited literature review")?"paper":"review";
+  const r=await (await fetch(A("/deliver"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,topic})})).json();
+  alert(r.ok?`Queued a ${kind} on "${topic}". Watch the stream; it appears in body of work when done.`:`Could not: ${r.reason}`);}
 async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json();
   const html=(m.subtopics||[]).map(s=>`<div style="margin:16px 0;border-left:3px solid var(--anchor);padding-left:14px">`+
     `<div style="font-family:var(--serif);font-size:18px">${esc(s.title)} `+
@@ -169,7 +175,7 @@ async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json()
     `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
   $("#modal").style.display="flex";}
 function openPersona(id){
-  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";
   $("#stream").innerHTML="";
   es=new EventSource(`/api/persona/${id}/stream`);
   es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
@@ -234,10 +240,21 @@ async function prov(cid){const p=await (await fetch(A("/provenance/")+cid)).json
   $("#modal").style.display="flex";}
 async function refreshInbox(){try{const r=await (await fetch(A("/inbox"))).json();const it=r.items||[];
   $("#inboxn").textContent=it.length?`(${it.length})`:"";
-  $("#panelInbox").innerHTML=it.map(c=>`<div class="contra"><div class="h">⚡ ${esc(c.subject)} → ${esc(c.object)}</div>`+
+  $("#panelInbox").innerHTML=it.map((c,i)=>`<div class="contra"><div class="h">⚡ ${esc(c.subject)} → ${esc(c.object)}</div>`+
     `<div class="m" style="color:var(--dim);font-size:10.5px;margin-bottom:6px">+${c.pos_sources} lab(s) raises · −${c.neg_sources} lab(s) lowers</div>`+
+    `<button onclick="contraEvidence('${c.pos_claim}','${c.neg_claim}','${esc(c.subject)}','${esc(c.object)}')">◆ evidence</button>`+
     `<button onclick="resolve('${c.pos_claim}')">raises ✓</button><button onclick="resolve('${c.neg_claim}')">lowers ✓</button></div>`).join("")||'<div class="empty">nothing needs a human</div>';}catch{}}
-async function resolve(cid){await fetch(A("/inbox/resolve"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({claim_id:cid,truth:true})});refreshInbox();refreshKG();}
+async function resolve(cid){await fetch(A("/inbox/resolve"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({claim_id:cid,truth:true})});refreshInbox();refreshKG();$("#modal").style.display="none";}
+async function contraEvidence(pos,neg,subj,obj){
+  const [pp,pn]=await Promise.all([fetch(A("/provenance/")+pos).then(r=>r.json()),fetch(A("/provenance/")+neg).then(r=>r.json())]);
+  const side=(p,label,color)=>`<div style="margin:10px 0"><div style="color:${color};font-family:var(--mono)">${label} (${(p.sources||[]).length} source(s))</div>`+
+    (p.sources||[]).map(s=>`<div style="margin:6px 0;padding-left:10px;border-left:2px solid ${color}"><div style="font-family:var(--mono);font-size:11px;color:var(--dim)">${esc(s.title||s.slug)} · ${esc(s.lab||'')}`+(s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank">${esc(s.doi)}</a>`:'')+`</div><div>“${esc(s.quote||'')}”</div></div>`).join("")+`</div>`;
+  $("#modalbox").innerHTML=`<h1>Contradiction: ${esc(subj)} → ${esc(obj)}</h1>`+
+    `<div style="font-family:var(--mono);font-size:11px;color:var(--dim)">Which does the evidence support? Your answer anchors that side (protected henceforth).</div>`+
+    side(pp,"RAISES",'var(--live)')+side(pn,"LOWERS",'var(--contra)')+
+    `<div style="margin-top:14px"><button class="contra" style="padding:8px 16px" onclick="resolve('${pos}')">✓ raises holds</button> `+
+    `<button class="contra" style="padding:8px 16px" onclick="resolve('${neg}')">✓ lowers holds</button></div>`;
+  $("#modal").style.display="flex";}
 
 /* canvas graph */
 const cv=$("#graph"),ctx=cv.getContext("2d");let P={},V={},drag=null,view={s:1,x:0,y:0},sel=null;
