@@ -57,19 +57,22 @@ class Daemon:
                 log().emit("error", f"task#{task.id} ({task.type}) failed: {str(e)[:200]} [{status}]",
                            actor=f"worker-{wid}", task_id=task.id)
 
+    # When a mind runs out of easy reading it must not die — it should think, test, write, and
+    # grow its own agenda. The scheduler keeps a rotating cognitive backlog going whenever the mind
+    # is otherwise idle and still has budget. free_move lets it CHOOSE its next act (scout/investigate/
+    # review/paper/diagram/…); discover ideates; consolidate writes up; deliberate grows new interests.
+    IDLE_AGENDA = ("free_move", "discover", "consolidate", "free_move", "deliberate")
+
     async def _scheduler_loop(self) -> None:
         from .. import selfmind
-        self_every = max(1, int(config.SELF_INTERVAL_S / config.SCHEDULER_INTERVAL_S))
-        tick = 0
-        # A new mind pulses immediately. A restarted mind waits for the cooldown instead of
-        # multiplying work across every persona whenever the API process is inspected/restarted.
         last_reflect = (asyncio.get_running_loop().time() if self.queue.counts()
                         else float("-inf"))
+        last_self = float("-inf")
+        idle_i = 0
         announced_wait = False
         while not self._stop.is_set():
             try:
                 # SEEDED-GATE: do NO work until the user has given this persona its interests.
-                # (Fixes "it runs before I set it / with vanilla interests".)
                 if not selfmind.is_seeded():
                     if not announced_wait:
                         log().emit("thought", "blank slate — waiting for a human to seed my "
@@ -81,20 +84,30 @@ class Daemon:
                     await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
                     continue
                 now = asyncio.get_running_loop().time()
-                tick += 1
-                depth = self.queue.depth()
+                counts = self.queue.counts()
+                depth = counts.get("pending", 0)
+                active = depth + counts.get("leased", 0)   # queued OR currently running
+                can_spend = self.persona.budget.can_spend()
+                enqueued = False
+                # 1. keep the reading fresh (cooldown-gated so it doesn't re-scout the same interests)
                 if _should_reflect(depth, now, last_reflect):
                     self.queue.enqueue("reflect", priority=0)
-                    last_reflect = now
-                    log().emit("schedule",
-                               f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); starting a "
-                               f"cooldown-gated research pulse",
-                               actor="scheduler", depth=depth)
-                if tick % self_every == 0:
-                    # slower cadence: consolidate → evolve the self → discover leads & act on them
+                    last_reflect = now; enqueued = True
+                    log().emit("schedule", f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); "
+                               "starting a research pulse", actor="scheduler", depth=depth)
+                # 2. periodic reflective cognition: consolidate → evolve the self → discover leads
+                if now - last_self >= config.SELF_INTERVAL_S:
                     self.queue.enqueue("consolidate", priority=6)
                     self.queue.enqueue("deliberate", priority=1)
                     self.queue.enqueue("discover", priority=6)
+                    last_self = now; enqueued = True
+                # 3. NEVER IDLE: if nothing is queued or running and there's budget left, take the
+                #    next cognitive action so the mind keeps ideating, testing, exploring, and writing.
+                if not enqueued and active == 0 and can_spend:
+                    act = self.IDLE_AGENDA[idle_i % len(self.IDLE_AGENDA)]; idle_i += 1
+                    self.queue.enqueue(act, priority=3)
+                    log().emit("schedule", f"idle — keeping the research alive with a {act} pulse",
+                               actor="scheduler")
             except Exception as e:
                 log().emit("error", f"scheduler: {str(e)[:200]}", actor="scheduler")
             await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
