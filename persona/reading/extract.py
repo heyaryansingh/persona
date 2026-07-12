@@ -15,7 +15,9 @@ from .. import config
 
 EXTRACT_TOOL = {
     "name": "record_claims",
-    "description": "Record the specific, falsifiable factual claims this text asserts or reports.",
+    "description": "Record the specific, checkable claims this text asserts or reports — empirical "
+                   "findings AND mathematical/theoretical statements (theorems, bounds, definitions, "
+                   "results, conjectures).",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -40,11 +42,16 @@ EXTRACT_TOOL = {
     },
 }
 
-_SYSTEM = ("You extract specific, falsifiable factual claims from research text, in ANY field. "
-           "Return the 3-10 most important claims as (subject, relation, object) tuples with an "
-           "effect sign and a VERBATIM quote from the text. Use canonical, short entity names and "
-           "drop modifiers so the same claim from different papers matches. Never invent claims not "
-           "supported by a quote. Prefer mechanistic/causal claims over background.")
+_SYSTEM = ("You extract specific, checkable claims from research text, in ANY field (biology, physics, "
+           "economics, mathematics, computer science...). Return the 3-10 most important claims as "
+           "(subject, relation, object) tuples with an effect sign and a quote copied EXACTLY from the "
+           "text. For a CAUSAL/EMPIRICAL finding use effect_sign '+' (raises/enables) or '-' "
+           "(lowers/prevents). For a MATHEMATICAL or THEORETICAL statement — a theorem, bound, "
+           "definition, identity, result, or conjecture — use effect_sign 'na', with subject = the "
+           "object/concept, relation = the verb (is/satisfies/implies/bounds/equals/holds_for), object "
+           "= the property or result. Do not force theorems into causal tuples. Use canonical, short "
+           "names so the same claim from different papers matches. Copy the quote EXACTLY as a full "
+           "sentence that appears verbatim in the text — never paraphrase, never invent a claim.")
 
 
 def _norm(text: str) -> str:

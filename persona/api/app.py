@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import mimetypes
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
@@ -867,6 +868,79 @@ def deliverable_bundle(pid: str, deliverable: str):
     stem = deliverable.rsplit(".", 1)[0]
     return StreamingResponse(buf, media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{stem}.zip"'})
+
+
+# --------------------------------------------------------- documents (md|tex -> real compiled PDF)
+def _doc_compile(p, source: str, fmt: str, slug: str, title: str, *, extra_dir: Path = None) -> dict:
+    """Compile a document source to a hash-addressed PDF (cached), copy to deliverables/. LLM-free."""
+    import hashlib
+    import shutil
+    from ..deliverables import document
+    from ..tools import sandbox
+    if not sandbox.image_ready():
+        return {"ok": False, "reason": "sandbox-image-missing"}
+    h = hashlib.sha256((fmt + "\x00" + title + "\x00" + source).encode("utf-8")).hexdigest()[:12]
+    project = p.paths.projects_dir / f"doc-{document.slug_for(slug)}" / h
+    pdf = project / "main.pdf"
+    if not pdf.is_file():                       # cache: identical source+title+fmt -> same PDF
+        if extra_dir and extra_dir.is_dir():    # bring along sibling figures (name.png)
+            project.mkdir(parents=True, exist_ok=True)
+            for f in extra_dir.glob("*.png"):
+                shutil.copy2(f, project / f.name)
+            for f in extra_dir.glob("results/*.png"):
+                shutil.copy2(f, project / f.name)
+        r = document.compile_source(source, fmt, project, title=title)
+        if not r["ok"]:
+            return {"ok": False, "log": r.get("log", ""), "exit_code": r.get("exit_code")}
+        p.paths.deliverables_dir.mkdir(parents=True, exist_ok=True)
+        dst = p.paths.deliverables_dir / f"{project.parent.name}-{r['source_sha256'][:10]}.pdf"
+        shutil.copy2(pdf, dst)
+        (project / "compile.json").write_text(json.dumps(
+            {"topic": project.parent.name, "at": _iso(), "ok": True, "format": fmt,
+             "source_sha256": r["source_sha256"], "pdf_sha256": r["pdf_sha256"],
+             "deliverable": {"path": dst.name, "bytes": dst.stat().st_size, "pdf_sha256": r["pdf_sha256"]}},
+            indent=2), encoding="utf-8")
+    rel = lambda x: str(x.relative_to(p.paths.workspace)).replace("\\", "/")
+    return {"ok": True, "rel_pdf": rel(pdf), "rel_tex": rel(project / "main.tex")}
+
+
+@app.post("/api/persona/{pid}/document/compile")
+def document_compile(pid: str, payload: dict):
+    """Compile a markdown or LaTeX source to a real PDF (previewable + downloadable). No model call."""
+    p = _p(pid)
+    source = str(payload.get("source") or "")
+    if not source.strip():
+        raise HTTPException(422, "empty source")
+    if len(source) > 500_000:
+        raise HTTPException(413, "source too large")
+    fmt = "tex" if str(payload.get("format")) == "tex" else "md"
+    title = str(payload.get("title") or "Document")[:160]
+    slug = str(payload.get("slug") or title)
+    with context.use(p):
+        return _doc_compile(p, source, fmt, slug, title)
+
+
+@app.get("/api/persona/{pid}/document")
+def document_view(pid: str, path: str):
+    """Return a note/draft/report as a document: its source + a compiled PDF (cached). md or tex."""
+    p = _p(pid)
+    try:
+        target = p.paths.safe(path)
+    except ValueError:
+        raise HTTPException(400, "bad path")
+    if not target.is_file():
+        raise HTTPException(404, "not found")
+    ext = target.suffix.lower()
+    fmt = "tex" if ext == ".tex" else "md" if ext in (".md", ".txt") else None
+    if fmt is None:
+        raise HTTPException(400, "not a document")
+    source = target.read_text(encoding="utf-8", errors="replace")
+    m = re.search(r"^#\s+(.+)$", source, re.M)
+    title = (m.group(1).strip() if m else target.stem.replace("-", " "))[:160]
+    with context.use(p):
+        r = _doc_compile(p, source, fmt, target.stem, title, extra_dir=target.parent)
+    r.update({"source": source, "format": fmt, "title": title, "path": path})
+    return r
 
 
 @app.post("/api/persona/{pid}/upload")

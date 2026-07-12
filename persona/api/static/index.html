@@ -656,6 +656,7 @@
     <span class="lvstat" id="lvstat"></span>
     <button class="cbtn" id="lvbtn" onclick="lvRecompile()">↻ recompile</button>
     <a class="cbtn" id="lvdl" href="#" download>↓ pdf</a>
+    <button class="cbtn" onclick="lvDownloadSource()">↓ source</button>
     <a class="cbtn" id="lvzip" href="#">⤓ .zip</a>
     <button class="cbtn" style="margin-left:auto" onclick="closeLatex()">✕ close</button>
   </div>
@@ -884,41 +885,64 @@ async function doAsk(){
 }
 function citeLinks(text,claims){return (text||"").replace(/\[(\d+)\]/g,(m,n)=>{const c=claims[+n-1];return c?`<span style="color:var(--anchor);cursor:pointer" onclick="prov('${c.claim_id}')">[${n}]</span>`:m;});}
 function srcList(cl){return cl.slice(0,40).map(c=>`[${c.n}] ${esc(c.text)}${c.doi?` · <a href="https://doi.org/${esc(c.doi)}" target="_blank">${esc(c.doi)}</a>`:''}`).join("<br>");}
-/* ------------------------- LaTeX studio: edit + recompile + preview + export ------------------------- */
-const LV={rel_tex:null,deliverable:null,isnew:false};
+/* ------------------------- document viewer: any note/report as a compiled PDF (edit + recompile + export) --- */
+const LV={mode:"paper",rel_tex:null,deliverable:null,isnew:false,format:"tex",docpath:null,title:"document"};
 const LATEX_TEMPLATE="\\documentclass{article}\n\\usepackage{amsmath,graphicx,hyperref,url}\n\\title{Untitled}\n\\author{Persona}\n\\begin{document}\n\\maketitle\n\\begin{abstract}\nA short abstract.\n\\end{abstract}\n\\section{Introduction}\nWrite here, then press recompile.\n\\end{document}\n";
 function lvSetPdf(rel){ $("#lvframe").src=rel?A("/file?path="+encodeURIComponent(rel))+"&_="+Date.now():"about:blank"; }
+// Open a workspace document (a note / draft / report .md or .tex) as a real compiled PDF.
+async function openDoc(path,title){
+  $("#latexview").classList.add("on"); LV.mode="doc"; LV.docpath=path; LV.deliverable=null; LV.rel_tex=null;
+  $("#lvtitle").textContent=title||path; $("#lvstat").textContent="compiling document…"; $("#lvlog").classList.remove("show");
+  $("#lvsrc").value=""; lvSetPdf(null); $("#lvzip").removeAttribute("href");
+  try{
+    const d=await (await fetch(A("/document?path="+encodeURIComponent(path)))).json();
+    LV.format=d.format||"md"; LV.title=d.title||title||path; $("#lvsrc").value=d.source||"";
+    if(d.ok&&d.rel_pdf){ lvSetPdf(d.rel_pdf); $("#lvdl").href=A("/file?path="+encodeURIComponent(d.rel_pdf)); $("#lvstat").textContent=LV.format+" · compiled — edit and recompile"; }
+    else { $("#lvstat").textContent="couldn't compile — showing source"; if(d.log){$("#lvlog").textContent=d.log;$("#lvlog").classList.add("show");} $("#lvdl").removeAttribute("href"); }
+  }catch(e){ $("#lvstat").textContent="could not open document"; }
+}
 async function openLatex(deliverable){
   deliverable=decodeURIComponent(deliverable);
-  $("#latexview").classList.add("on"); $("#lvtitle").textContent=deliverable;
+  $("#latexview").classList.add("on"); LV.mode="paper"; $("#lvtitle").textContent=deliverable;
   $("#lvstat").textContent="loading source…"; $("#lvlog").classList.remove("show");
   LV.isnew=false; LV.deliverable=deliverable; LV.rel_tex=null;
   try{
     const d=await (await fetch(A("/deliverable/source?deliverable="+encodeURIComponent(deliverable)))).json();
     if(!d.ok){ $("#lvsrc").value=""; $("#lvstat").textContent="no editable source found for this PDF"; lvSetPdf(null); return; }
-    LV.rel_tex=d.rel_tex; $("#lvsrc").value=d.tex||""; lvSetPdf(d.rel_pdf);
+    LV.rel_tex=d.rel_tex; LV.format="tex"; $("#lvsrc").value=d.tex||""; lvSetPdf(d.rel_pdf);
     $("#lvdl").href=A("/file?path="+encodeURIComponent(d.rel_pdf));
     $("#lvzip").href=A("/deliverable/bundle?deliverable="+encodeURIComponent(deliverable));
     $("#lvstat").textContent=(d.figures&&d.figures.length?d.figures.length+" figure(s) · ":"")+"editable — recompile to update the PDF";
   }catch(e){ $("#lvstat").textContent="could not load source"; }
 }
 function newLatexDoc(){
-  $("#latexview").classList.add("on"); LV.isnew=true; LV.deliverable=null; LV.rel_tex=null;
+  $("#latexview").classList.add("on"); LV.mode="paper"; LV.isnew=true; LV.deliverable=null; LV.rel_tex=null; LV.format="tex";
   $("#lvtitle").textContent="new document"; $("#lvstat").textContent="edit and recompile"; $("#lvlog").classList.remove("show");
   $("#lvsrc").value=LATEX_TEMPLATE; lvSetPdf(null); $("#lvdl").removeAttribute("href"); $("#lvzip").removeAttribute("href");
   $("#lvsrc").focus();
 }
+function lvDownloadSource(){
+  const blob=new Blob([$("#lvsrc").value],{type:"text/plain"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=(LV.title||"source").replace(/[^a-z0-9]+/gi,"-").toLowerCase()+"."+(LV.format==="md"?"md":"tex");
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
 async function lvRecompile(){
   const src=$("#lvsrc").value, btn=$("#lvbtn"); btn.disabled=true; btn.textContent="compiling…"; $("#lvlog").classList.remove("show");
-  const body=LV.isnew?{new:true,slug:"document",source_tex:src}:{rel_tex:LV.rel_tex,source_tex:src};
   try{
-    const r=await (await fetch(A("/recompile"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+    let r;
+    if(LV.mode==="doc"){
+      r=await (await fetch(A("/document/compile"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source:src,format:LV.format,slug:LV.docpath||LV.title,title:LV.title})})).json();
+    } else {
+      const body=LV.isnew?{new:true,slug:"document",source_tex:src}:{rel_tex:LV.rel_tex,source_tex:src};
+      r=await (await fetch(A("/recompile"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+    }
     if(r.ok){
-      $("#lvstat").textContent="compiled · "+r.deliverable+" · "+(r.pdf_sha256||"").slice(0,10);
-      lvSetPdf(r.rel_pdf); LV.deliverable=r.deliverable;
-      if(LV.isnew){ LV.isnew=false; LV.rel_tex=r.rel_pdf.replace(/main\.pdf$/,"main.tex"); $("#lvtitle").textContent=r.deliverable; }
-      $("#lvdl").href=A("/file?path="+encodeURIComponent(r.rel_pdf));
-      $("#lvzip").href=A("/deliverable/bundle?deliverable="+encodeURIComponent(r.deliverable));
+      lvSetPdf(r.rel_pdf); $("#lvdl").href=A("/file?path="+encodeURIComponent(r.rel_pdf));
+      if(LV.mode==="doc"){ $("#lvstat").textContent="compiled ✓ — document updated"; }
+      else{ $("#lvstat").textContent="compiled · "+r.deliverable; LV.deliverable=r.deliverable;
+        if(LV.isnew){ LV.isnew=false; LV.rel_tex=r.rel_pdf.replace(/main\.pdf$/,"main.tex"); $("#lvtitle").textContent=r.deliverable; }
+        $("#lvzip").href=A("/deliverable/bundle?deliverable="+encodeURIComponent(r.deliverable)); }
     } else { $("#lvlog").textContent=r.log||r.reason||"compile failed"; $("#lvlog").classList.add("show"); $("#lvstat").textContent="compile failed — see log"; }
   }catch(e){ $("#lvlog").textContent="recompile request failed"; $("#lvlog").classList.add("show"); }
   btn.disabled=false; btn.textContent="↻ recompile";
@@ -1468,10 +1492,11 @@ async function openSessionArtifact(sid,sha,media,name){
 const pretty=f=>f.replace(/\.(md|html|pdf|tex|py)$/,'').replace(/^(review|paper|page|diagram)-/,'').replace(/-/g,' ').slice(0,64);
 const kindOf=f=>/^paper-|\.pdf$/.test(f)?"paper":/^page-|\.html$/.test(f)?"interactive page":/^review-/.test(f)?"review":/^diagram/.test(f)?"figure":"artifact";
 const thumbFor=f=>/\.pdf$|^paper/.test(f)?"▤":/\.html$|^page/.test(f)?"◧":/^diagram/.test(f)?"◩":"✦";
-function openerFor(f){ if(/\.md$/.test(f))return `openDraft('${encodeURIComponent(f)}')`; if(/\.(html|pdf|png|tex)$/.test(f))return `setSurface('brain');setTimeout(()=>openDeliverableFile('${encodeURIComponent(f)}'),300)`; return `openDraft('${encodeURIComponent(f)}')`; }
+function openerFor(f){ if(/\.md$/.test(f))return `openDoc('deliverables/${esc(f).replace(/'/g,"")}','${esc(pretty(f)).replace(/'/g,"")}')`; if(/\.(html|pdf|png|tex)$/.test(f))return `setSurface('brain');setTimeout(()=>openDeliverableFile('${encodeURIComponent(f)}'),300)`; return `openDoc('deliverables/${esc(f).replace(/'/g,"")}','${esc(pretty(f)).replace(/'/g,"")}')`; }
 async function openDeliverableFile(name){ name=decodeURIComponent(name); navTo("deliverables"); setTimeout(()=>{const row=$$(`#dirlist .frow.file`).find(r=>r.dataset.p.endsWith("/"+name)||r.dataset.p==="deliverables/"+name); if(row)fsOpen(row);},250); }
-async function openDraft(name){const r=await (await fetch(A("/draft/")+name)).json();$("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
-async function openNote(slug){const r=await (await fetch(A("/note/")+slug)).json();$("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
+// notes, drafts, reports now open as REAL compiled PDF documents (edit/recompile/export), not raw boxes
+async function openDraft(name){ name=decodeURIComponent(name); openDoc("drafts/"+name, pretty(name)); }
+async function openNote(slug){ slug=decodeURIComponent(slug); openDoc("notes/"+slug+".md", slug.replace(/-/g,' ')); }
 async function openPaper(slug){
   $("#modalbox").innerHTML='<h1>opening the paper…</h1>'; $("#modal").style.display="flex";
   try{
