@@ -113,6 +113,14 @@ def prove(question: str, *, parent_id=None) -> dict:
     except Exception:
         pass
 
+    # THE VERIFIED LOOP: a machine-checked derivation becomes a durable TESTED result — the mind now
+    # KNOWS it proved this, not just that it read about it. Only recorded when a check actually passed.
+    if total > 0:
+        from ..memory import verified as vled
+        status = "verified" if verified == total else ("weakened" if verified > 0 else "refuted")
+        vled.record(question, "sympy", status, evidence=(doc or "derivation.md"), checks=total,
+                    source="prove")
+
     log().emit("artifact", f"derived “{question[:56]}” — {verified}/{total} steps machine-verified"
                + (f" → {doc}" if doc else ""), actor="reason", parent_id=parent_id, file=doc)
     return {"ok": True, "doc": doc, "verified": verified, "checks": total,

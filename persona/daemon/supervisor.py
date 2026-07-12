@@ -105,11 +105,12 @@ class Daemon:
                 if can_spend:
                     try:
                         from ..research.investigation import Investigation
-                        invs = Investigation.list_all()
-                        active_invs = [i for i in invs if i.meta.get("status") == "running"]
+                        from ..agents import director
+                        active_invs = [i for i in Investigation.list_all()
+                                       if i.meta.get("status") == "running"]
                         if len(active_invs) < config.MAX_ACTIVE_INVESTIGATIONS:
-                            taken = {i.question for i in invs}
-                            q = next((x for x in selfmind.open_questions() if x not in taken), None)
+                            # the Director assigns a NON-OVERLAPPING problem (dedup vs active/done/verified)
+                            q = director.assign_question(selfmind.open_questions(), self._top_interest())
                             if q:
                                 inv = Investigation.create(q, specialization=self._top_interest())
                                 inv.launch(self.queue)
@@ -139,6 +140,13 @@ class Daemon:
                         self.queue.enqueue("paper", priority=0, params={"topic": self._top_interest()})
                         log().emit("schedule", "enough synthesis — writing a compiled paper",
                                    actor="scheduler")
+                    # SELF-CORRECTION: re-test a past proven result against what it knows now.
+                    try:
+                        from ..memory import verified as vled
+                        if any(e.get("status") in ("verified", "weakened") for e in vled.entries()) and can_spend:
+                            self.queue.enqueue("revisit", priority=3)
+                    except Exception:
+                        pass
                     last_self = now; enqueued = True
                 # 3. NEVER IDLE: keep ideating/testing/writing. Once the reading reserve is spent,
                 #    switch to PRODUCING outputs (reviews/papers) with the reserved budget.

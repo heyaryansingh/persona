@@ -120,6 +120,19 @@ async def _gather(task, queue) -> str:
     return f"gather: read {read} paper(s) for the question"
 
 
+@handler("revisit")
+async def _revisit(task, queue) -> str:
+    """Self-correction: re-test a past verified result and update the ledger (verified/weakened/refuted)."""
+    import asyncio
+    from ..agents import revisit
+    res = await asyncio.to_thread(revisit.revisit, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"revisit: {res.get('reason')}"
+    if res.get("revisited") == 0:
+        return "revisit: nothing to re-verify yet"
+    return f"revisit: “{res.get('statement','')[:36]}” {res.get('old')}→{res.get('new')}"
+
+
 @handler("critique")
 async def _critique(task, queue) -> str:
     """Self-check step: review the report against the question; write critique.md; revise once if weak."""

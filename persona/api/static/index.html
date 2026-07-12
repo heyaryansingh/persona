@@ -400,7 +400,7 @@
 
   /* ---- live swarm view ---- */
   #surf-swarm{flex-direction:column}
-  #swarmbody{flex:1;display:grid;grid-template-columns:1.3fr 1fr;min-height:0}
+  #swarmbody{flex:1;display:grid;grid-template-columns:2fr 0.8fr;min-height:0}
   .steerbar{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
   .steerbar input{flex:1;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px}
   .steerbar input:focus{outline:none;border-color:var(--live)}
@@ -424,6 +424,33 @@
   .swres{display:block;font-size:10.5px;color:var(--live);margin-top:3px}
   .swpulse{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 10px var(--live);align-self:center;animation:swp 1.4s infinite}
   @keyframes swp{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+  /* ---- Research Floor: animated team pipelines ---- */
+  .floordirector{font-family:var(--serif);font-size:12.5px;color:var(--ink);padding:11px 15px;margin:12px 0 12px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--live);border-radius:9px}
+  .floorsub{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:18px 0 9px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+  .floorlane{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px;background:var(--panel);animation:rowIn .3s var(--eout)}
+  .floorlane.flrun{border-left:3px solid var(--live)}
+  .floorlane.fldone{opacity:.7;border-left:3px solid var(--anchor)}
+  .lanehead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:11px}
+  .laneq{font-family:var(--serif);font-size:13px;color:var(--ink);line-height:1.32}
+  .lanebadge{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding:2px 8px;border-radius:20px}
+  .lanebadge.run{color:var(--live);border:1px solid var(--live)}
+  .lanebadge.done{color:var(--anchor);border:1px solid var(--anchor)}
+  .lanepipe{display:flex;align-items:center;gap:2px;overflow-x:auto;padding-bottom:3px}
+  .stagepill{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:54px;padding:7px 4px;border-radius:8px;border:1px solid var(--line);background:var(--bg);transition:all .4s var(--eout)}
+  .stagepill .stg{font-size:14px;line-height:1}
+  .stagepill .stl{font-size:8.5px;letter-spacing:.03em;color:var(--dim)}
+  .stagepill.done{background:#e7f4ee;border-color:var(--live)}
+  .stagepill.done .stg{color:var(--live)}
+  .stagepill.wait{opacity:.48}
+  .stagepill.run{border-color:var(--live);background:#eafaf3;animation:stagePulse 1.3s infinite}
+  .stagepill.run .stg,.stagepill.run .stl{color:var(--live)}
+  @keyframes stagePulse{0%,100%{box-shadow:0 0 0 0 rgba(84,224,164,0)}50%{box-shadow:0 0 0 5px rgba(84,224,164,.26)}}
+  .stagearrow{color:var(--faint);font-size:11px;flex:0 0 auto}
+  .lanefoot{display:flex;align-items:center;gap:11px;margin-top:10px}
+  .lanebar{flex:0 0 110px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+  .lanebar i{display:block;height:100%;background:var(--live);transition:width .5s var(--eout)}
+  .lanenow{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .loosewrap{display:flex;flex-direction:column}
   @media (prefers-reduced-motion: no-preference){ .swcard.live{animation:rowIn .3s var(--eout)} }
   /* ---- sub-tab bar (Map / Work destinations) ---- */
   .subbar{display:none;align-items:center;gap:2px;padding:5px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
@@ -594,7 +621,7 @@
 
     <!-- SWARM (live, real-time) -->
     <div class="surface" id="surf-swarm">
-      <div class="surfhead"><span class="stitle">swarm · agents working right now</span><span class="note" id="swarmsummary">—</span></div>
+      <div class="surfhead"><span class="stitle">research floor · agent teams working in parallel</span><span class="note" id="swarmsummary">—</span></div>
       <div class="steerbar">
         <input id="steerq" placeholder="Ask the swarm to investigate a question — a team will pick it up…"
                onkeydown="if(event.key==='Enter')launchInvestigation()">
@@ -848,27 +875,44 @@ function swCard(t,done){
     `<div class="swmain"><div class="swverb">${done?'✓ ':''}${esc(verb)}${t.parent_id?` <span class="swsub">· spawned</span>`:''}</div>`+
     (tgt?`<div class="swtgt">${tgt}</div>`:'')+res+`</div>${done?'':'<span class="swpulse"></span>'}</div>`;
 }
+function floorLane(inv,agents){
+  const live=(agents||[]).find(a=>a._live)||{};
+  const cells=(inv.steps||[]).map(st=>{
+    const cls=st.status==="done"?"done":((st.status==="running"||st.status==="leased")?"run":"wait");
+    return `<div class="stagepill ${cls}" title="${esc(st.role)}"><span class="stg">${SW_GLYPH[st.type]||'·'}</span><span class="stl">${esc(st.role)}</span></div>`;
+  }).join('<span class="stagearrow">›</span>');
+  const pct=inv.total?Math.round(100*inv.done/inv.total):0;
+  const done=inv.status==="done";
+  const badge=done?`<span class="lanebadge done">✓ done</span>`:`<span class="lanebadge run">● running</span>`;
+  const now=live.type?(SW_VERB[live.type]||live.type)+(live.target?' · '+esc((live.target||'').slice(0,54)):'')
+            :(done?(inv.report?'report: '+esc(inv.report):'closed'):'queued — awaiting a worker');
+  return `<div class="floorlane ${done?'fldone':'flrun'}">
+    <div class="lanehead"><span class="laneq">${esc(inv.question.slice(0,116))}</span>${badge}</div>
+    <div class="lanepipe">${cells}</div>
+    <div class="lanefoot"><div class="lanebar"><i style="width:${pct}%"></i></div><span class="lanenow">${now}</span></div></div>`;
+}
 async function openSwarm(){
-  const gh='style="font-family:var(--serif);font-size:13px;color:var(--ink);margin:16px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)"';
   const render=async()=>{ if(CURSURF!=="swarm")return;
     try{
-      const [s,iv]=await Promise.all([
+      const [s,iv,vr]=await Promise.all([
         (await fetch(A("/swarm"))).json(),
-        fetch(A("/investigations")).then(r=>r.json()).catch(()=>({investigations:[]}))]);
-      const c=s.counts||{};
-      const qmap={}; (iv.investigations||[]).forEach(i=>qmap[i.slug]=i);
-      $("#swarmsummary").innerHTML=`<b>${s.in_flight||0}</b> agents in flight · ${(s.active||[]).length} live (cap ${s.live_cap||s.workers||0}) · ${c.pending||0} queued · ${c.done||0} done`;
-      // group live + queued agents by the INVESTIGATION they serve (the team); upkeep/reading last
+        fetch(A("/investigations")).then(r=>r.json()).catch(()=>({investigations:[]})),
+        fetch(A("/verified")).then(r=>r.json()).catch(()=>({summary:{}}))]);
+      const c=s.counts||{}, invs=iv.investigations||[], vs=vr.summary||{};
+      const qmap={}; invs.forEach(i=>qmap[i.slug]=i);
+      const running=invs.filter(i=>i.status!=='done'), doneInv=invs.filter(i=>i.status==='done').slice(0,4);
+      $("#swarmsummary").innerHTML=`<b>${s.in_flight||0}</b> agents in flight · ${(s.active||[]).length} live (cap ${s.live_cap||s.workers||0}) · <b>${running.length}</b> team(s) on distinct problems · ✓ ${vs.verified||0} verified${vs.refuted?` · ✗ ${vs.refuted} refuted`:''}`;
+      // group live+queued agents by the team (investigation) they serve
       const all=[...(s.active||[]).map(t=>({...t,_live:true})),...((s.queued||[]).map(t=>({...t,_live:false})))];
       const groups={},loose=[];
       all.forEach(t=>{ (t.investigation_id&&qmap[t.investigation_id]) ? (groups[t.investigation_id]=groups[t.investigation_id]||[]).push(t) : loose.push(t); });
-      let html="";
-      Object.keys(groups).forEach(id=>{ const inv=qmap[id];
-        html+=`<div class="swgroup"><div ${gh}>▶ ${esc(inv.question.slice(0,92))} <span style="color:var(--dim);font-size:11px">· ${inv.done}/${inv.total} steps</span></div>`+
-              groups[id].map(t=>swCard(t,!t._live)).join("")+`</div>`; });
-      if(loose.length) html+=`<div class="swgroup"><div ${gh}>background reading & upkeep</div>`+loose.slice(0,30).map(t=>swCard(t,!t._live)).join("")+`</div>`;
-      $("#swactive").innerHTML=html||'<div class="empty">idle — no agents in flight (waiting for budget or the next question)</div>';
-      $("#swdone").innerHTML=(s.recent||[]).map(t=>swCard(t,true)).join("")||'<div class="empty">—</div>';
+      let html=`<div class="floordirector">▟ <b>Director</b> — ${running.length} team${running.length===1?'':'s'} on non-overlapping problems · ${loose.length} agent${loose.length===1?'':'s'} on background reading & upkeep</div>`;
+      html+=running.map(i=>floorLane(i,groups[i.slug])).join("");
+      if(!running.length) html+='<div class="empty">no teams running — hand the swarm a question above, or resume the mind</div>';
+      if(doneInv.length) html+=`<div class="floorsub">recently closed</div>`+doneInv.map(i=>floorLane(i,[])).join("");
+      if(loose.length) html+=`<div class="floorsub">background reading & upkeep</div><div class="loosewrap">`+loose.slice(0,20).map(t=>swCard(t,!t._live)).join("")+`</div>`;
+      $("#swactive").innerHTML=html;
+      $("#swdone").innerHTML=(s.recent||[]).slice(0,12).map(t=>swCard(t,true)).join("")||'<div class="empty">—</div>';
     }catch(e){}
   };
   render(); if(SWARM.iv)clearInterval(SWARM.iv); SWARM.iv=setInterval(render,1500);

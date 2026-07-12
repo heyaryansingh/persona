@@ -408,6 +408,15 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         f"({' '.join(f'[{e}]' for e in item['evidence_ids']) or '[no evidence — hypothesis]'})"
         for item in conclusions]
     report = rbanner + "\n\n" + report.rstrip() + "\n\n" + "\n".join(conclusion_lines) + "\n"
+    # THE VERIFIED LOOP: an evidence-backed (SUPPORTED) computational conclusion is a TESTED result.
+    try:
+        from ..memory import verified as vled
+        for item in conclusions:
+            if item.get("status") == "SUPPORTED" and item.get("evidence_ids"):
+                vled.record(item["claim"], "analyst", "verified",
+                            evidence=",".join(item["evidence_ids"][:3]), source="investigate")
+    except Exception:
+        pass
     draft = get_persona().paths.drafts_dir / f"{_slug(question)}-{session.id[-8:]}.md"
     get_persona().paths.drafts_dir.mkdir(parents=True, exist_ok=True)
     draft.write_text(f"# {title}\n\n_{_now()} · question: {question}_\n\n{report}\n", encoding="utf-8")

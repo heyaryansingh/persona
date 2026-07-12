@@ -267,6 +267,15 @@ def get_self(pid: str):
                 "open_questions": selfmind.open_questions(), "files": selfmind.read_self()}
 
 
+@app.get("/api/persona/{pid}/verified")
+def verified_ledger(pid: str):
+    """The verification ledger — what the mind has actually PROVEN/TESTED (not just read), with the
+    method (lean/sympy/analyst) and whether the revisit loop has re-confirmed or refuted it."""
+    with context.use(_p(pid)):
+        from ..memory import verified as vled
+        return {"entries": vled.entries(), "summary": vled.summary()}
+
+
 @app.get("/api/persona/{pid}/sessions")
 def research_sessions(pid: str, limit: int = 100, offset: int = 0):
     from ..sessions import list_sessions
