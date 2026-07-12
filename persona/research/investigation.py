@@ -40,6 +40,7 @@ DEFAULT_PLAN = [
     ("analyze",     "investigate", "compute with real sandboxed Python / data"),
     ("reason",      "prove",       "derive & machine-check the core claim (sympy)"),
     ("write",       "paper",       "write & compile the report"),
+    ("critique",    "critique",    "peer-review the report & revise it if weak"),
     ("finalize",    "finalize_investigation", "record findings and close the loop"),
 ]
 
@@ -131,7 +132,7 @@ class Investigation:
             # thread the question into whatever key each handler reads
             if s["type"] in ("gather",):
                 params["interest"] = q
-            elif s["type"] in ("investigate", "prove"):
+            elif s["type"] in ("investigate", "prove", "critique"):
                 params["question"] = q
             elif s["type"] in ("paper", "review", "build"):
                 params["topic"] = q

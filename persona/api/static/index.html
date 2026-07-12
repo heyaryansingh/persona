@@ -401,6 +401,10 @@
   /* ---- live swarm view ---- */
   #surf-swarm{flex-direction:column}
   #swarmbody{flex:1;display:grid;grid-template-columns:1.3fr 1fr;min-height:0}
+  .steerbar{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .steerbar input{flex:1;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px}
+  .steerbar input:focus{outline:none;border-color:var(--live)}
+  .steerbar button{background:var(--live);color:#fff;border:0;border-radius:8px;font-size:12px;padding:8px 14px;cursor:pointer;white-space:nowrap}
   .swarmcol{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
   .swarmcol.done{border-right:0;background:var(--panel2)}
   .swcolhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:12px 18px 8px}
@@ -591,6 +595,11 @@
     <!-- SWARM (live, real-time) -->
     <div class="surface" id="surf-swarm">
       <div class="surfhead"><span class="stitle">swarm · agents working right now</span><span class="note" id="swarmsummary">—</span></div>
+      <div class="steerbar">
+        <input id="steerq" placeholder="Ask the swarm to investigate a question — a team will pick it up…"
+               onkeydown="if(event.key==='Enter')launchInvestigation()">
+        <button onclick="launchInvestigation()">▶ investigate</button>
+      </div>
       <div id="swarmbody">
         <div class="swarmcol active">
           <div class="swcolhead">working now</div>
@@ -773,7 +782,7 @@ function openMind(id){
   PID=id; $("#genesis").style.display="none"; $("#ignition").style.display="none"; $("#shell").style.display="flex";
   $("#stream").innerHTML=""; $("#mindname").textContent="…"; window.__kg=null; FS.tree=null; FS.path="";
   TEL.obs=0; TEL.esc=0; TEL.workers=0; TEL.queue=0;
-  setSurface('stream');
+  setSurface('brain');            // documents-first: land on the file browser, not the text stream
   backfillStream();
   if(es){es.close();}
   es=new EventSource(A("/stream"));
@@ -863,6 +872,14 @@ async function openSwarm(){
     }catch(e){}
   };
   render(); if(SWARM.iv)clearInterval(SWARM.iv); SWARM.iv=setInterval(render,1500);
+}
+async function launchInvestigation(){
+  const q=($("#steerq").value||"").trim(); if(!q||!PID)return;
+  $("#steerq").value="";
+  try{ const r=await (await fetch(A("/investigate"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})})).json();
+    if(r.ok){ toast(`team launched · ${r.steps} agents investigating: ${q.slice(0,48)}`); if(CURSURF==="swarm")openSwarm(); }
+    else toast(r.reason||"could not launch (seed/resume the mind first)"); }
+  catch(e){ toast("launch failed"); }
 }
 function toggleRail(){ const r=$("#selfrail"); r.classList.toggle("collapsed"); $("#selfrail .collapse").textContent=r.classList.contains("collapsed")?"›":"‹"; }
 

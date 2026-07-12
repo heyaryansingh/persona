@@ -120,6 +120,20 @@ async def _gather(task, queue) -> str:
     return f"gather: read {read} paper(s) for the question"
 
 
+@handler("critique")
+async def _critique(task, queue) -> str:
+    """Self-check step: review the report against the question; write critique.md; revise once if weak."""
+    import asyncio
+    from ..agents import critic
+    q = task.params.get("question", task.params.get("topic", task.prompt))
+    res = await asyncio.to_thread(critic.critique, q,
+                                  investigation_id=task.params.get("investigation_id", ""),
+                                  parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"critique: {res.get('reason')}"
+    return f"critique: {res.get('verdict')}" + (" · revised the report" if res.get("revised") else "")
+
+
 @handler("finalize_investigation")
 async def _finalize_investigation(task, queue) -> str:
     """Close an investigation: aggregate step outcomes into findings.md and mark it done."""

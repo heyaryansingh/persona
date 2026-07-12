@@ -116,8 +116,10 @@ def _evidence_prompt(claims: list[dict]) -> str:
 
 
 def _finish_error(value: object, *, ran_code: bool, allowed_ids: set[str],
-                  required_ids: set[str] | None = None) -> str | None:
-    if not ran_code:
+                  required_ids: set[str] | None = None, relax: bool = False) -> str | None:
+    # relax=True on a FORCED finish (out of turns/budget): accept a reasoning-only report so a
+    # document lands instead of the whole paid investigation being discarded as "no-finish".
+    if not ran_code and not relax:
         return "run_python must succeed or fail visibly before finish"
     if not isinstance(value, dict) or not isinstance(value.get("report_markdown"), str):
         return "finish must contain report_markdown"
@@ -257,6 +259,7 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
                  f"Project dir is /work (mounted); write outputs to /work/results/.{known}"}]
     required_ids = {f"claim:{claim_id}" for claim_id in (evidence_claim_ids or [])}
     ran_code, finished, finish_event_id = False, None, None
+    assistant_texts = []          # collect the analyst's reasoning so exhausted runs can be salvaged
     total_cost, request_parent = 0.0, session.root_event_id
     for turn in range(max_turns):
         if not budget().can_spend():
@@ -264,7 +267,7 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         # Wrap-up: once code has run and turns are almost out, FORCE the finish tool so a real report
         # lands instead of being discarded as "no-finish" (turn-exhaustion was the main cause of lost,
         # already-paid-for investigations). Two forced turns leave one retry if the first finish is rejected.
-        force_finish = ran_code and turn >= max_turns - 2
+        force_finish = turn >= max_turns - 2      # near the end, force a report even if no code ran
         sys_prompt = _SYSTEM if not force_finish else (_SYSTEM +
             "\n\nYou are out of turns. Call finish NOW with your report and at least one conclusion. "
             "Cite ONLY evidence IDs shown to you; mark anything else UNSUPPORTED_HYPOTHESIS (needs no IDs).")
@@ -290,6 +293,8 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         for block in resp.content:
             if block.type == "text":
                 blocks.append({"type": "text", "text": block.text})
+                if block.text.strip():
+                    assistant_texts.append(block.text.strip())
             elif block.type == "tool_use":
                 blocks.append({"type": "tool_use", "id": block.id, "name": block.name,
                                "input": block.input})
@@ -307,7 +312,7 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
                 if b.name == "finish":
                     error = _finish_error(b.input, ran_code=ran_code,
                                           allowed_ids=claim_ids | session.artifact_ids,
-                                          required_ids=required_ids)
+                                          required_ids=required_ids, relax=force_finish)
                     if error:
                         session.record("finish_rejected", {"turn": turn, "reason": error,
                                                             "input": b.input},
@@ -362,6 +367,25 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         messages.append({"role": "user", "content": results})
 
     if not finished:
+        # SALVAGE: the loop ended without a formal finish (turns/budget exhausted). Do NOT discard the
+        # paid work — assemble the analyst's actual reasoning into a REPORT.md document, honestly marked
+        # exploratory/truncated. A real document beats a lost "no-finish" every time.
+        reasoning = "\n\n".join(assistant_texts).strip()
+        if reasoning or ran_code:
+            title = (question[:117].rsplit(" ", 1)[0] + "…") if len(question) > 120 else question
+            report = ("> **exploratory** — investigation truncated (turns/budget ran out); this is the "
+                      "analyst's reasoning and any computed output so far, not a completed, "
+                      "evidence-backed finding.\n\n" + (reasoning or "_(reasoning not captured; see the "
+                      "session's code/stdout artifacts)_"))
+            get_persona().paths.drafts_dir.mkdir(parents=True, exist_ok=True)
+            draft = get_persona().paths.drafts_dir / f"{_slug(question)}-{session.id[-8:]}.md"
+            draft.write_text(f"# {title}\n\n_{_now()} · question: {question} · truncated_\n\n{report}\n",
+                             encoding="utf-8")
+            (project / "REPORT.md").write_text(f"# {title}\n\n{report}\n", encoding="utf-8")
+            session.update(cost_usd=round(total_cost, 6))
+            session.finalize("completed", reason="salvaged-truncated")
+            return {"ok": True, "reason": "salvaged", "draft": draft.name, "ran_code": ran_code,
+                    "project": str(project), "session_id": session.id, "truncated": True}
         session.update(cost_usd=round(total_cost, 6))
         session.finalize("failed", reason="no-finish")
         return {"ok": False, "reason": "no-finish", "project": str(project),

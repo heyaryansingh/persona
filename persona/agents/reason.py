@@ -51,14 +51,24 @@ def prove(question: str, *, parent_id=None) -> dict:
 
     from anthropic import Anthropic
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    # 8000 leaves headroom: this model emits a thinking block, and a tight cap can truncate the
-    # derivation text away entirely (the <120 guard below catches that, but headroom avoids it).
-    resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=8000, system=_SYSTEM,
-                                  messages=[{"role": "user", "content":
-                                             f"Question / claim to derive rigorously:\n{question}"}])
-    u = resp.usage
-    budget().add((u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000)
-    md = "".join(b.text for b in resp.content if b.type == "text").strip()
+    # This model emits a server-side thinking block, so a tight max_tokens can truncate the derivation
+    # text away entirely (esp. on a broad question); 10000 leaves headroom without the latency of a
+    # huge cap. Retry once, MORE FOCUSED, if the first reply still comes back empty.
+    md = ""
+    for attempt in range(2):
+        if not budget().can_spend():
+            break
+        prompt = f"Question / claim to derive rigorously:\n{question}"
+        if attempt == 1:
+            prompt += ("\n\nKeep it focused: state the single most important derivable identity/step "
+                       "for this question, give its sympy check, and conclude. Do not exceed ~1200 words.")
+        resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=10000, system=_SYSTEM,
+                                      messages=[{"role": "user", "content": prompt}])
+        u = resp.usage
+        budget().add((u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000)
+        md = "".join(b.text for b in resp.content if b.type == "text").strip()
+        if len(md) >= 120:
+            break
     if len(md) < 120:
         return {"ok": False, "reason": "empty-derivation"}
 

@@ -611,23 +611,25 @@ def science_ep(pid: str, payload: dict):
 
 
 @app.post("/api/persona/{pid}/goal")
+@app.post("/api/persona/{pid}/investigate")
 def goal(pid: str, payload: dict):
-    """Directed mode: hand the persona a real problem/question. It pursues it (reads + a real
-    computational investigation) as high-priority work and returns a cited deliverable — without
-    stopping its own research, and without rewriting its durable self."""
+    """Directed mode: hand the persona a real question. It opens a persistent multistep INVESTIGATION
+    — a team of agents (gather → harvest → synthesize → analyze → prove → write → critique → finalize)
+    tracked as a folder of documents — as high-priority work, without rewriting its durable self."""
     p = _p(pid)
     d = manager()._daemons.get(pid)
-    g = (payload.get("goal") or payload.get("text") or "").strip()
+    g = (payload.get("goal") or payload.get("question") or payload.get("text") or "").strip()
     if not g:
         return {"ok": False, "reason": "empty"}
     if d is None:
         return {"ok": False, "reason": "daemon not running (seed/resume the persona)"}
     with context.use(p):
         from ..events import log
-        log().emit("say", f"[goal] {g}", actor="human")
-    d.queue.enqueue("scout", priority=1, params={"interest": g})
-    tid = d.queue.enqueue("investigate", priority=1, params={"question": g})
-    return {"ok": True, "task": tid, "goal": g}
+        from ..research.investigation import Investigation
+        log().emit("say", f"[investigate] {g}", actor="human")
+        inv = Investigation.create(g, specialization="human-requested")
+        inv.launch(d.queue)
+    return {"ok": True, "slug": inv.slug, "steps": len(inv.meta.get("steps", [])), "question": g}
 
 
 @app.post("/api/persona/{pid}/mywork")
