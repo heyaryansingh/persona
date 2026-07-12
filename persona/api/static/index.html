@@ -33,7 +33,7 @@
   button{font-family:var(--mono)}
 
   /* ============================ GENESIS ============================ */
-  #genesis{position:fixed;inset:0;background:radial-gradient(1200px 700px at 50% 42%,#eeeeed 0%,#f6f6f6 62%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;overflow:hidden}
+  #genesis{position:fixed;inset:0;background:radial-gradient(1200px 700px at 50% 42%,#eeeeed 0%,#f6f6f6 62%);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;z-index:30;overflow-y:auto;padding:6vh 0 7vh}
   #genesis .gwrap{position:relative;z-index:2;width:min(760px,92vw);text-align:center;animation:fadeIn .8s ease}
   #genesis .kicker{font-size:10.5px;letter-spacing:.42em;color:var(--faint);text-transform:uppercase;margin-bottom:22px}
   #genesis h1{font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,52px);line-height:1.08;margin:0 0 8px;color:#1d1c1b;letter-spacing:-.01em}
@@ -42,6 +42,8 @@
   .igniter:focus-within{border-color:var(--live);box-shadow:0 0 0 1px rgba(84,224,164,.25),0 0 40px -14px var(--live)}
   .igniter .spark{color:var(--live);padding:0 10px;font-size:14px;opacity:.7}
   .igniter input{flex:1;background:transparent;border:0;color:var(--ink);font-family:var(--mono);font-size:14px;padding:12px 4px}
+  .igniter .nameinp{flex:0 0 120px;color:var(--anchor)}
+  .igniter .idiv{width:1px;align-self:stretch;background:var(--line2);margin:6px 4px}
   .igniter input:focus{outline:none}
   .igniter button{background:#dddcda;border:1px solid #c8c5c2;color:#1eb868;font-family:var(--mono);font-size:13px;padding:10px 18px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background .16s,border-color .16s,transform .1s}
   .igniter button:hover{background:#d1cfcd;border-color:#379f63}
@@ -559,7 +561,9 @@
     <div class="lede">Name a first curiosity. It ignites a belief-graph, dispatches its first readers, and draws its first breath — then goes out into the literature on its own.</div>
     <div class="igniter">
       <span class="spark">✦</span>
-      <input id="seedint" placeholder="name a first curiosity…" onkeydown="if(event.key==='Enter')igniteMind()">
+      <input id="seedname" class="nameinp" placeholder="name (optional)" onkeydown="if(event.key==='Enter')igniteMind()">
+      <span class="idiv"></span>
+      <input id="seedint" placeholder="its curiosities — comma-separated…" onkeydown="if(event.key==='Enter')igniteMind()">
       <button onclick="igniteMind()">ignite &nbsp;→</button>
     </div>
     <div class="orlabel">or borrow a curiosity from the archive</div>
@@ -846,14 +850,16 @@ async function loadGenesis(){
 }
 function pickSeed(s){ $("#seedint").value=s; $("#seedint").focus(); }
 async function igniteMind(){
-  const interest=$("#seedint").value.trim(); if(!interest){$("#seedint").focus();return;}
-  const name=interest.split(/[\s,]+/).slice(0,1).join("")||"Mind";
+  const raw=$("#seedint").value.trim(); if(!raw){$("#seedint").focus();return;}
+  const interests=raw.split(/\s*[,;\n]+\s*/).filter(Boolean);      // comma/semicolon-separated -> list
+  const nameIn=($("#seedname").value||"").trim();
+  const name=nameIn || cap((interests[0]||"Mind").split(/[\s,]+/)[0]);   // chosen name, else first word
   const btn=$(".igniter button"); btn.disabled=true; btn.textContent="igniting…";
   try{
-    const res=await fetch("/api/personas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:cap(name),interests:interest})});
+    const res=await fetch("/api/personas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,interests:interests})});
     if(!res.ok) throw new Error("server "+res.status);
     const p=await res.json();
-    runIgnition(p, interest);
+    runIgnition(p, interests.join(" · "));
   }catch(e){ toast("Could not ignite — "+esc(e.message)); btn.disabled=false; btn.textContent="ignite  →"; }
 }
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
