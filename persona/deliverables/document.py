@@ -112,6 +112,9 @@ def sanitize_markdown(md: str) -> str:
     md = re.sub(r"</?(?:synthesis_markdown|report_markdown|parameter|invoke|tool_use|"
                 r"function_calls|antml:[A-Za-z_:]+)[^>]*>", "", md)
     md = re.sub(r'<parameter\b[^>]*>', "", md)
+    # strip inline HTML tags that leak from source metadata (e.g. "<i>APOE</i>", "<tt>IdentityFinder</tt>")
+    # — they render as literal junk in LaTeX and read as unprofessional. Keep prose, drop the tags.
+    md = re.sub(r"</?(?:i|b|em|strong|tt|sub|sup|u|span|small|br|mml:[A-Za-z]+)\s*/?>", "", md, flags=re.I)
     md = re.sub(r"\n{4,}", "\n\n\n", md)
     return md.strip()
 

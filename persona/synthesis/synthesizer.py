@@ -135,8 +135,16 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
         log().emit("control", f"skipped an empty synthesis for {slug} (no substance, {len(claims)} claims)",
                    actor="synthesizer", parent_id=parent_id, slug=slug)
         return {"ok": False, "reason": "empty-synthesis"}
-    oq = out.get("open_questions", []) or []
-    contra = out.get("contradictions", []) or []
+    def _aslist(v):
+        # the model sometimes returns a STRING (or a leaked tool-param blob) where a list is expected;
+        # iterating that with `for q in v` serialized it ONE CHARACTER PER BULLET (600+ junk bullets).
+        if isinstance(v, str):
+            return [v.strip()] if v.strip() else []
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+        return []
+    oq = _aslist(out.get("open_questions"))
+    contra = _aslist(out.get("contradictions"))
     # eval-in-the-loop: verify the synthesis is actually supported by the quotes (defensibility)
     from . import checker
     allquotes = [s.get("quote") for c in claims for s in (c.get("sources") or []) if s.get("quote")]

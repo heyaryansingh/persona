@@ -39,10 +39,11 @@ _SYSTEM = (
     "and the key result. No walls of text.\n"
     "3. `## Significance` — 2–3 sentences a non-specialist scientist could read: why this matters "
     "(Nature/PNAS-style significance statement).\n"
-    "4. `## Main result` — the precise claims of THIS paper as a short bulleted list, each TAGGED with "
-    "its status: **[PROVED HERE]** (a complete argument is given below), **[VERIFIED NUMERICALLY]** "
-    "(machine-checked by computation), **[CITED]** (established elsewhere, with [n]), or **[OPEN]** "
-    "(conjecture / not settled). Never tag PROVED HERE unless the argument is actually in the paper.\n"
+    "4. `## Main result` — the precise claims of THIS paper as a short bulleted list. Flag ONLY the "
+    "noteworthy ones: **[PROVED HERE]** (a complete argument is given below), **[VERIFIED NUMERICALLY]** "
+    "(machine-checked by computation), or **[OPEN]** (conjecture / not settled). A claim merely "
+    "established in the literature needs NO tag — just carry its [n] citation (the citation is its "
+    "evidence; do NOT write '[CITED]'). Never tag PROVED HERE unless the argument is actually in the paper.\n"
     "5. `## Introduction` — the problem, prior work (cite [n]), and the gap.\n"
     "6. `## Methods` — how the result is obtained: the reduction/derivation strategy, and any "
     "computation (state that code was run in a sandbox and what it checked).\n"
@@ -63,6 +64,26 @@ def _slug(t): return (re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")[:50] or "
 def _now(): return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _prune_refs(md: str) -> str:
+    """Citation hygiene: keep ONLY reference entries that are actually cited inline, so a paper never
+    ships with orphaned references (a bibliography of entries nothing points to reads as unprofessional).
+    Numbers may end up non-contiguous — every listed ref still resolves, which is what matters."""
+    m = re.search(r"(^##\s*references\s*)$(.*)\Z", md, re.I | re.M | re.S)
+    if not m:
+        return md
+    head, refs = md[:m.start()], m.group(2)
+    cited = set(re.findall(r"\[(\d+)\]", head))          # numbers cited in the body
+    if not cited:                                        # nothing cited -> drop the orphaned list entirely
+        return head.rstrip() + "\n"
+    kept = []
+    for line in refs.splitlines():
+        n = re.match(r"^\s*(\d+)\.\s", line)
+        if n and n.group(1) not in cited:
+            continue                                     # drop an uncited reference entry
+        kept.append(line)
+    return head + m.group(1) + "\n" + "\n".join(kept).strip() + "\n"
+
+
 def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
@@ -81,7 +102,7 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
             txt = f.read_text(encoding="utf-8")
             notes.append(txt[:3000])
             for m in re.finditer(r"^\[(\d+)\]\s*(.+)$", txt, re.M):
-                cite = m.group(2).strip()
+                cite = re.sub(r"</?[A-Za-z][^>]*>", "", m.group(2)).strip()   # strip leaked HTML tags
                 if cite not in sources and len(sources) < 24:      # cap so the ref tail can't blow tokens
                     sources.append(cite)
     if not notes:
@@ -121,11 +142,12 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     # TWO real, grounded figures (matplotlib written by the builder, run in the sandbox): a structural
     # diagram and a data/quantities plot. More than one figure was the main formatting gap (6/10 papers
     # had none). Budget-gated: build what we can afford.
-    fignums = []
+    fignums, figinfo = [], []          # figinfo: (num, real_title) so the paper's caption MATCHES the image
     try:
         from ..agents import builder
-        framings = [("figure1.png", f"{topic} — a labeled diagram of the core objects/mechanism and how they relate"),
-                    ("figure2.png", f"{topic} — the key quantities, distribution, or structure plotted as a clean data figure")]
+        # two DISTINCT figures: a concept diagram and a genuinely quantitative chart (not another diagram)
+        framings = [("figure1.png", f"{topic} — a labeled concept diagram of the core objects/mechanism and how they relate"),
+                    ("figure2.png", f"{topic} — a QUANTITATIVE chart/plot of the key numbers (bars/lines/scatter), NOT a boxes-and-arrows diagram")]
         for i, (fname, framing) in enumerate(framings, 1):
             if not budget().can_spend():
                 break
@@ -134,11 +156,14 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
             if fg.get("ok") and sp.is_file():
                 shutil.copy2(sp, project / fname)
                 fignums.append(i)
+                figinfo.append((i, (fg.get("title") or "").strip()))
     except Exception:
         pass
-    if fignums:
-        msgs[0]["content"] += ("\n\nFIGURES available: " + ", ".join(f"figure{i}.png" for i in fignums)
-            + ". Embed EACH once as ![caption](figureN.png) at the point it is discussed; refer to it as Figure N.")
+    if figinfo:
+        # tell the model EXACTLY what each figure shows, so its caption/reference can't mismatch the image
+        msgs[0]["content"] += ("\n\nFIGURES available (embed EACH once as ![caption](figureN.png) where it "
+            "fits; your caption and any 'Figure N shows…' text MUST match what the figure actually depicts):\n"
+            + "\n".join(f"- figure{i}.png depicts: {t}" for i, t in figinfo if t))
     # Generate the paper as plain-text MARKDOWN (NOT a forced tool call — that truncates the JSON at
     # max_tokens and yields an empty paper). Then compile via the robust document pipeline.
     from .document import compile_source, sanitize_markdown
@@ -149,21 +174,49 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     call_cost = (u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000
     budget().add(call_cost); total_cost += call_cost
     md = sanitize_markdown("".join(b.text for b in resp.content if b.type == "text"))
-    # ENFORCE figures: the model often ignores the embed instruction, so inject any built-but-unreferenced
-    # figure into the body (before Discussion/References) — a paper with no diagrams was the main gap.
+
+    def _measure(text):
+        # (non-reference body chars, body section count, distinct inline [n] citations)
+        body = re.split(r"\n##\s*references", text, maxsplit=1, flags=re.I)[0]
+        return (len(body.strip()), len(re.findall(r"^##\s+", body, re.M)),
+                len(set(re.findall(r"\[(\d+)\]", text))))
+
+    body_chars, n_sec, inline = _measure(md)
+    # A real paper has a BODY, not just a title + a references list. The old floor (len>=300) shipped
+    # bodyless stubs that became "papers" that were ONLY a ## References list (0 inline citations) —
+    # unprofessional. Regenerate once if the first draft is thin.
+    if (body_chars < 1200 or n_sec < 3) and budget().can_spend():
+        resp2 = client.messages.create(model=config.MODEL_WORKER, max_tokens=12000, system=_SYSTEM,
+            messages=msgs + [{"role": "assistant", "content": md[:1500]},
+                             {"role": "user", "content": "That draft is only a stub — it lacks a real "
+                              "body. Write the COMPLETE paper with every section (Abstract, Significance, "
+                              "Introduction, Methods, Results, Discussion) filled with substantive content "
+                              "and inline [n] citations to the numbered sources. Output ONLY the full "
+                              "Markdown paper, starting with '# '."}])
+        u2 = resp2.usage
+        call_cost = (u2.input_tokens * 3.0 + u2.output_tokens * 15.0) / 1_000_000
+        budget().add(call_cost); total_cost += call_cost
+        md2 = sanitize_markdown("".join(b.text for b in resp2.content if b.type == "text"))
+        if _measure(md2)[0] > body_chars:
+            md = md2
+        body_chars, n_sec, inline = _measure(md)
+    # ENFORCE figures: inject any built-but-unreferenced figure into the body (the model often ignores
+    # the embed instruction) — but only into a real-bodied paper.
     missing = [i for i in fignums if f"figure{i}.png" not in md]
-    if missing:
-        caps = {1: "structure and objects of the problem", 2: "key quantities / distribution"}
-        block = "\n\n" + "\n\n".join(f"![Figure {i}. {caps.get(i,'')}](figure{i}.png)" for i in missing) + "\n\n"
+    if missing and n_sec >= 2:
+        caps = dict(figinfo)                          # real figure titles, so an injected caption still matches
+        block = "\n\n" + "\n\n".join(f"![Figure {i}. {caps.get(i) or 'illustration'}](figure{i}.png)" for i in missing) + "\n\n"
         anchor = re.search(r"^##\s*(discussion|reasoning chain|references)", md, re.I | re.M)
         md = (md[:anchor.start()] + block + md[anchor.start():]) if anchor else (md.rstrip() + block)
-    # guarantee citations resolve: if the model omitted (or truncated) the References section, append
-    # the canonical numbered list so every inline [n] traces to a real source with its DOI.
-    if sources and not re.search(r"^##\s*references", md, re.I | re.M):
+    # Append the canonical References list ONLY when the paper actually cites inline — otherwise the
+    # list is orphaned (references with nothing citing them), which reads as unprofessional.
+    if sources and inline and not re.search(r"^##\s*references", md, re.I | re.M):
         md = md.rstrip() + "\n\n" + references_md + "\n"
+    md = _prune_refs(md)                              # drop any references nothing cites (no orphans)
     hm = re.search(r"^#\s+(.+)$", md, re.M)
     title = (hm.group(1).strip() if hm else "") or topic
-    if len(md) >= 300:                                # require real substance, not an empty stub
+    # SUBSTANCE FLOOR: never ship a bodyless / references-only stub as a paper.
+    if body_chars >= 1200 and n_sec >= 3:
         (project / "paper.md").write_text(md, encoding="utf-8")
         r = compile_source(md, "md", project, title=title)
         ok = bool(r.get("ok"))

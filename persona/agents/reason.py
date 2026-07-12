@@ -127,8 +127,11 @@ def prove(question: str, *, parent_id=None) -> dict:
         pass
 
     # THE VERIFIED LOOP: a machine-checked result becomes a durable TESTED belief — the mind now KNOWS
-    # it proved this, not just that it read it. Recorded only when a check actually passed (honest).
-    if total > 0:
+    # it proved this, not just that it read it. Recorded only when a check actually passed (honest) AND
+    # the statement is a PROPOSITION — an interrogative ("Is X …?") is a question, not a proven fact, so
+    # it must never enter the ledger as "verified".
+    is_question = question.rstrip().endswith("?")
+    if total > 0 and not is_question:
         from ..memory import verified as vled
         status = "verified" if verified == total else ("weakened" if verified > 0 else "refuted")
         vled.record(question, "sympy", status, evidence=(doc or "derivation.md"), checks=total,

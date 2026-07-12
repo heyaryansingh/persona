@@ -412,9 +412,14 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
     try:
         from ..memory import verified as vled
         for item in conclusions:
-            if item.get("status") == "SUPPORTED" and item.get("evidence_ids"):
-                vled.record(item["claim"], "analyst", "verified",
-                            evidence=",".join(item["evidence_ids"][:3]), source="investigate")
+            eids = item.get("evidence_ids") or []
+            claim = str(item.get("claim", "")).strip()
+            # only a SUPPORTED conclusion backed by a real COMPUTATION artifact (run_python output/data)
+            # is a TESTED result — a literature-only 'claim:' citation is READ/INFERRED, not tested. And a
+            # question is never a verified fact. This stops literature claims being re-badged as computation.
+            has_computation = any(str(e).startswith("artifact:") for e in eids)
+            if item.get("status") == "SUPPORTED" and has_computation and not claim.endswith("?"):
+                vled.record(claim, "analyst", "verified", evidence=",".join(eids[:3]), source="investigate")
     except Exception:
         pass
     draft = get_persona().paths.drafts_dir / f"{_slug(question)}-{session.id[-8:]}.md"

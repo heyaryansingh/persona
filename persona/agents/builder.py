@@ -83,9 +83,14 @@ def _manifest(project: Path, extra: dict) -> None:
 
 # ---------------------------------------------------------------- visual (diagram / art)
 _VIS_SYS = ("You write ONE self-contained Python matplotlib script that produces a single, clear, "
-            "publication-quality figure. Save it to /work/results/figure.png at 150 dpi. No network, "
-            "no external files — synthesize any needed data in-code from the facts given. Use only "
-            "numpy/pandas/matplotlib. Return ONLY the code via the tool.")
+            "publication-quality figure. Save it to /work/results/figure.png at 150 dpi. "
+            "LEGIBILITY IS MANDATORY and the figure will be rejected if text is unreadable: use fontsize "
+            ">= 11 for every label/annotation, set constrained_layout=True (or call fig.tight_layout()), "
+            "leave generous margins, and NEVER let text overlap other text, boxes, arrows, or run off the "
+            "figure edge — if labels would collide, enlarge the figure (figsize) or shorten the text. Do "
+            "not print a label on top of a box border or an arrow. Keep every box's text INSIDE the box. "
+            "No network, no external files — synthesize any needed data in-code from the facts given. Use "
+            "only numpy/pandas/matplotlib. Return ONLY the code via the tool.")
 
 
 def build_visual(kind: str, topic: str, *, parent_id=None, kg=None, max_attempts: int = 2) -> dict:
