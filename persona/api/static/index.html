@@ -1040,12 +1040,12 @@ async function stRun(){
       const r=await (await fetch(A("/ask"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:t})})).json();
       pb().innerHTML=md(r.answer||r.reason||'(no answer)')+((r.claims&&r.claims.length)?`<div class="stmuted">grounded in ${r.claims.length} claim(s)</div>`:'');
     } else {
-      const ep=STUDIO.mode==='paper'?'/deliver':'/investigate';
-      const body=STUDIO.mode==='paper'?{kind:'paper',topic:t}:{question:t};
+      const ep=STUDIO.mode==='paper'?'/deliver':(STUDIO.mode==='verify'?'/verify':'/investigate');
+      const body=STUDIO.mode==='paper'?{kind:'paper',topic:t}:(STUDIO.mode==='verify'?{statement:t}:{question:t});
       const r=await (await fetch(A(ep),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
-      const msg=STUDIO.mode==='verify'?'a team is verifying this — watch the Floor; a proof + a TESTED belief will land in Signals.'
+      const msg=STUDIO.mode==='verify'?(r.message||'proving — the verified result will land in Signals.')
                :STUDIO.mode==='paper'?"drafting a paper — it'll appear in Deliverables.":'a team is investigating — watch the Floor.';
-      pb().innerHTML=r.ok?`✓ ${msg}`:`could not start: ${esc(r.reason||'error')}`;
+      pb().innerHTML=r.ok?`✓ ${msg}`+(r.mode==='formal'?' <span class="stmuted">(Lean 4, formal)</span>':''):`could not start: ${esc(r.reason||'error')}`;
       openStudio();
     }
   }catch(e){ pb().innerHTML='error'; }

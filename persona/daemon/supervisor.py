@@ -147,6 +147,13 @@ class Daemon:
                             self.queue.enqueue("revisit", priority=3)
                     except Exception:
                         pass
+                    # FORMAL PROOFS: drain any pending Aristotle Lean 4 proofs (free to poll; no $ gate).
+                    try:
+                        from ..memory import proofs
+                        if proofs.pending():
+                            self.queue.enqueue("collect_proofs", priority=8)
+                    except Exception:
+                        pass
                     last_self = now; enqueued = True
                 # 3. NEVER IDLE: keep ideating/testing/writing. Once the reading reserve is spent,
                 #    switch to PRODUCING outputs (reviews/papers) with the reserved budget.

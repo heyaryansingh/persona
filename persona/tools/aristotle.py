@@ -1,20 +1,29 @@
-"""Aristotle (Harmonic) — formally-verified Lean 4 proofs (v8, optional).
+"""Aristotle (Harmonic) — formally-verified Lean 4 proofs (v8).
 
-When a Harmonic Aristotle API key is present (env PERSONA_ARISTOTLE_KEY; sign up at
-aristotle.harmonic.fun) and `aristotlelib` is installed, Persona can attempt a FORMAL Lean 4 proof of
-a mathematical statement — checked by the Lean kernel, the strongest possible TESTED tier (Aristotle
-delivered formally-verified solutions to 5/6 IMO-2025 problems). Without a key/lib it is a safe no-op
-and the mind falls back to the sympy verify-refine loop. Any failure returns verified=False so the
-`prove` step never breaks.
+When an Aristotle API key is set (env ARISTOTLE_API_KEY, or PERSONA_ARISTOTLE_KEY) and `aristotlelib`
+is installed, Persona attempts a FORMAL Lean 4 proof of a mathematical statement — checked by the Lean
+kernel, the strongest possible TESTED tier (Aristotle delivered formally-verified solutions to 5/6
+IMO-2025 problems). `TaskStatus.COMPLETE` means Aristotle returned a kernel-verified proof; anything
+else (COMPLETE_WITH_ERRORS / FAILED / timeout) counts as not-verified and the caller degrades to the
+sympy verify-refine loop. Any error is swallowed → verified=False, so `prove` never breaks.
+
+Aristotle proving is an async agent task that can take minutes and consumes Harmonic credits, so calls
+are bounded by `timeout` and gated by config.ARISTOTLE_IN_PIPELINE (off by default in the team pipeline;
+the human-facing Studio "verify" and math escalations turn it on explicitly).
 """
 from __future__ import annotations
 
 import os
+import time
+
+
+def _key() -> str:
+    return os.environ.get("ARISTOTLE_API_KEY") or os.environ.get("PERSONA_ARISTOTLE_KEY") or ""
 
 
 def available() -> bool:
-    """True only if a key is set AND the client lib imports — otherwise `prove` uses sympy."""
-    if not os.environ.get("PERSONA_ARISTOTLE_KEY"):
+    """True only if a key is set AND aristotlelib imports — else `prove` uses sympy."""
+    if not _key():
         return False
     try:
         import aristotlelib  # noqa: F401
@@ -23,35 +32,55 @@ def available() -> bool:
         return False
 
 
-def prove_formal(statement: str, *, timeout: int = 300) -> dict:
-    """Attempt a formal Lean 4 proof of `statement`. Returns {available, verified, proof, error}.
+_PROMPT = ("Formally prove the following mathematical statement in Lean 4. State it precisely, then "
+           "produce a complete, kernel-verified proof.\n\n")
 
-    The exact aristotlelib surface is confirmed against the installed version at call time; on ANY
-    mismatch or error this returns verified=False and the caller degrades to sympy (fail-safe).
-    """
+
+def submit(statement: str) -> dict:
+    """Kick off a formal Lean 4 proof (does NOT wait — proving takes minutes). Returns {available,
+    task_id, error}. The result is collected later by check()/collect_proofs."""
     if not available():
-        return {"available": False, "verified": False}
-    key = os.environ["PERSONA_ARISTOTLE_KEY"]
+        return {"available": False}
+    import asyncio
+
+    async def _run() -> dict:
+        from aristotlelib import Project, set_api_key
+        set_api_key(_key())
+        project = await Project.create(prompt=_PROMPT + statement.strip())
+        for _ in range(6):
+            tasks, _pk = await project.get_tasks(limit=1)
+            if tasks:
+                return {"task_id": tasks[0].agent_task_id, "project_id": getattr(project, "object_id", None)}
+            await asyncio.sleep(2)
+        return {"error": "no task started"}
+
     try:
-        import aristotlelib
-        # try the documented client patterns; whichever the installed lib exposes
-        client = None
-        for ctor in ("Client", "Aristotle", "AristotleClient"):
-            if hasattr(aristotlelib, ctor):
-                client = getattr(aristotlelib, ctor)(api_key=key)
-                break
-        if client is None:
-            return {"available": True, "verified": False, "error": "aristotlelib client not found"}
-        fn = next((getattr(client, m) for m in ("prove", "prove_statement", "verify", "submit")
-                   if hasattr(client, m)), None)
-        if fn is None:
-            return {"available": True, "verified": False, "error": "no prove method on client"}
-        res = fn(statement, timeout=timeout) if "timeout" in fn.__code__.co_varnames else fn(statement)
-        d = res if isinstance(res, dict) else getattr(res, "__dict__", {}) or {}
-        verified = bool(d.get("verified") or getattr(res, "verified", False)
-                        or d.get("status") == "verified")
-        proof = (d.get("proof") or d.get("lean_code") or d.get("lean")
-                 or getattr(res, "proof", None))
-        return {"available": True, "verified": verified, "proof": proof}
+        return {"available": True, **asyncio.run(_run())}
     except Exception as e:
-        return {"available": True, "verified": False, "error": str(e)[:200]}
+        return {"available": True, "error": str(e)[:200]}
+
+
+def check(task_id: str) -> dict:
+    """Poll a submitted proof. Returns {available, done, verified, status, proof}. `done` is True once
+    the task reaches a terminal state; `verified` is True only for a kernel-verified COMPLETE."""
+    if not available():
+        return {"available": False, "done": False, "verified": False}
+    import asyncio
+
+    async def _run() -> dict:
+        from aristotlelib import AgentTask, TaskStatus, set_api_key
+        set_api_key(_key())
+        task = await AgentTask.from_id(task_id)
+        try:
+            await task.refresh()
+        except Exception:
+            pass
+        terminal = {TaskStatus.COMPLETE, TaskStatus.COMPLETE_WITH_ERRORS, TaskStatus.FAILED,
+                    TaskStatus.CANCELED, TaskStatus.OUT_OF_BUDGET}
+        return {"done": task.status in terminal, "verified": task.status == TaskStatus.COMPLETE,
+                "status": str(task.status), "proof": (getattr(task, "output_summary", "") or "")}
+
+    try:
+        return {"available": True, **asyncio.run(_run())}
+    except Exception as e:
+        return {"available": True, "done": False, "verified": False, "error": str(e)[:200]}

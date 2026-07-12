@@ -120,6 +120,33 @@ async def _gather(task, queue) -> str:
     return f"gather: read {read} paper(s) for the question"
 
 
+@handler("formal_verify")
+async def _formal_verify(task, queue) -> str:
+    """Human/team request for a FORMAL Lean 4 proof: submit to Aristotle (async, ~minutes) and track it;
+    collect_proofs records the kernel-verified result to the ledger when it lands."""
+    import asyncio
+    from ..memory import proofs
+    stmt = task.params.get("statement") or task.params.get("question") or task.prompt
+    res = await asyncio.to_thread(proofs.submit_and_track, stmt)
+    if res.get("ok"):
+        queue.enqueue("collect_proofs", priority=9)
+        return f"formal_verify: submitted to Aristotle (Lean 4, proving…) {str(res['task_id'])[:8]}"
+    return f"formal_verify: {res.get('reason')}"
+
+
+@handler("collect_proofs")
+async def _collect_proofs(task, queue) -> str:
+    """Drain pending Aristotle proofs; kernel-verified ones become lean-TESTED beliefs in the ledger.
+    Re-enqueues itself (gently paced) until nothing is left proving — Lean proofs take minutes."""
+    import asyncio
+    from ..memory import proofs
+    r = await asyncio.to_thread(proofs.poll)
+    if r.get("still_pending"):
+        await asyncio.sleep(25)                       # gentle pacing; proving takes minutes
+        queue.enqueue("collect_proofs", priority=9)   # keep draining until done
+    return f"collect_proofs: {r.get('verified', 0)} formally verified, {r.get('still_pending', 0)} still proving"
+
+
 @handler("revisit")
 async def _revisit(task, queue) -> str:
     """Self-correction: re-test a past verified result and update the ledger (verified/weakened/refuted)."""

@@ -284,6 +284,34 @@ def knowledge_tree(pid: str):
         return knowledge.tree()
 
 
+@app.post("/api/persona/{pid}/verify")
+@app.post("/api/persona/{pid}/prove")
+def verify_claim(pid: str, payload: dict):
+    """Ask the persona to formally PROVE a claim (Harmonic Aristotle, Lean 4). Async — proving takes
+    minutes; the kernel-verified result lands in the verification ledger (Studio → Signals). Falls back
+    to the sympy machine-check path (a `prove` investigation step) when no Aristotle key is configured."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    stmt = (payload.get("statement") or payload.get("claim") or payload.get("question")
+            or payload.get("text") or "").strip()
+    if not stmt:
+        return {"ok": False, "reason": "empty"}
+    if d is None:
+        return {"ok": False, "reason": "daemon not running (seed/resume the persona)"}
+    with context.use(p):
+        from ..tools import aristotle
+        from ..events import log
+        log().emit("say", f"[verify] {stmt}", actor="human")
+        if aristotle.available():
+            tid = d.queue.enqueue("formal_verify", priority=1, params={"statement": stmt})
+            return {"ok": True, "mode": "formal", "task": tid,
+                    "message": "submitted a formal Lean 4 proof to Aristotle — it lands in Signals when verified"}
+        # no key: run the sympy machine-check via a prove task
+        tid = d.queue.enqueue("prove", priority=1, params={"question": stmt})
+        return {"ok": True, "mode": "sympy", "task": tid,
+                "message": "machine-checking with sympy — result lands in Signals"}
+
+
 @app.get("/api/persona/{pid}/sessions")
 def research_sessions(pid: str, limit: int = 100, offset: int = 0):
     from ..sessions import list_sessions
