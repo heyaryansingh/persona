@@ -17,7 +17,7 @@ from ..context import get_persona
 from ..budget import budget
 from ..events import log
 from ..ingest import openalex, fetch
-from .extract import EXTRACT_TOOL, _SYSTEM
+from .extract import EXTRACT_TOOL, _SYSTEM, validate_claims
 from .reader import _claim_id, _already_read
 
 def _batch_dir():
@@ -84,7 +84,7 @@ def collect(batch_id: str) -> dict:
     status = client.messages.batches.retrieve(batch_id).processing_status
     if status != "ended":
         return {"ok": True, "status": status, "written": 0}
-    written = 0
+    written = rejected_total = 0
     for res in client.messages.batches.results(batch_id):
         slug = man["id_map"].get(res.custom_id)
         if not slug or res.result.type != "succeeded":
@@ -95,7 +95,14 @@ def collect(batch_id: str) -> dict:
                 raw = b.input.get("claims", []) or []
         u = res.result.message.usage
         budget().add((u.input_tokens * 1.0 + u.output_tokens * 5.0) / 1_000_000 * 0.5)  # batch = 0.5x
-        meta = json.loads((get_persona().paths.sources_dir / slug / "meta.json").read_text(encoding="utf-8"))
+        source_dir = get_persona().paths.sources_dir / slug
+        meta = json.loads((source_dir / "meta.json").read_text(encoding="utf-8"))
+        source_text = (source_dir / "clean.md").read_text(encoding="utf-8")
+        raw, rejected = validate_claims(raw, source_text)
+        if rejected:
+            (source_dir / "claims_rejected.jsonl").write_text(
+                "\n".join(json.dumps(r, ensure_ascii=False) for r in rejected) + "\n", encoding="utf-8")
+            rejected_total += len(rejected)
         lines = []
         for c in raw:
             if not isinstance(c, dict):
@@ -108,14 +115,15 @@ def collect(batch_id: str) -> dict:
                 "quote": c.get("quote", ""), "confidence": c.get("confidence", 0.6),
                 "provenance": "READ", "affiliations": meta.get("affiliations", []),
                 "extracted_at": _now()}, ensure_ascii=False))
-        (get_persona().paths.sources_dir / slug / "claims.jsonl").write_text(
+        (source_dir / "claims.jsonl").write_text(
             "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
         written += 1
     man["status"] = "done"
     man_p.write_text(json.dumps(man), encoding="utf-8")
-    log().emit("tool", f"collected batch {batch_id[:12]} → wrote claims for {written} paper(s)",
-               actor="bulk", batch=batch_id, written=written)
-    return {"ok": True, "status": "ended", "written": written}
+    log().emit("tool", f"collected batch {batch_id[:12]} → wrote claims for {written} paper(s), "
+               f"rejected {rejected_total} ungrounded claim(s)", actor="bulk", batch=batch_id,
+               written=written, rejected=rejected_total)
+    return {"ok": True, "status": "ended", "written": written, "rejected": rejected_total}
 
 
 def collect_pending() -> dict:

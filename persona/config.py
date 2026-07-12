@@ -56,10 +56,11 @@ INGEST_INTERVAL_MULT = float(os.environ.get("PERSONA_INGEST_GENTLE", "1.0"))
 HTTP_CACHE_TTL_DAYS = float(os.environ.get("PERSONA_HTTP_CACHE_TTL_DAYS", "7"))
 
 # daemon knobs
-N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "6"))
+N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "3"))
 QUEUE_MIN_DEPTH = int(os.environ.get("PERSONA_QUEUE_MIN_DEPTH", "4"))   # scheduler tops up below this
 SCHEDULER_INTERVAL_S = float(os.environ.get("PERSONA_SCHEDULER_INTERVAL", "5"))
-SELF_INTERVAL_S = float(os.environ.get("PERSONA_SELF_INTERVAL", "240"))   # reflecting-self cadence
+SCOUT_INTERVAL_S = float(os.environ.get("PERSONA_SCOUT_INTERVAL", "900"))  # minimum between broad pulses
+SELF_INTERVAL_S = float(os.environ.get("PERSONA_SELF_INTERVAL", "1800"))   # reflecting-self cadence
 DAILY_BUDGET_USD = float(os.environ.get("PERSONA_DAILY_BUDGET_USD", "15"))
 LEASE_SECONDS = int(os.environ.get("PERSONA_LEASE_SECONDS", "300"))
 

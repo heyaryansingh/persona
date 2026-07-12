@@ -112,8 +112,30 @@ def ncbi_search(term: str, db: str = "pubmed", size: int = 8) -> dict:
         return {"ok": False, "error": str(e)[:200]}
 
 
+def literature_search(query: str, size: int = 8) -> dict:
+    """OpenAlex: scholarly works on ANY topic (physics, economics, CS, materials, biology…) —
+    title, year, DOI, citation count, authors. Domain-general structured evidence for any field."""
+    try:
+        size = max(1, min(int(size), 25))
+        r = service().get_json("https://api.openalex.org/works", retries=1, timeout=12,
+                               params={"search": query, "per_page": size,
+                                       "select": "title,doi,publication_year,cited_by_count,authorships"})
+        out = []
+        for w in (r.get("results") or []):
+            out.append({"title": w.get("title"),
+                        "year": w.get("publication_year"),
+                        "doi": (w.get("doi") or "").replace("https://doi.org/", ""),
+                        "cited_by": w.get("cited_by_count"),
+                        "authors": [(a.get("author") or {}).get("display_name")
+                                    for a in (w.get("authorships") or [])][:5]})
+        return {"ok": True, "query": query, "papers": out}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
 # registry for the analyst's tool-use loop: name -> (fn, required arg keys)
 REGISTRY = {
+    "literature_search": (literature_search, ["query"]),   # domain-general (all fields)
     "open_targets": (open_targets, ["query"]),
     "pubchem": (pubchem, ["compound"]),
     "uniprot": (uniprot, ["query"]),
@@ -129,6 +151,8 @@ def call(api: str, params: dict) -> dict:
         return {"ok": False, "error": f"unknown api {api}"}
     fn = entry[0]
     try:
+        if api == "literature_search":
+            return fn(params.get("query") or params.get("term", ""), params.get("size", 8))
         if api == "open_targets":
             return fn(params.get("query") or params.get("disease") or params.get("gene", ""))
         if api == "pubchem":

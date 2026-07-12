@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import threading
+from datetime import datetime, timezone
 
 from .. import config
 from ..events import log
@@ -45,6 +46,20 @@ def _save_announced(s: set) -> None:
         json.dumps(sorted(s)), encoding="utf-8")
 
 
+def _source_corrections(src_dir) -> dict:
+    path = src_dir / "claim_corrections.jsonl"
+    if not path.exists():
+        return {}
+    out = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            item = json.loads(line)
+            out[item["source_claim_id"]] = item
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return out
+
+
 def harvest(min_independent: int = 2, parent_id=None) -> dict:
     """Ingest all not-yet-ingested sources into the KG; fire contradictions; project beliefs."""
     from ..context import get_persona
@@ -70,10 +85,14 @@ def _harvest(min_independent: int, parent_id) -> dict:
             continue
         meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
         kg.upsert_source(meta)
+        corrections = _source_corrections(src_dir)
         for line in claims_f.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             rec = json.loads(line)
+            if rec.get("claim_id") in corrections:
+                rec = {**rec, "effect_sign": corrections[rec["claim_id"]]["new_effect_sign"],
+                       "provenance": "CORRECTED_EXTRACTION"}
             kg.add_claim(rec, meta["slug"])          # canonicalizes entities inside
             n_claims += 1
         marker.write_text("", encoding="utf-8")
@@ -110,6 +129,61 @@ def _harvest(min_independent: int, parent_id) -> dict:
         project_beliefs(kg, min_independent)
     return {"ok": True, "ingested": ingested, "claims": n_claims,
             "beliefs": len(beliefs), "new_contradictions": new_contra}
+
+
+def correct_extraction_sign(claim_id: str, new_effect_sign: str, reason: str,
+                            session_id: str) -> dict:
+    """Append a source correction, transfer its evidence, and retire the bad KG claim."""
+    if new_effect_sign not in {"+", "-", "0", "na"} or not reason.strip() or not session_id:
+        return {"ok": False, "reason": "invalid-correction"}
+    kg = get_kg()
+    if kg is None:
+        return {"ok": False, "reason": "no-kg"}
+    old = kg.provenance(claim_id)
+    if not old or old.get("anchored"):
+        return {"ok": False, "reason": "claim-not-correctable"}
+    if old["effect_sign"] == new_effect_sign:
+        return {"ok": True, "reason": "already-correct", "corrected_claim": claim_id}
+    from ..context import get_persona
+    corrected_ids, written = [], 0
+    for source in old.get("sources") or []:
+        src_dir = get_persona().paths.sources_dir / source["slug"]
+        claims_path = src_dir / "claims.jsonl"
+        if not claims_path.exists():
+            continue
+        match = None
+        for line in claims_path.read_text(encoding="utf-8").splitlines():
+            rec = json.loads(line)
+            if (rec.get("effect_sign") == old["effect_sign"] and
+                    rec.get("quote") == source.get("quote")):
+                match = rec
+                break
+        if match is None:
+            continue
+        correction = {"source_claim_id": match["claim_id"], "kg_claim_id": claim_id,
+                      "old_effect_sign": old["effect_sign"], "new_effect_sign": new_effect_sign,
+                      "reason": reason, "session_id": session_id,
+                      "corrected_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        path = src_dir / "claim_corrections.jsonl"
+        existing = _source_corrections(src_dir)
+        if match["claim_id"] not in existing:
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(correction, ensure_ascii=False) + "\n")
+            written += 1
+        corrected_ids.append(kg.add_claim({**match, "effect_sign": new_effect_sign,
+                                           "provenance": "CORRECTED_EXTRACTION"}, source["slug"]))
+    if not corrected_ids or not kg.retire_extraction_claim(claim_id, reason, session_id):
+        return {"ok": False, "reason": "source-evidence-not-found"}
+    announced = _announced()
+    announced.discard(f"{old['subject']}||{old['object']}")
+    _save_announced(announced)
+    project_beliefs(kg)
+    target = corrected_ids[0]
+    log().emit("correction", f"retired bad sign on {old['subject']} → {old['object']}; "
+               f"moved {written} source(s) to {new_effect_sign}", actor="membrane",
+               claim_id=claim_id, corrected_claim=target, session_id=session_id)
+    return {"ok": True, "retired_claim": claim_id, "corrected_claim": target,
+            "source_corrections": written}
 
 
 def project_beliefs(kg=None, min_independent: int = 2) -> None:

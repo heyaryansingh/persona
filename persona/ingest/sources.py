@@ -44,6 +44,10 @@ def _reconstruct_abstract(inv):
 
 def openalex_search(query: str, limit: int, page: int = 1) -> list[Work]:
     from .. import config
+    # OpenAlex treats ? and * as wildcards and rejects them under its default stemmed search.
+    query = re.sub(r"[*?]+", " ", query or "").strip()
+    if not query:
+        return []
     params = {"search": query, "per_page": max(1, min(limit, 50)), "page": page,
               "mailto": config.OPENALEX_MAILTO, "sort": "relevance_score:desc"}
     if config.OPENALEX_API_KEY:                       # premium pool: higher rate limits, no shared-pool ban

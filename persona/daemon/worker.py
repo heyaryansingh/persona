@@ -185,7 +185,8 @@ async def _investigate(task, queue) -> str:
     from ..agents import analyst
     q = task.params.get("question", task.prompt)
     log().emit("thought", f"investigating: {q[:110]}", actor="analyst", parent_id=task.parent_id)
-    res = await asyncio.to_thread(analyst.investigate, q, parent_id=task.parent_id)
+    res = await asyncio.to_thread(analyst.investigate, q, parent_id=task.parent_id,
+                                  evidence_claim_ids=task.params.get("evidence_claim_ids"))
     if not res.get("ok"):
         return f"investigate: {res.get('reason')}"
     return f"investigate: wrote “{res.get('title','')[:60]}” (code={res.get('ran_code')})"

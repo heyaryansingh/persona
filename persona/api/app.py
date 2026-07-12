@@ -176,6 +176,64 @@ def get_self(pid: str):
                 "open_questions": selfmind.open_questions(), "files": selfmind.read_self()}
 
 
+@app.get("/api/persona/{pid}/sessions")
+def research_sessions(pid: str, limit: int = 100, offset: int = 0):
+    from ..sessions import list_sessions
+    p = _p(pid)
+    sessions = list_sessions(p.paths.runs_dir)
+    summaries = [{key: session.get(key) for key in (
+        "session_id", "question", "title", "model", "status", "started_at", "finished_at",
+        "duration_ms", "cost_usd", "verification")}
+        | {"artifact_count": len(session.get("artifacts", [])),
+           "conclusion_count": len(session.get("conclusions", [])),
+           "required_claim_count": len(session.get("required_claim_ids", []))}
+        for session in sessions]
+    start, size = max(0, offset), max(1, min(limit, 500))
+    return {"sessions": summaries[start:start + size], "total": len(summaries),
+            "offset": start, "limit": size}
+
+
+@app.get("/api/persona/{pid}/sessions/{session_id}")
+def research_session(pid: str, session_id: str, limit: int = 500):
+    from ..sessions import read_session
+    data = read_session(_p(pid).paths.runs_dir, session_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    events = data["events"]
+    return {"session": data["session"], "event_count": len(events),
+            "events": events[-max(1, min(limit, 2000)):],
+            "read_errors": data.get("read_errors", [])}
+
+
+@app.get("/api/persona/{pid}/sessions/{session_id}/verify")
+def verify_research_session(pid: str, session_id: str):
+    from ..sessions import verify_session
+    result = verify_session(_p(pid).paths.runs_dir, session_id)
+    if result.get("errors") == ["session-not-found"]:
+        raise HTTPException(status_code=404, detail="session not found")
+    return result
+
+
+@app.get("/api/persona/{pid}/sessions/{session_id}/artifact/{sha256}")
+def research_session_artifact(pid: str, session_id: str, sha256: str, download: bool = False):
+    import re
+    from ..sessions import read_session
+    p = _p(pid)
+    data = read_session(p.paths.runs_dir, session_id)
+    if data is None or not re.fullmatch(r"[0-9a-f]{64}", sha256):
+        raise HTTPException(status_code=404, detail="artifact not found")
+    artifact = next((a for a in data["session"].get("artifacts", [])
+                     if a.get("sha256") == sha256), None)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="artifact not found")
+    root = (p.paths.runs_dir / session_id).resolve()
+    path = (root / artifact["path"]).resolve()
+    if root not in path.parents or not path.exists():
+        raise HTTPException(status_code=404, detail="artifact not found")
+    return FileResponse(path, media_type=artifact.get("media_type"),
+                        filename=artifact.get("name") if download else None)
+
+
 @app.get("/api/persona/{pid}/kg")
 def kg(pid: str):
     p = _p(pid)
@@ -184,8 +242,16 @@ def kg(pid: str):
         g = get_kg()
         if g is None:
             return {"available": False}
-        return {"available": True, "stats": g.stats(), "beliefs": g.beliefs(min_independent=1),
-                "contradictions": g.contradictions(), "graph": g.graph_snapshot()}
+        beliefs = []
+        for belief in g.beliefs(min_independent=1):
+            state = ("anchored" if belief.get("anchored") else
+                     "tested" if belief.get("provenance") == "TESTED" else
+                     "corroborated" if belief.get("independent_sources", 0) >= 2 else "observed")
+            beliefs.append({**belief, "epistemic_state": state})
+        conflicts = g.candidate_conflicts()
+        return {"available": True, "stats": g.stats(), "beliefs": beliefs,
+                "candidate_conflicts": conflicts, "contradictions": conflicts,
+                "graph": g.graph_snapshot()}
 
 
 # --------------------------------------------------------------- navigable graph (v6 P3)
@@ -238,24 +304,128 @@ def history(pid: str, claim_id: str):
 
 @app.get("/api/persona/{pid}/inbox")
 def inbox(pid: str):
-    with context.use(_p(pid)):
+    p = _p(pid)
+    with context.use(p):
+        from ..conflict_reviews import conflict_id, summarize_conflict_reviews
         from ..memory.membrane import get_kg
         g = get_kg()
-        return {"available": g is not None, "items": (g.contradictions(limit=50) if g else [])}
+        items = g.candidate_conflicts(limit=50) if g else []
+        summaries = summarize_conflict_reviews(p.paths.ops_dir)
+        for item in items:
+            cid = conflict_id(item["pos_claim"], item["neg_claim"])
+            item.update({"conflict_id": cid, "review_summary": summaries.get(cid, {
+                "review_count": 0, "latest": None})})
+        return {"available": g is not None, "items": items}
+
+
+def _candidate_match(g, pos_claim: str, neg_claim: str):
+    return next((item for item in (g.candidate_conflicts(100) if g else [])
+                 if item["pos_claim"] == pos_claim and item["neg_claim"] == neg_claim), None)
+
+
+@app.get("/api/persona/{pid}/inbox/dossier")
+def conflict_dossier(pid: str, pos_claim: str, neg_claim: str):
+    """Exact evidence and an honest review contract; reading this never mutates a belief."""
+    p = _p(pid)
+    with context.use(p):
+        from ..conflict_reviews import (conflict_id, read_conflict_reviews,
+                                        summarize_conflict_reviews)
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        match = _candidate_match(g, pos_claim, neg_claim)
+        if match is None:
+            raise HTTPException(status_code=404, detail="candidate conflict not found")
+        cid = conflict_id(pos_claim, neg_claim)
+        reviews = [review for review in read_conflict_reviews(p.paths.ops_dir)
+                   if review["conflict_id"] == cid]
+        summaries = summarize_conflict_reviews(p.paths.ops_dir)
+        return {
+            "conflict_id": cid,
+            "subject": match["subject"],
+            "object": match["object"],
+            "status": "candidate_conflict",
+            "scientific_verdict": "unverified",
+            "belief_mutated": False,
+            "why_raised": {
+                "trigger": "same canonical subject/object pair with opposite stored effect signs",
+                "what_it_does_not_mean": "This sign collision is not evidence of a true scientific contradiction.",
+            },
+            "positive": g.provenance(pos_claim),
+            "negative": g.provenance(neg_claim),
+            "missing_context_fields": ["population or species", "tissue or cell type",
+                                       "disease stage", "perturbation and comparator",
+                                       "dose and timepoint", "outcome definition", "study design"],
+            "next_checks": [
+                "Confirm that each stored quote is verbatim and that its relation/sign matches the source sentence.",
+                "Extract and compare population, tissue, disease stage, perturbation, dose, timepoint, and outcome.",
+                "Check whether the sources are independent, reuse a cohort, or have corrections/retractions.",
+                "Only if direction still differs under matched qualifiers, design the cheapest discriminating analysis or experiment.",
+            ],
+            "review_options": ["extraction_error", "true_refutation", "context_divergence",
+                               "insufficient_evidence"],
+            "review_summary": summaries.get(cid, {"review_count": 0, "latest": None}),
+            "reviews": reviews[-10:],
+        }
+
+
+@app.post("/api/persona/{pid}/inbox/review")
+def conflict_review(pid: str, payload: dict):
+    """Append a scoped human label. Reviews train/evaluate typing later; they never anchor now."""
+    p = _p(pid)
+    pos, neg = str(payload.get("pos_claim", "")), str(payload.get("neg_claim", ""))
+    with context.use(p):
+        from ..conflict_reviews import LedgerIntegrityError, append_conflict_review
+        from ..events import log
+        from ..memory.membrane import get_kg
+        match = _candidate_match(get_kg(), pos, neg)
+        if match is None:
+            raise HTTPException(status_code=404, detail="candidate conflict not found")
+        try:
+            record = append_conflict_review(
+                p.paths.ops_dir,
+                pos_claim_id=pos,
+                neg_claim_id=neg,
+                verdict=payload.get("verdict"),
+                rationale=payload.get("rationale"),
+                confidence=payload.get("confidence"),
+                qualifier=payload.get("qualifier", ""),
+                next_check=payload.get("next_check", ""),
+            )
+        except LedgerIntegrityError as exc:
+            raise HTTPException(status_code=500, detail=f"review ledger integrity failure: {exc}") from exc
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        log().emit("control", f"human review recorded for {match['subject']} → {match['object']}: "
+                   f"{record['verdict']} (belief unchanged)", actor="human")
+        return {"ok": True, "review": record, "belief_mutated": False}
 
 
 @app.post("/api/persona/{pid}/inbox/resolve")
 def inbox_resolve(pid: str, payload: dict):
-    with context.use(_p(pid)):
+    return {"ok": False, "reason": "contradiction-typing-not-validated",
+            "message": "Review is recorded append-only, but candidate conflicts cannot anchor beliefs until RQ-E02 passes its precision gate."}
+
+
+@app.post("/api/persona/{pid}/inbox/investigate")
+def inbox_investigate(pid: str, payload: dict):
+    """Run a bounded session with the exact two candidate claims pinned into its evidence packet."""
+    p = _p(pid)
+    pos, neg = payload.get("pos_claim"), payload.get("neg_claim")
+    with context.use(p):
         from ..memory.membrane import get_kg
-        from ..events import log
         g = get_kg()
-        if g is None:
-            return {"ok": False}
-        res = g.human_resolve(payload["claim_id"], bool(payload.get("truth", True)))
-        if res.get("ok"):
-            log().emit("escalate", f"human anchored {res['subject']} → {res['object']}", actor="human")
-        return res
+        match = _candidate_match(g, pos, neg)
+    if match is None:
+        return {"ok": False, "reason": "candidate-not-found"}
+    daemon = manager()._daemons.get(pid)
+    if daemon is None:
+        return {"ok": False, "reason": "daemon-not-running"}
+    question = (payload.get("question") or
+                f"Do the opposite stored signs for {match['subject']} → {match['object']} represent "
+                "a true refutation, context divergence, or extraction error?")
+    task = daemon.queue.enqueue("investigate", priority=2, params={"question": question,
+                                "evidence_claim_ids": [pos, neg]})
+    return {"ok": True, "task": task, "evidence_claim_ids": [pos, neg]}
 
 
 @app.get("/api/persona/{pid}/synthesis")
@@ -288,14 +458,26 @@ def deliver(pid: str, payload: dict):
 
 # --------------------------------------------------------------- knowledge transfer (v6 P5)
 @app.get("/api/persona/{pid}/topic/digest")
-def topic_digest(pid: str, q: str):
-    """A digestible, cited briefing of everything the persona knows on a topic + a subgraph +
-    an evolution timeline — the 'transfer the knowledge, not just next steps' surface."""
+def topic_digest_read(pid: str, q: str):
+    """Read the evidence bundle for a topic without invoking a model or spending budget."""
     p = _p(pid)
     with context.use(p):
         from ..memory.membrane import get_kg
         from ..agents.knowledge import topic_digest as _td
         return _td(q, get_kg(), p.history)
+
+
+@app.post("/api/persona/{pid}/topic/digest")
+def topic_digest_generate(pid: str, payload: dict):
+    """Explicitly spend budget to generate a cited briefing from the topic evidence bundle."""
+    q = payload.get("q")
+    if not isinstance(q, str) or not q.strip() or len(q) > 500:
+        return {"ok": False, "reason": "invalid-topic"}
+    p = _p(pid)
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        from ..agents.knowledge import topic_digest as _td
+        return _td(q.strip(), get_kg(), p.history, generate=True)
 
 
 @app.get("/api/persona/{pid}/topic/evolution")
@@ -460,6 +642,64 @@ def say(pid: str, payload: dict):
     return res
 
 
+# --------------------------------------------------------------- paper-centric idea graph
+@app.get("/api/persona/{pid}/paper/{slug}")
+def paper_dossier(pid: str, slug: str):
+    """A read paper as an idea node: its metadata, abstract, main points (extracted claims), and the
+    supports/contradictions those claims participate in across the rest of the literature (with DOIs).
+    Read-only; never mutates a belief."""
+    p = _p(pid)
+    try:
+        sdir = p.paths.safe(f"sources/{slug}")
+    except ValueError:
+        raise HTTPException(400, "bad slug")
+    meta_f = sdir / "meta.json"
+    if not meta_f.is_file():
+        raise HTTPException(404, "paper not found")
+    try:
+        meta = json.loads(meta_f.read_text(encoding="utf-8"))
+    except Exception:
+        meta = {}
+    abstract = ""
+    if (sdir / "clean.md").is_file():
+        abstract = (sdir / "clean.md").read_text(encoding="utf-8", errors="replace")[:6000]
+    claims = []
+    if (sdir / "claims.jsonl").is_file():
+        for line in (sdir / "claims.jsonl").read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                claims.append(json.loads(line))
+            except Exception:
+                pass
+    own = {c.get("claim_id") for c in claims}
+    supports, contradictions, seen_s, seen_c = [], [], set(), set()
+    with context.use(p):
+        from ..memory.membrane import get_kg
+        g = get_kg()
+        if g is not None:
+            for c in claims:
+                try:
+                    cc = g.crosscheck(c.get("subject", ""), c.get("object", ""), c.get("effect_sign", "na"))
+                except Exception:
+                    continue
+                about = f"{c.get('subject','')} → {c.get('object','')}"
+                for s in cc.get("support", []):
+                    cid = s.get("claim_id")
+                    if cid and cid not in own and cid not in seen_s:
+                        seen_s.add(cid); supports.append({**s, "about": about})
+                for s in cc.get("contradict", []):
+                    cid = s.get("claim_id")
+                    if cid and cid not in seen_c:
+                        seen_c.add(cid); contradictions.append({**s, "about": about})
+    main_points = [{"claim_id": c.get("claim_id"),
+                    "text": f"{c.get('subject','')} [{c.get('effect_sign','na')}] {c.get('object','')}",
+                    "quote": c.get("quote", ""), "confidence": c.get("confidence")} for c in claims]
+    return {"ok": True, "slug": slug, "title": meta.get("title"), "doi": meta.get("doi"),
+            "year": meta.get("year"), "authors": meta.get("authors", []),
+            "affiliations": meta.get("affiliations", []), "url": meta.get("url"),
+            "venue": meta.get("venue"), "abstract": abstract, "main_points": main_points,
+            "supports": supports[:30], "contradictions": contradictions[:30]}
+
+
 # --------------------------------------------------------------- file & artifact browser (v6 P1)
 _TEXT_EXT = {".py", ".md", ".txt", ".json", ".jsonl", ".csv", ".tsv", ".tex", ".log", ".yaml",
              ".yml", ".toml", ".ini", ".cfg", ".ipynb", ".r", ".sh", ".js", ".ts", ".html", ".css"}
@@ -514,6 +754,119 @@ def get_file(pid: str, path: str):
     if target.suffix.lower() in _TEXT_EXT:      # show code/notes in-browser, don't force download
         mt = "text/plain; charset=utf-8"
     return FileResponse(str(target), media_type=(mt or "application/octet-stream"))  # inline (no filename)
+
+
+# --------------------------------------------------------- LaTeX: editable / recompilable deliverables
+def _iso():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _find_deliverable_project(p, deliverable: str):
+    """Map a deliverable PDF name back to its project dir + receipt via each project's compile.json."""
+    pj = p.paths.projects_dir
+    if not pj.exists():
+        return None
+    for cj in pj.glob("*/*/compile.json"):
+        try:
+            rec = json.loads(cj.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if (rec.get("deliverable") or {}).get("path") == deliverable:
+            return cj.parent, rec
+    return None
+
+
+@app.get("/api/persona/{pid}/deliverable/source")
+def deliverable_source(pid: str, deliverable: str):
+    """Fetch the editable LaTeX source (+ figure list + compile receipt) behind a compiled paper PDF."""
+    p = _p(pid)
+    found = _find_deliverable_project(p, deliverable)
+    if found is None:
+        raise HTTPException(404, "no editable source for this deliverable")
+    proj, rec = found
+    tex = proj / "main.tex"
+    if not tex.is_file():
+        raise HTTPException(404, "source missing")
+    figs = sorted({f.name for f in proj.glob("*.png")} | {f.name for f in proj.glob("results/*.png")})
+    ws = p.paths.workspace
+    return {"ok": True,
+            "rel_tex": str(tex.relative_to(ws)).replace("\\", "/"),
+            "rel_pdf": str((proj / "main.pdf").relative_to(ws)).replace("\\", "/"),
+            "tex": tex.read_text(encoding="utf-8", errors="replace"),
+            "figures": figs, "deliverable": deliverable, "compile": rec}
+
+
+@app.post("/api/persona/{pid}/recompile")
+def recompile(pid: str, payload: dict):
+    """Deterministically (re)compile edited or brand-new LaTeX — NO model call. Reuses the offline,
+    read-only sandbox compiler; on success copies a hash-versioned PDF to deliverables/ for export."""
+    import shutil
+    import uuid as _uuid
+    from ..tools import sandbox
+    p = _p(pid)
+    src = str(payload.get("source_tex") or "")
+    if not src.strip():
+        raise HTTPException(422, "empty source")
+    if len(src) > 400_000:
+        raise HTTPException(413, "source too large")
+    if not sandbox.image_ready():
+        return {"ok": False, "reason": "sandbox-image-missing"}
+    if payload.get("new"):
+        slug = "".join(c for c in str(payload.get("slug") or "document").lower()
+                       if c.isalnum() or c == "-").strip("-")[:50] or "document"
+        proj = p.paths.projects_dir / f"latex-{slug}" / _uuid.uuid4().hex[:8]
+        proj.mkdir(parents=True, exist_ok=True)
+    else:
+        try:
+            tex_path = p.paths.safe(str(payload.get("rel_tex") or ""))
+        except ValueError:
+            raise HTTPException(400, "bad path")
+        if tex_path.name != "main.tex" or "projects" not in tex_path.parts:
+            raise HTTPException(400, "recompile targets a project main.tex")
+        proj = tex_path.parent
+        proj.mkdir(parents=True, exist_ok=True)
+    (proj / "main.tex").write_text(src, encoding="utf-8")
+    r = sandbox.compile_latex(proj, "main.tex")
+    if not r["ok"]:
+        return {"ok": False, "log": r.get("log", ""), "exit_code": r.get("exit_code")}
+    p.paths.deliverables_dir.mkdir(parents=True, exist_ok=True)
+    dst = p.paths.deliverables_dir / f"{proj.parent.name}-{r['source_sha256'][:10]}.pdf"
+    shutil.copy2(proj / "main.pdf", dst)
+    rec = {"topic": proj.parent.name, "recompiled_at": _iso(), "ok": True,
+           "source_sha256": r["source_sha256"], "pdf_sha256": r["pdf_sha256"],
+           "sandbox_image_digest": r.get("image_digest"),
+           "deliverable": {"path": dst.name, "bytes": dst.stat().st_size, "pdf_sha256": r["pdf_sha256"]}}
+    (proj / "compile.json").write_text(json.dumps(rec, indent=2), encoding="utf-8")
+    with context.use(p):
+        from ..events import log
+        log().emit("artifact", f"recompiled a document → {dst.name}", actor="human", file=dst.name)
+    return {"ok": True, "deliverable": dst.name,
+            "rel_pdf": str((proj / "main.pdf").relative_to(p.paths.workspace)).replace("\\", "/"),
+            "pdf_sha256": r["pdf_sha256"], "source_sha256": r["source_sha256"]}
+
+
+@app.get("/api/persona/{pid}/deliverable/bundle")
+def deliverable_bundle(pid: str, deliverable: str):
+    """Export tex + figures + pdf as a single zip for collaboration."""
+    import io
+    import zipfile
+    p = _p(pid)
+    found = _find_deliverable_project(p, deliverable)
+    if found is None:
+        raise HTTPException(404, "no source for this deliverable")
+    proj, _rec = found
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in proj.glob("*"):
+            if f.is_file() and f.suffix.lower() in (".tex", ".pdf", ".png", ".json", ".bib"):
+                z.write(f, f.name)
+        for f in proj.glob("results/*.png"):
+            z.write(f, f"figures/{f.name}")
+    buf.seek(0)
+    stem = deliverable.rsplit(".", 1)[0]
+    return StreamingResponse(buf, media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{stem}.zip"'})
 
 
 @app.post("/api/persona/{pid}/upload")

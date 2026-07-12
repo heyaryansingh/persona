@@ -1,0 +1,23 @@
+{
+  "api_calls": 0,
+  "command": "python results/skill-forward-test/check_conflict.py --repo . --bundle results/skill-forward-test --at 2026-07-11T19:00:00Z",
+  "exit_code": 0,
+  "input_hashes": {
+    "active_registry": "cb70ac14ab7820888ffc9c8818179f18db6073b1e7014650ea9252a2502037ee",
+    "integrity_result": "ea0286653626baf3c75b375ea5140ddd2e9787708a3a3c14bbebee2e2e62f2a5",
+    "negative_claims": "3529495bf53212dcd0c9a3949ec629906fd02f9eef960773fb8409785f04932c",
+    "negative_meta": "e7aa0db7b52a8535c1bb2dec4396ab8622414ebb405e3c93156a2704f448169c",
+    "negative_source": "01569c90be3beb86e18c7f71f358e8586699ca959a1b57db1d5850ca8901f3b9",
+    "positive_claims": "58ea5ce26e9ca1066a4394370728ea35c5682e7213a7d941ad84b58552bb058b",
+    "positive_meta": "585f62b48b485fea1bff9370b675843bb71251577680efd09da87a80de9711d9",
+    "positive_source": "d31b438f70d3bf9065f35e9e34367bf6207413d8a61973779e2d359ec8e4c0a0"
+  },
+  "knowledge_graph_mutations": 0,
+  "model_calls": 0,
+  "network_calls": 0,
+  "output_sha256": "ada299ca1f9ddc1a8f719344f7bf07b7f2ca8530c4bf4e7d49cd3c5aba156cc8",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "script_sha256": "73e2dd73253b87f67a13f1aa38a9701c93e56a451cbdf0bc054f27eaa0dc17d1",
+  "stderr": ""
+}

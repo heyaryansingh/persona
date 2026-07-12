@@ -8,6 +8,8 @@ all state lives in the self files. This is where genuine interests, ideas, and a
 """
 from __future__ import annotations
 
+import math
+
 from .. import config, selfmind
 from ..budget import budget
 from ..events import log
@@ -44,6 +46,41 @@ _SYSTEM = ("You are a persistent, autonomous research mind reflecting on your ow
            "follow contradictions and surprises, spawn genuinely NEW interests the reading opened "
            "up (not just the seeds), sharpen your questions, and be honest about what you don't yet "
            "know. Keep interests focused (5-9). Return the evolved self via the tool.")
+
+
+def _validated_output(out: object) -> dict:
+    """Validate the complete tool result before any part of the durable self is mutated."""
+    if not isinstance(out, dict):
+        raise ValueError("reflection output must be an object")
+    for field, cap in (("open_questions", 20), ("priority_reads", 20)):
+        value = out.get(field)
+        if not isinstance(value, list) or len(value) > cap or any(not isinstance(x, str) for x in value):
+            raise ValueError(f"{field} must be a list of at most {cap} strings")
+        if any("<parameter" in x.lower() or len(x) > 600 for x in value):
+            raise ValueError(f"{field} contains malformed tool output")
+    raw_interests = out.get("interests")
+    if not isinstance(raw_interests, list) or len(raw_interests) > 12:
+        raise ValueError("interests must be a list of at most 12 objects")
+    interests = []
+    for item in raw_interests:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            raise ValueError("every interest must have a text name")
+        try:
+            weight = float(item.get("weight"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("every interest must have a numeric weight") from exc
+        if not math.isfinite(weight) or weight < 0:
+            raise ValueError("interest weights must be finite and non-negative")
+        name = item["name"].strip()
+        if name:
+            interests.append((name, weight))
+    for field in ("strategy_note", "taste_note", "identity_update", "changelog"):
+        value = out.get(field, "")
+        if not isinstance(value, str) or "<parameter" in value.lower() or len(value) > 3000:
+            raise ValueError(f"{field} must be plain text")
+    if not out.get("changelog", "").strip():
+        raise ValueError("changelog is required")
+    return {**out, "_interests": interests}
 
 
 def _kg_summary(kg, n: int = 25) -> str:
@@ -90,12 +127,18 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
     if not out:
         return {"ok": False, "reason": "no-output"}
 
+    try:
+        out = _validated_output(out)
+    except ValueError as exc:
+        log().emit("error", f"rejected malformed reflection output: {exc}", actor="self",
+                   parent_id=parent_id)
+        return {"ok": False, "reason": "invalid-output", "detail": str(exc)}
+
     from .. import coherence
     prev_pairs = selfmind.interests()
     prev_interests = {n.lower() for n, _ in prev_pairs}
     prev_sig = coherence.interest_signature()
-    new_pairs = [(i["name"], i.get("weight", 1.0)) for i in out.get("interests", [])
-                 if isinstance(i, dict) and i.get("name")]
+    new_pairs = out.pop("_interests")
     THETA = 0.7          # E-DRIFT: above this the interest set is being wholesale-replaced = a spiral
     applied_pairs = prev_pairs
     if new_pairs:

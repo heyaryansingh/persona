@@ -1,0 +1,225 @@
+{
+  "active_registry": {
+    "locator": "personas/curie-3c33/.persona/announced_contradictions.json (exact JSON array member)",
+    "pair": "α-synuclein aggregation||ferroptosis",
+    "present": true
+  },
+  "captured_at": "2026-07-11T19:00:00Z",
+  "claims": [
+    {
+      "evidence_id": "claim:clm_3e15db860262",
+      "locator": "personas/curie-3c33/sources/doi_8e9ff8502090/claims.jsonl:1",
+      "record": {
+        "affiliations": [
+          "National Hospital for Neurology and Neurosurgery",
+          "University College London",
+          "The Francis Crick Institute",
+          "Institute of Cell Biophysics",
+          "Orel State University named after I.S. Turgenev",
+          "University of Cambridge",
+          "University of Edinburgh",
+          "UK Dementia Research Institute",
+          "MRC Centre for Regenerative Medicine",
+          "Great Ormond Street Hospital",
+          "MRC Laboratory for Molecular Cell Biology",
+          "NIHR Great Ormond Street Hospital Biomedical Research Centre",
+          "Retrotope (United States)",
+          "University of Aberdeen",
+          "New York University",
+          "Queen Mary University of London"
+        ],
+        "claim_id": "clm_3e15db860262",
+        "confidence": 0.95,
+        "effect_sign": "+",
+        "extracted_at": "2026-07-10T09:28:20.043245+00:00",
+        "object": "ferroptosis",
+        "provenance": "READ",
+        "quote": "Here we demonstrate that aggregate-membrane interaction is critical to induce a form of cell death called ferroptosis.",
+        "relation": "drives",
+        "source_id": "doi_8e9ff8502090",
+        "subject": "α-synuclein aggregation"
+      },
+      "source_meta": {
+        "affiliations": [
+          "National Hospital for Neurology and Neurosurgery",
+          "University College London",
+          "The Francis Crick Institute",
+          "Institute of Cell Biophysics",
+          "Orel State University named after I.S. Turgenev",
+          "University of Cambridge",
+          "University of Edinburgh",
+          "UK Dementia Research Institute",
+          "MRC Centre for Regenerative Medicine",
+          "Great Ormond Street Hospital",
+          "MRC Laboratory for Molecular Cell Biology",
+          "NIHR Great Ormond Street Hospital Biomedical Research Centre",
+          "Retrotope (United States)",
+          "University of Aberdeen",
+          "New York University",
+          "Queen Mary University of London"
+        ],
+        "authors": [
+          "Plamena R. Angelova",
+          "Minee L. Choi",
+          "Alexey V. Berezhnov",
+          "Mathew H. Horrocks",
+          "Craig D. Hughes",
+          "Suman De",
+          "Margarida Rodrigues",
+          "Ratsuda Yapom",
+          "Daniel Little",
+          "Karamjit Singh Dolt",
+          "Tilo Kunath",
+          "Michael J. Devine",
+          "Paul Gissen",
+          "Mikhail S. Shchepinov",
+          "Sergiy Sylantyev",
+          "Evgeny V. Pavlov",
+          "David Klenerman",
+          "Andrey Y. Abramov",
+          "Sonia Gandhi"
+        ],
+        "cited_by": 0,
+        "doi": "10.1038/s41418-020-0542-z",
+        "id": "doi_8e9ff8502090",
+        "interest": "Ferroptosis in Alzheimer's and Parkinson's: GPX4, iron, lipid peroxidation, and neurodegeneration",
+        "read_at": "2026-07-10T09:28:11.725842+00:00",
+        "slug": "doi_8e9ff8502090",
+        "text_kind": "pdf",
+        "title": "Alpha synuclein aggregation drives ferroptosis: an interplay of iron, calcium and lipid peroxidation",
+        "url": "https://doi.org/10.1038/s41418-020-0542-z",
+        "venue": "Cell Death and Differentiation",
+        "year": 2020
+      },
+      "source_window": {
+        "line_end": 42,
+        "line_start": 39,
+        "sha256": "80ddb3f886084efec8966b68360d7e2aeed386ce43b9b62662ebe7d79107bc51",
+        "text": "Abstract\nProtein aggregation and abnormal lipid homeostasis are both implicated in neurodegeneration through unknown\nmechanisms. Here we demonstrate that aggregate-membrane interaction is critical to induce a form of cell death called\nferroptosis. Importantly, the aggregate-membrane interaction that drives ferroptosis depends both on the conformational"
+      },
+      "source_window_locator": "personas/curie-3c33/sources/doi_8e9ff8502090/clean.md:39-42"
+    },
+    {
+      "evidence_id": "claim:clm_3f58a556a969",
+      "locator": "personas/curie-3c33/sources/doi_808e759856fd/claims.jsonl:2",
+      "record": {
+        "affiliations": [
+          "Binzhou University",
+          "Shandong Provincial Hospital"
+        ],
+        "claim_id": "clm_3f58a556a969",
+        "confidence": 0.9,
+        "effect_sign": "-",
+        "extracted_at": "2026-07-10T09:32:08.313508+00:00",
+        "object": "ferroptosis",
+        "provenance": "READ",
+        "quote": "α-syn aggregation directly induces ferroptosis but also disrupts iron homeostasis, while iron accumulation in turn accelerates α-syn fibrillation and oxidative stress, forming a vicious cycle that propagates neurodegeneration.",
+        "relation": "induces",
+        "source_id": "doi_808e759856fd",
+        "subject": "α-synuclein aggregation"
+      },
+      "source_meta": {
+        "affiliations": [
+          "Binzhou University",
+          "Shandong Provincial Hospital"
+        ],
+        "authors": [
+          "Lingling Wang",
+          "Yue Zhang",
+          "Lei Guo"
+        ],
+        "cited_by": 0,
+        "doi": "10.3389/fnins.2026.1780573",
+        "id": "doi_808e759856fd",
+        "interest": "ACSL4, PUFA membrane composition, and 4-HNE/malondialdehyde adducts as ferroptosis biomarkers in AD/PD brain tissue",
+        "read_at": "2026-07-10T09:31:57.723731+00:00",
+        "slug": "doi_808e759856fd",
+        "text_kind": "pdf",
+        "title": "Ferroptosis in Parkinson’s disease: a review of molecular mechanisms and emerging therapeutic strategies",
+        "url": "https://doi.org/10.3389/fnins.2026.1780573",
+        "venue": "Frontiers in Neuroscience",
+        "year": 2026
+      },
+      "source_window": {
+        "line_end": 31,
+        "line_start": 28,
+        "sha256": "deaf164ec543966e9a3cc8d199bc7623e1fdf427d424bd8fd0cf99e8e64037b2",
+        "text": "advances elucidating the synergistic interplay between α-syn aggregation and \nferroptosis. We detail how α-syn aggregation not only directly induces ferroptosis \nbut also disrupts iron homeostasis, while iron accumulation in turn accelerates \nα-syn fibrillation and oxidative stress, forming a vicious cycle that propagates "
+      },
+      "source_window_locator": "personas/curie-3c33/sources/doi_808e759856fd/clean.md:28-31"
+    }
+  ],
+  "inputs": {
+    "active_registry": {
+      "bytes": 2991,
+      "path": "personas/curie-3c33/.persona/announced_contradictions.json",
+      "sha256": "cb70ac14ab7820888ffc9c8818179f18db6073b1e7014650ea9252a2502037ee"
+    },
+    "integrity_result": {
+      "bytes": 50684,
+      "path": "results/rq_e01_claim_integrity.json",
+      "sha256": "ea0286653626baf3c75b375ea5140ddd2e9787708a3a3c14bbebee2e2e62f2a5"
+    },
+    "negative_claims": {
+      "bytes": 5641,
+      "path": "personas/curie-3c33/sources/doi_808e759856fd/claims.jsonl",
+      "sha256": "3529495bf53212dcd0c9a3949ec629906fd02f9eef960773fb8409785f04932c"
+    },
+    "negative_meta": {
+      "bytes": 731,
+      "path": "personas/curie-3c33/sources/doi_808e759856fd/meta.json",
+      "sha256": "e7aa0db7b52a8535c1bb2dec4396ab8622414ebb405e3c93156a2704f448169c"
+    },
+    "negative_source": {
+      "bytes": 46236,
+      "path": "personas/curie-3c33/sources/doi_808e759856fd/clean.md",
+      "sha256": "01569c90be3beb86e18c7f71f358e8586699ca959a1b57db1d5850ca8901f3b9"
+    },
+    "positive_claims": {
+      "bytes": 10408,
+      "path": "personas/curie-3c33/sources/doi_8e9ff8502090/claims.jsonl",
+      "sha256": "58ea5ce26e9ca1066a4394370728ea35c5682e7213a7d941ad84b58552bb058b"
+    },
+    "positive_meta": {
+      "bytes": 1710,
+      "path": "personas/curie-3c33/sources/doi_8e9ff8502090/meta.json",
+      "sha256": "585f62b48b485fea1bff9370b675843bb71251577680efd09da87a80de9711d9"
+    },
+    "positive_source": {
+      "bytes": 46610,
+      "path": "personas/curie-3c33/sources/doi_8e9ff8502090/clean.md",
+      "sha256": "d31b438f70d3bf9065f35e9e34367bf6207413d8a61973779e2d359ec8e4c0a0"
+    }
+  },
+  "orientation_not_evidence": {
+    "description": "Existing deterministic integrity result that surfaced this pair for review.",
+    "locator": "results/rq_e01_claim_integrity.json",
+    "record": {
+      "negative": [
+        {
+          "claim_id": "clm_3f58a556a969",
+          "proxy": "+",
+          "quote": "α-syn aggregation directly induces ferroptosis but also disrupts iron homeostasis, while iron accumulation in turn accelerates α-syn fibrillation and oxidative stress, forming a vicious cycle that propagates neurodegeneration."
+        }
+      ],
+      "object": "ferroptosis",
+      "positive": [
+        {
+          "claim_id": "clm_3e15db860262",
+          "proxy": "+",
+          "quote": "Here we demonstrate that aggregate-membrane interaction is critical to induce a form of cell death called ferroptosis."
+        }
+      ],
+      "same_quote_direction": [
+        "+"
+      ],
+      "subject": "α-synuclein aggregation"
+    }
+  },
+  "question": "Do the opposite stored signs for α-synuclein aggregation → ferroptosis represent opposing evidence in the exact locally stored spans, or an extraction/normalization problem?",
+  "required_evidence_ids": [
+    "claim:clm_3e15db860262",
+    "claim:clm_3f58a556a969"
+  ],
+  "scope": "Local claim records, local source-text spans, local metadata, the local active-conflict registry, and the existing local integrity result only. No full-paper interpretation."
+}

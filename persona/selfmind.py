@@ -7,6 +7,7 @@ reflection loop (later phase) rewrites these files; P0 just seeds + reads them.
 """
 from __future__ import annotations
 
+import math
 import re
 from datetime import datetime, timezone
 
@@ -35,6 +36,8 @@ def seed(interests: list[str], name: str = "Persona") -> bool:
     """Seed / re-seed the persona. If blank, born fresh. If already has a self, APPLY the new
     interests (never silently drop the user's input — that was the v4 bug); accumulated beliefs/
     strategies/taste are kept. Returns True if this was a fresh birth, False if a re-seed."""
+    if not isinstance(interests, (list, tuple)) or any(not isinstance(i, str) for i in interests):
+        raise TypeError("interests must be a list of strings")
     get_persona().paths.ensure()
     if is_seeded():
         set_interests([(i.strip(), 1.0) for i in interests if i.strip()])
@@ -101,6 +104,8 @@ def read_self() -> dict:
 
 
 def append_changelog(line: str) -> None:
+    if not isinstance(line, str):
+        raise TypeError("changelog line must be text")
     p = get_persona().paths.self_dir / "CHANGELOG.md"
     prev = p.read_text(encoding="utf-8") if p.exists() else "# changelog\n"
     p.write_text(prev.rstrip() + f"\n- {_now()} — {line}\n", encoding="utf-8")
@@ -108,10 +113,26 @@ def append_changelog(line: str) -> None:
 
 def set_interests(pairs: list[tuple[str, float]]) -> None:
     """Rewrite interests.md from an evolved (name, weight) list (the self reshaping its curiosity)."""
+    if not isinstance(pairs, (list, tuple)):
+        raise TypeError("interests must be a list of (name, weight) pairs")
+    clean = []
+    for pair in pairs:
+        if not isinstance(pair, (list, tuple)) or len(pair) != 2 or not isinstance(pair[0], str):
+            raise TypeError("each interest must be a (name, weight) pair")
+        try:
+            weight = float(pair[1])
+        except (TypeError, ValueError) as exc:
+            raise TypeError("interest weights must be numbers") from exc
+        if not math.isfinite(weight) or weight < 0:
+            raise ValueError("interest weights must be finite and non-negative")
+        name = pair[0].strip()
+        if name:
+            clean.append((name, weight))
+    if len(clean) > 12:
+        raise ValueError("a persona may hold at most 12 active interests")
     lines = ["# interests\n", "_evolves as I read — new curiosities appear, weights shift._\n"]
     seen = set()
-    for name, weight in pairs:
-        n = name.strip()
+    for n, weight in clean:
         if n and n.lower() not in seen:
             seen.add(n.lower())
             lines.append(f"- {n} :: {round(float(weight), 2)}")
@@ -119,8 +140,21 @@ def set_interests(pairs: list[tuple[str, float]]) -> None:
 
 
 def set_open_questions(qs: list[str]) -> None:
+    if not isinstance(qs, (list, tuple)):
+        raise TypeError("open_questions must be a list of strings")
+    if len(qs) > 20:
+        raise ValueError("a persona may hold at most 20 open questions")
+    clean = []
+    for q in qs:
+        if not isinstance(q, str):
+            raise TypeError("every open question must be text")
+        q = q.strip()
+        if "<parameter" in q.lower() or len(q) > 600:
+            raise ValueError("open question contains malformed tool output")
+        if q:
+            clean.append(q)
     lines = ["# open questions\n", "_what I most want to find out. Drives what I read next._\n"]
-    lines += [f"- {q.strip()}" for q in qs if q.strip()]
+    lines += [f"- {q}" for q in clean]
     (get_persona().paths.self_dir / "open_questions.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -133,6 +167,8 @@ def directives() -> str:
 
 def add_directive(note: str) -> None:
     """Append a dated standing directive from the human (v6 P2 — steer, don't block)."""
+    if not isinstance(note, str):
+        raise TypeError("directive must be text")
     if not note or not note.strip():
         return
     get_persona().paths.ensure()
@@ -145,6 +181,8 @@ def add_directive(note: str) -> None:
 
 def append_section(filename: str, note: str) -> None:
     """Append a dated note to a self file (strategies/taste/identity accrete over time)."""
+    if not isinstance(note, str):
+        raise TypeError("self note must be text")
     if not note or not note.strip():
         return
     p = get_persona().paths.self_dir / filename

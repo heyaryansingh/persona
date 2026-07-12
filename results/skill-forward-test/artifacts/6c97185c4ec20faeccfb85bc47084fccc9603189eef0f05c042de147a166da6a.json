@@ -1,0 +1,10 @@
+{
+  "verdict": "verified",
+  "reviewer": "fresh-context scientific reviewer",
+  "timestamp": "2026-07-11T19:07:08Z",
+  "scope": "Only the two stored claim records and exact local source windows; no full-paper or wider-literature adjudication.",
+  "reason": "Both stored source windows express induction of ferroptosis. The stored negative sign therefore does not represent opposing directional evidence in these spans and is reasonably inferred to be an extraction/sign-label error. The negative stored quote also omits 'not only', a separate quotation-fidelity defect.",
+  "uncertainty_check": "passed",
+  "unsupported_claim_check": "The wider-literature/no-contextual-reversal statement remains UNSUPPORTED_HYPOTHESIS at confidence 0 with no evidence.",
+  "trace_issue_corrected": "report.md referenced this verifier artifact before it existed; the verdict is now appended without rewriting prior events."
+}

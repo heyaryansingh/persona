@@ -1,0 +1,18 @@
+{
+  "experiment": "RQ-E12 LaTeX integrity seam",
+  "kind": "deterministic regression, not multi-seed inference",
+  "sandbox_image": "persona-sandbox",
+  "sandbox_image_digest": "sha256:a6a829418f84a8b5d5b596489ee0506b65008f951a10fba98df670115b76ecf9",
+  "source_sha256": "ebb451c1c41f6003a256fbef19a1f290c06362bd132564420ae6b127990d6929",
+  "pdf_sha256_build_a": "9afcd39a352d328cce0e70c822a92dad5bfab07f8f6570341cb9370f266f24a1",
+  "pdf_sha256_build_b": "9afcd39a352d328cce0e70c822a92dad5bfab07f8f6570341cb9370f266f24a1",
+  "invalid_exit_code": 1,
+  "invalid_log_has_fatal_error": true,
+  "checks": {
+    "valid_compiles_in_read_only_container": true,
+    "identical_source_is_byte_reproducible": true,
+    "invalid_recompile_rejects_stale_pdf": true,
+    "unsafe_filename_rejected_before_docker": true
+  },
+  "passed": true
+}

@@ -66,7 +66,7 @@ def _claim_cite(c: dict) -> dict:
             "labs": c["independent_sources"], "confidence": c["confidence"], "doi": doi}
 
 
-def topic_digest(q: str, kg=None, history=None, max_claims: int = 45) -> dict:
+def topic_digest(q: str, kg=None, history=None, max_claims: int = 45, *, generate: bool = False) -> dict:
     if kg is None:
         return {"ok": False, "reason": "no-kg"}
     ents = _entities_for(kg, q)
@@ -87,10 +87,15 @@ def topic_digest(q: str, kg=None, history=None, max_claims: int = 45) -> dict:
                 evolution.append({"claim_id": c["claim_id"],
                                   "text": f"{c['subject']} [{c['effect_sign']}] {c['object']}",
                                   "series": series})
-    if not config.have_key() or not budget().can_spend() or not claims:
-        return {"ok": bool(claims), "topic": q, "reason": None if claims else "nothing-known-yet",
-                "digest": None, "claims": citations, "subgraph": subgraph,
-                "evolution": evolution, "contradictions": contra}
+    base = {"ok": bool(claims), "topic": q, "reason": None if claims else "nothing-known-yet",
+            "generated": False, "digest": None, "claims": citations, "subgraph": subgraph,
+            "evolution": evolution, "contradictions": contra, "n_claims": len(claims),
+            "n_sources": len({s.get("slug") for c in claims for s in (c.get("sources") or [])
+                              if s.get("slug")})}
+    if not generate or not claims:
+        return base
+    if not config.have_key() or not budget().can_spend():
+        return {**base, "reason": "no-key-or-budget"}
     from anthropic import Anthropic
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
     tool = {"name": "brief", "description": "Produce the layered topic briefing.",
@@ -121,10 +126,7 @@ def topic_digest(q: str, kg=None, history=None, max_claims: int = 45) -> dict:
     u = resp.usage
     budget().add((u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000)
     digest = next((b.input for b in resp.content if b.type == "tool_use"), None)
-    return {"ok": True, "topic": q, "digest": digest, "claims": citations, "subgraph": subgraph,
-            "evolution": evolution, "contradictions": contra, "n_claims": len(claims),
-            "n_sources": len({s.get("slug") for c in claims for s in (c.get("sources") or [])
-                              if s.get("slug")})}
+    return {**base, "ok": True, "generated": True, "digest": digest}
 
 
 def ask_graph(q: str, kg=None) -> dict:

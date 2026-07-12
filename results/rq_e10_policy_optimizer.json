@@ -1,0 +1,47 @@
+{
+  "experiment": "RQ-E10 policy optimizer (escalation policy vs frozen held-out evaluator)",
+  "kind": "offline reproducible optimization over real Curie sign-collisions",
+  "seeds": 30,
+  "mutations_per_arm": 40,
+  "n_pairs": 159,
+  "arm_seed_offsets": {
+    "random": 101,
+    "greedy": 211,
+    "archive": 307
+  },
+  "evaluator_label": "both sides pass exact-span eligibility; not human contradiction gold",
+  "positive_rate": 0.679,
+  "baseline_hand_rule_heldout_f1": {
+    "mean": 0.11467581831787761,
+    "ci95_half": 0.015488537633891632
+  },
+  "arms_heldout_f1": {
+    "random": {
+      "mean": 0.8099240550922212,
+      "ci95_half": 0.009620027962780112
+    },
+    "greedy": {
+      "mean": 0.8097434483160836,
+      "ci95_half": 0.009527509303571564
+    },
+    "archive": {
+      "mean": 0.8081242520890035,
+      "ci95_half": 0.010338605656762976
+    }
+  },
+  "best_arm": "random",
+  "heldout_gain_over_baseline": 0.6952482367743436,
+  "paired_mean_gain": 0.6952482367743436,
+  "gate": {
+    "optimizer_reads_heldout": false,
+    "ship_only_if_heldout_gain_positive": true,
+    "heldout_gain_positive": true,
+    "verdict": "HARNESS-GO; RUNTIME-POLICY-NOT-INTEGRATED"
+  },
+  "honesty": "Optimizes policy weights (not model weights) against an immutable held-out objective the optimizer never reads. Reproducible and free. The live-model research-quality evaluator is the same machinery with a paid scorer \u2014 not run here.",
+  "limitations": [
+    "Objective label = both-sides exact-span eligibility, not a true contradiction or human gold (RQ-E02).",
+    "Policy features are proxies (independence, confidence gap, lexical similarity).",
+    "No model calls: this validates the optimizer + held-out gate, not live research quality."
+  ]
+}

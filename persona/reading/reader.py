@@ -101,9 +101,14 @@ def read_work(work_dict: dict, interest: str = "", *, parent_id=None) -> dict:
         (src_dir / "claims.jsonl").write_text("", encoding="utf-8")   # marks read; harvest skips empties
         return {"ok": True, "read": True, "slug": work.slug, "n_claims": 0, "deferred": True}
 
-    claims, usage = extract.extract_claims(text, work.title)
+    raw_claims, usage = extract.extract_claims(text, work.title)
     budget().add(usage.get("cost", 0.0))
-    claims = [c for c in claims if isinstance(c, dict)]      # model sometimes emits a bare string
+    claims, rejected = extract.validate_claims(raw_claims, text)
+    if rejected:
+        (src_dir / "claims_rejected.jsonl").write_text(
+            "\n".join(json.dumps(r, ensure_ascii=False) for r in rejected) + "\n", encoding="utf-8")
+        log().emit("error", f"rejected {len(rejected)} claim(s) without valid verbatim evidence",
+                   actor="reader", parent_id=read_ev, slug=work.slug)
     lines = []
     for c in claims:
         cid = _claim_id(c.get("subject", ""), c.get("relation", ""),
@@ -120,4 +125,4 @@ def read_work(work_dict: dict, interest: str = "", *, parent_id=None) -> dict:
         log().emit("claim", f"{c.get('subject','?')} {a} {c.get('object','?')}",
                    actor="reader", parent_id=read_ev, effect_sign=c.get("effect_sign", "na"))
     return {"ok": True, "read": True, "slug": work.slug, "n_claims": len(claims),
-            "cost": usage.get("cost", 0.0), "kind": kind}
+            "rejected_claims": len(rejected), "cost": usage.get("cost", 0.0), "kind": kind}

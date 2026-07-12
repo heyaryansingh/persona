@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Persona — a gallery of minds</title>
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#101218; --panel2:#0d0f14; --line:#1c1f29; --ink:#c9cdd6;
+    --dim:#6b7180; --faint:#454b58;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Newsreader",Georgia,serif;
+    --live:#4fd0a0; --human:#e0864f; --contra:#e5544b; --anchor:#8a9cff; --claim:#e6c86e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:12.5px;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#20242e;border-radius:8px}
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header .brand{font-weight:600;letter-spacing:.14em;font-size:13px;cursor:pointer}
+  header .dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 12px var(--live);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  header .status{color:var(--dim);font-size:11px;margin-left:auto}
+  header button.back{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);padding:5px 12px;border-radius:6px;cursor:pointer}
+
+  /* ---------- gallery ---------- */
+  #gallery{flex:1;overflow-y:auto;padding:26px 32px}
+  #gallery h1{font-family:var(--serif);font-weight:500;font-size:26px;margin:0 0 4px}
+  #gallery .sub{color:var(--dim);margin-bottom:24px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .pcard{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:border-color .15s}
+  .pcard:hover{border-color:var(--anchor)}
+  .pcard .del{position:absolute;top:9px;right:10px;background:none;border:none;color:var(--faint);font-family:var(--mono);font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:5px;opacity:0;transition:opacity .12s}
+  .pcard:hover .del{opacity:1}
+  .pcard .del:hover{color:var(--contra);background:#1a1113}
+  .pcard .n{font-family:var(--serif);font-size:19px;margin-bottom:2px}
+  .pcard .st{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+  .st.RUNNING{color:var(--live)} .st.SEEDED{color:var(--claim)} .st.UNSEEDED{color:var(--dim)}
+  .pcard .stats{display:flex;gap:16px;color:var(--dim);font-size:11px}
+  .pcard .stats b{color:var(--ink);font-weight:600}
+  .newcard{background:var(--panel2);border:1px dashed var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px}
+  .newcard input{background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:6px}
+  .newcard button{background:#191d27;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);padding:8px;border-radius:6px;cursor:pointer}
+  .newcard button:hover{border-color:var(--live);color:#fff}
+  .newcard .h{font-family:var(--serif);font-size:16px;color:var(--ink)}
+
+  /* ---------- dashboard ---------- */
+  #dash{flex:1;display:none;min-height:0}
+  .grid{flex:1;display:grid;grid-template-columns:262px 1fr 430px;min-height:0;height:100%}
+  .col{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .col.left{border-right:1px solid var(--line);background:var(--panel2)}
+  .col.right{border-left:1px solid var(--line);background:var(--panel2)}
+  .sec{padding:11px 14px;border-bottom:1px solid var(--line);overflow-y:auto}
+  .sec h2{margin:0 0 8px;font-size:10px;letter-spacing:.13em;color:var(--dim);text-transform:uppercase;font-weight:600}
+  .chip{display:inline-block;background:#161922;border:1px solid var(--line);border-radius:20px;padding:2px 9px;margin:0 4px 5px 0;font-size:11px}
+  .q{color:var(--ink);font-size:11.5px;line-height:1.45;margin:0 0 7px;padding-left:10px;border-left:2px solid #23262f}
+  .draft{display:block;padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;cursor:pointer;color:var(--ink);font-size:11.5px;background:#0f1117}
+  .draft:hover{border-color:var(--claim)} .draft .k{color:var(--claim);margin-right:5px}
+  .stream{flex:1;overflow-y:auto;padding:6px 0}
+  .row{display:flex;gap:10px;padding:3px 16px;line-height:1.5;border-left:2px solid transparent}
+  .row:hover{background:#0e1015}
+  .row .t{color:#3c414d;flex-shrink:0;font-size:10.5px;padding-top:1px}
+  .row .tag{flex-shrink:0;width:64px;text-transform:uppercase;font-size:9.5px;letter-spacing:.05em;padding-top:2px;color:var(--dim)}
+  .row .msg{flex:1;white-space:pre-wrap;word-break:break-word}
+  .row .who{color:var(--faint);font-size:10.5px}
+  .row.child{padding-left:34px}
+  .thought .msg{color:#d7dbe3}.thought{border-left-color:#242833}
+  .spawn .tag,.spawn .msg{color:var(--anchor)} .read .tag{color:var(--live)} .claim .tag{color:var(--claim)} .claim .msg{color:#cbb56a}
+  .belief_update .tag,.belief_update .msg{color:var(--live)} .contradiction .tag,.contradiction .msg{color:var(--contra)}
+  .artifact .tag,.artifact .msg{color:var(--human)} .escalate .tag,.escalate .msg{color:var(--human)} .seed .tag,.seed .msg{color:var(--human)}
+  .tool .tag{color:#7fa7c9} .error .tag,.error .msg{color:var(--contra)} .boot .msg{color:var(--live)}
+  .say .tag,.say .msg{color:var(--human)} .row.say{border-left-color:var(--human);background:#130f0c}
+  .reply .tag{color:var(--live)} .reply .msg{color:#e4e8ef} .row.reply{border-left-color:#26463a;background:#0b1310}
+  .control .tag,.control .msg{color:var(--dim)}
+  /* chat / steer bar (v6 P2) */
+  .chatbar{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);background:var(--panel);flex-shrink:0}
+  .chatbar input{flex:1;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:9px 12px;border-radius:8px}
+  .chatbar input:focus{outline:none;border-color:var(--anchor)}
+  .chatbar input:disabled{opacity:.5}
+  .chatbar button{background:#191d27;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:14px;padding:0 15px;border-radius:8px;cursor:pointer}
+  .chatbar button:hover{border-color:var(--live);color:#fff}
+  #graphwrap{height:52%;position:relative;border-bottom:1px solid var(--line);background:#07080b}
+  #graph{width:100%;height:100%;display:block;cursor:grab}
+  .glegend{position:absolute;left:10px;bottom:8px;font-size:9.5px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
+  .tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel)}
+  .tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-family:var(--mono);padding:8px;cursor:pointer;font-size:11px}
+  .tabs button.on{color:var(--ink);border-bottom-color:var(--live)}
+  .list{flex:1;overflow-y:auto;padding:8px 12px}
+  .belief{padding:6px 0;border-bottom:1px solid #14171e;font-size:11.5px;line-height:1.4}
+  .belief .s{color:#fff} .belief .m{color:var(--dim);font-size:10.5px}
+  .up{color:var(--live)} .down{color:var(--contra)}
+  .contra{padding:8px;border:1px solid #3a2320;border-radius:6px;margin-bottom:8px;background:#130f0e}
+  .contra .h{color:var(--contra);font-size:11.5px;margin-bottom:6px}
+  .contra button{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer;margin-right:6px}
+  .contra button:hover{border-color:var(--live)}
+  #modal{position:fixed;inset:0;background:rgba(4,5,7,.72);display:none;align-items:center;justify-content:center;z-index:50}
+  #modal .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:760px;max-height:82vh;overflow-y:auto;padding:26px 30px}
+  #modal .box, #modal .box *{font-family:var(--serif);font-size:15px;line-height:1.6;color:#dfe3ea}
+  #modal .box h1{font-size:22px} #modal .box code,#modal .box pre{font-family:var(--mono);font-size:12.5px}
+  .empty{color:var(--faint);font-size:11px;padding:8px}
+  /* cost / control bar (v6 P0) */
+  .ctl{display:none;align-items:center;gap:12px;margin-left:6px}
+  .pill{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;border:1px solid var(--line);position:relative}
+  .pill::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .pill.RUNNING{color:var(--live);border-color:#1e3a30}.pill.RUNNING::before{background:var(--live);box-shadow:0 0 8px var(--live);animation:pulse 2.4s infinite}
+  .pill.PAUSED{color:var(--claim);border-color:#3a3420}.pill.PAUSED::before{background:var(--claim)}
+  .pill.HALTED{color:var(--contra);border-color:#3a2320}.pill.HALTED::before{background:var(--contra)}
+  .meter{display:flex;flex-direction:column;gap:3px;min-width:132px}
+  .meter .lab{font-size:10px;color:var(--dim);display:flex;justify-content:space-between;gap:10px;font-family:var(--mono)}
+  .meter .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .meter .cap{cursor:pointer;border-bottom:1px dotted var(--faint)}
+  .meter .bar{height:4px;background:#171a22;border-radius:3px;overflow:hidden}
+  .meter .fill{height:100%;width:0;background:var(--live);border-radius:3px;transition:width .5s ease,background .5s}
+  .ctl button{background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s}
+  .ctl button:hover{border-color:var(--anchor)}
+  .ctl button.halt:hover{border-color:var(--contra);color:var(--contra)}
+  /* file & artifact browser (v6 P1) */
+  #filesview{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column}
+  #filesview .fhead{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  #filesview .fhead .ttl{font-family:var(--serif);font-size:16px}
+  #filesview .fbody{flex:1;display:grid;grid-template-columns:310px 1fr;min-height:0}
+  #ftree{overflow:auto;border-right:1px solid var(--line);background:var(--panel2);padding:8px 4px;font-size:12px;font-family:var(--mono)}
+  #ftree .node{padding:3px 8px;cursor:pointer;white-space:nowrap;border-radius:5px;display:flex;gap:7px;align-items:center;overflow:hidden}
+  #ftree .node:hover{background:#141821}
+  #ftree .node.sel{background:#1a2130;color:#fff}
+  #ftree .node .ic{width:12px;text-align:center;color:var(--dim);flex-shrink:0}
+  #ftree .node.dir .ic{color:var(--anchor)}
+  #ftree .node .ext{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+  #ftree .kids{margin-left:11px;border-left:1px solid #171a22}
+  #ftree .sz{color:var(--faint);font-size:9.5px;margin-left:auto;padding-left:8px;flex-shrink:0}
+  #fview{overflow:auto;position:relative;background:#07080b;min-height:0;display:flex;flex-direction:column}
+  #fview .fplace{color:var(--faint);margin:auto;font-size:12px;text-align:center}
+  #fview pre{margin:0;padding:16px 18px;font-family:var(--mono);font-size:12px;line-height:1.55;white-space:pre;color:#cdd2db;tab-size:4}
+  #fview .mdv{padding:22px 32px;font-family:var(--serif);font-size:15px;line-height:1.65;color:#dfe3ea;max-width:840px}
+  #fview img{max-width:100%;margin:20px auto;display:block;background:#fff;border-radius:4px}
+  #fview iframe,#fview embed{flex:1;width:100%;border:0;background:#fff}
+  #fview table.csv{border-collapse:collapse;font-family:var(--mono);font-size:11.5px;margin:12px}
+  #fview table.csv td,#fview table.csv th{border:1px solid var(--line);padding:3px 9px;white-space:nowrap}
+  #fview table.csv th{background:#141821;position:sticky;top:0;color:var(--ink)}
+  #fview table.csv tr:nth-child(even) td{background:#0d0f14}
+  .fbar{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-family:var(--mono);font-size:11px;color:var(--dim);flex-shrink:0}
+  .fbar b{color:var(--ink)} .fbar a.dl{margin-left:auto;color:var(--anchor);cursor:pointer;text-decoration:none}
+  /* graph explorer (v6 P3) */
+  #graphview{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column}
+  #graphview .ghead{display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  #graphview .ghead .ttl{font-family:var(--serif);font-size:16px}
+  #gsearch{background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 11px;border-radius:7px;width:240px}
+  #gsearch:focus{outline:none;border-color:var(--anchor)}
+  .gfilters{display:flex;gap:6px;flex-wrap:wrap}
+  .gchip{font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid var(--line);cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px}
+  .gchip .d{width:7px;height:7px;border-radius:50%}
+  .gchip.off{opacity:.35}
+  #gbody{flex:1;display:grid;grid-template-columns:1fr 320px;min-height:0}
+  #gcanvaswrap{position:relative;background:radial-gradient(circle at 50% 40%,#0b0d12,#07080b);overflow:hidden}
+  #gcanvas{width:100%;height:100%;display:block;cursor:grab}
+  #gcanvas:active{cursor:grabbing}
+  #ghint{position:absolute;left:12px;bottom:10px;font-size:10px;color:var(--faint);font-family:var(--mono)}
+  #gtime{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;display:flex;align-items:center;gap:10px;background:rgba(16,18,24,.9);border:1px solid var(--line);border-radius:24px;padding:6px 14px;backdrop-filter:blur(6px)}
+  #gtime button{background:none;border:none;color:var(--live);font-size:13px;cursor:pointer;padding:0 2px}
+  #gtime input[type=range]{width:280px;accent-color:var(--anchor)}
+  #gtlabel{font-family:var(--mono);font-size:11px;color:var(--dim);min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+  #ginspect{border-left:1px solid var(--line);background:var(--panel2);overflow-y:auto;padding:16px 16px 40px}
+  #ginspect .kind{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  #ginspect h3{font-family:var(--serif);font-weight:500;font-size:18px;margin:4px 0 10px;line-height:1.25;word-break:break-word}
+  #ginspect .meta{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5}
+  #ginspect .meta a{color:var(--anchor)}
+  #ginspect .cl{font-family:var(--mono);font-size:11.5px;line-height:1.4;padding:6px 0;border-bottom:1px solid #14171e;cursor:pointer}
+  #ginspect .cl:hover{color:#fff} #ginspect .cl .m{color:var(--dim);font-size:10px}
+  #ginspect .gact{display:inline-block;margin:2px 6px 8px 0;background:#171a22;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer}
+  #ginspect .gact:hover{border-color:var(--anchor)}
+  #ginspect .gplace{color:var(--faint);font-size:11.5px;margin-top:30px;text-align:center}
+  /* brief / ask its mind (v6 P5) */
+  #briefview{position:fixed;inset:0;background:var(--bg);z-index:48;display:none;flex-direction:column}
+  #briefview .bhead{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  #briefq{flex:1;min-width:240px;background:#07080b;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:13px;padding:9px 13px;border-radius:8px}
+  #briefq:focus{outline:none;border-color:var(--anchor)}
+  #briefview .bhead button{background:#191d27;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:8px;cursor:pointer}
+  #briefview .bhead button.primary{border-color:var(--live);color:#fff}
+  #briefout{flex:1;overflow-y:auto;padding:28px 34px}
+  #briefout .inner{max-width:900px;margin:0 auto}
+  #briefout h2{font-family:var(--mono);font-weight:600;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin:24px 0 8px}
+  #briefout .tldr{font-family:var(--serif);font-size:20px;line-height:1.5;color:#e8ecf3;margin-bottom:6px}
+  #briefout .nar{font-family:var(--serif);font-size:15.5px;line-height:1.75;color:#d3d8e0}
+  #briefout ul{margin:0;padding-left:20px} #briefout li{font-size:13.5px;line-height:1.55;margin:5px 0;color:#cfd4dd}
+  #briefout ul.contested li{color:#e0b06a}
+  #briefout .cite{color:var(--anchor);cursor:pointer;font-family:var(--mono);font-size:11px;padding:0 1px}
+  #briefout .cite:hover{text-decoration:underline}
+  #briefout .bmeta{font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.6}
+  #briefout .bplace{color:var(--faint);font-size:13px;text-align:center;margin-top:60px;font-family:var(--serif)}
+
+  /* ===== motion + interaction layer (v6 — frontend-design / ui-ux-pro-max) ===== */
+  :root{--eout:cubic-bezier(.22,.68,.28,1); --spring:cubic-bezier(.34,1.4,.5,1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes overlayIn{from{opacity:0;transform:scale(.985) translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+  @keyframes flash{0%{background:rgba(79,208,160,.16)}100%{background:transparent}}
+  @keyframes flashH{0%{background:rgba(224,134,79,.16)}100%{background:transparent}}
+  @keyframes shimmer{0%{background-position:-360px 0}100%{background-position:360px 0}}
+  @keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+  /* live-state motion only (respects reduced-motion) */
+  @media (prefers-reduced-motion: no-preference){
+    #filesview,#graphview,#briefview{animation:overlayIn .22s var(--eout)}
+    #modal{animation:fadeIn .14s ease}
+    #modal .box{animation:slideUp .26s var(--eout)}
+    .row{animation:rowIn .26s var(--eout)}
+    .row.belief_update,.row.claim{animation:rowIn .26s var(--eout), flash 1.6s ease}
+    .row.contradiction,.row.escalate,.row.artifact{animation:rowIn .26s var(--eout), flashH 1.6s ease}
+    .pcard{animation:fadeUp .42s var(--eout) both}
+    .pcard:nth-child(2){animation-delay:.05s}.pcard:nth-child(3){animation-delay:.1s}
+    .pcard:nth-child(4){animation-delay:.15s}.pcard:nth-child(5){animation-delay:.2s}
+    .pcard:nth-child(6){animation-delay:.25s}.newcard{animation:fadeUp .42s var(--eout) both;animation-delay:.3s}
+    #dash .col.left .sec{animation:fadeUp .4s var(--eout) both}
+    #dash .col.left .sec:nth-child(2){animation-delay:.06s}#dash .col.left .sec:nth-child(3){animation-delay:.12s}#dash .col.left .sec:nth-child(4){animation-delay:.18s}
+    #briefout .inner>*{animation:fadeUp .34s var(--eout) both}
+    #briefout .inner>*:nth-child(2){animation-delay:.05s}#briefout .inner>*:nth-child(3){animation-delay:.1s}#briefout .inner>*:nth-child(4){animation-delay:.15s}#briefout .inner>*:nth-child(5){animation-delay:.2s}
+    #ginspect>*{animation:fadeIn .28s ease both}
+    .gchip{animation:popIn .3s var(--spring) both}
+    .bplace,.fplace,.gplace{animation:fadeIn .4s ease}
+  }
+  /* micro-interactions (always on — subtle, pointer feedback) */
+  .pcard{transition:border-color .18s,transform .2s var(--eout),box-shadow .2s}
+  .pcard:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  header button.back,.newcard button,.ctl button,.chatbar button,.gact,.gchip{transition:transform .12s var(--spring),border-color .16s,color .16s,background .16s}
+  header button.back:hover{transform:translateY(-1px)} header button.back:active,.ctl button:active,.chatbar button:active,.newcard button:active{transform:scale(.94)}
+  .belief,.cl,.draft,#ftree .node,.chip{transition:background .14s,color .14s,padding-left .14s,border-color .14s}
+  .belief:hover,.cl:hover{padding-left:4px}
+  .tabs button{transition:color .16s,border-color .2s}
+  .meter .fill{transition:width .6s var(--eout),background .5s}
+  .st.RUNNING::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--live);margin-left:6px;vertical-align:middle;box-shadow:0 0 7px var(--live);animation:pulse 2s infinite}
+  /* --- stream rows: gutter ledger (time | glyph-rail | message) --- */
+  .row{display:grid;grid-template-columns:44px 15px 1fr;column-gap:9px;align-items:baseline;padding:2px 16px 2px 12px}
+  .row .t{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;text-align:right}
+  .row .g{font-size:11px;line-height:1.5;text-align:center;font-variant-emoji:text;color:inherit;opacity:.9}
+  .thought .g{color:#4a4f5c} .read .g{color:var(--live)} .claim .g{color:var(--claim)} .spawn .g{color:var(--anchor)}
+  .belief_update .g{color:var(--live)} .contradiction .g{color:var(--contra)} .tool .g{color:#7fa7c9}
+  .artifact .g,.escalate .g,.seed .g{color:var(--human)} .say .g{color:var(--human)} .reply .g{color:var(--live)}
+  .error .g{color:var(--contra)} .boot .g,.control .g,.cost .g{color:var(--dim)}
+  .row.child{padding-left:30px;position:relative}
+  .row.child::after{content:"";position:absolute;left:17px;top:-2px;height:13px;width:8px;border-left:1px solid #2a2e3a;border-bottom:1px solid #2a2e3a}
+  .typing{display:inline-flex;gap:3px;vertical-align:middle}
+  .typing i{width:4px;height:4px;border-radius:50%;background:var(--live);opacity:.3}
+  .row.reply.pending{opacity:.82}
+  /* --- chat composer: REPL prompt into a live process --- */
+  .chatbar{position:relative;gap:8px;align-items:center}
+  .composer{position:relative;flex:1;display:flex;align-items:center;background:#07080b;border:1px solid var(--line);border-radius:9px;transition:border-color .16s,box-shadow .22s var(--spring)}
+  .composer::before{content:"\203A";padding:0 2px 0 12px;color:var(--anchor);font:600 14px var(--mono);opacity:.55;transition:opacity .16s}
+  .composer:focus-within{border-color:var(--anchor);box-shadow:0 0 0 1px var(--anchor),0 0 22px -9px var(--anchor)}
+  .composer:focus-within::before{opacity:1}
+  .chatbar .composer input{flex:1;background:transparent;border:0;padding:0 6px 0 4px;min-height:44px;font:12px var(--mono);color:var(--ink)}
+  .chatbar .composer input:focus{outline:none}
+  .chatbar .send{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:8px;color:var(--dim);font-size:15px;cursor:pointer;flex-shrink:0}
+  .chatbar .send:hover{color:var(--live);border-color:transparent}
+  .khint{position:absolute;right:56px;font:10px var(--mono);letter-spacing:.03em;color:var(--faint);pointer-events:none;transition:opacity .2s}
+  .composer:focus-within ~ .khint{opacity:0}
+  @keyframes typingPulse{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
+  @keyframes sentPulse{0%{transform:translateY(0)}40%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+  @keyframes railFire{0%{box-shadow:inset 3px 0 0 var(--live)}100%{box-shadow:inset 0 0 0 transparent}}
+  @keyframes railFireH{0%{box-shadow:inset 3px 0 0 var(--human)}100%{box-shadow:inset 0 0 0 transparent}}
+  @keyframes glyphPop{0%{transform:scale(1)}45%{transform:scale(1.5)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion: no-preference){
+    .typing i{animation:typingPulse 1.1s ease-in-out infinite}
+    .typing i:nth-child(2){animation-delay:.18s} .typing i:nth-child(3){animation-delay:.36s}
+    .chatbar .send.sent{color:var(--live);animation:sentPulse .42s var(--spring)}
+    .row.belief_update,.row.claim{animation:rowIn .26s var(--eout), railFire 1.6s ease}
+    .row.contradiction,.row.escalate,.row.artifact{animation:rowIn .26s var(--eout), railFireH 1.6s ease}
+    .row.contradiction .g,.row.belief_update .g{animation:glyphPop .5s var(--spring)}
+  }
+  /* --- file tree: typographic ledger --- */
+  #ftree .node{height:24px;padding:0 8px;gap:8px;align-items:center;border-radius:5px}
+  #ftree .node .ic{width:14px;flex-shrink:0;text-align:center;font-size:11px;color:var(--faint);transition:color .14s,transform .2s var(--eout);font-variant-emoji:text}
+  #ftree .node.dir .ic{color:var(--dim)} #ftree .node.dir.open .ic{transform:rotate(90deg)}
+  #ftree .node .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ftree .node.dir .nm{color:var(--ink)} #ftree .node.file .nm{color:var(--dim)}
+  #ftree .ic[data-t=code]{color:#7d9fbd}#ftree .ic[data-t=data]{color:#b39a63}#ftree .ic[data-t=doc]{color:#8a8f9c}#ftree .ic[data-t=pdf]{color:#c06a5a}#ftree .ic[data-t=image]{color:#6ab89a}#ftree .ic[data-t=config]{color:#8a8f9c}
+  #ftree .kids{display:grid;grid-template-rows:0fr;margin-left:0;border-left:0;transition:grid-template-rows .26s cubic-bezier(.22,.61,.36,1)}
+  #ftree .kids.open{grid-template-rows:1fr}
+  #ftree .kids-in{overflow:hidden;margin-left:11px;border-left:1px solid #171a22}
+  #ftree .node.sel{background:#182031;box-shadow:inset 2px 0 0 var(--anchor)}
+  #ftree .node:hover{background:#141821}#ftree .node:hover .ic{color:var(--dim)}
+  /* --- graph inspector: type-colored dossier --- */
+  #ginspect .ihead{position:sticky;top:-16px;margin:-16px -16px 12px;padding:14px 16px 11px;background:var(--panel2);border-bottom:1px solid var(--line);border-left:2px solid var(--tc,var(--anchor))}
+  #ginspect .ihead .krow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--tc,var(--dim))}
+  #ginspect .ihead h3{margin:5px 0 0;color:#eef1f6}
+  #ginspect .isec{display:flex;align-items:center;gap:9px;margin:15px 0 7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  #ginspect .isec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .conf{display:flex;align-items:center;gap:9px;margin:6px 0}
+  .conf .track{flex:1;height:4px;border-radius:2px;background:#1c1f29;overflow:hidden}
+  .conf .fill{height:100%;background:var(--tc,var(--live));border-radius:2px}
+  .conf .pv{font-family:var(--mono);font-size:10.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .ev{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:8px 0;background:#0f1218;transition:border-color .16s,background .16s}
+  .ev:hover{border-color:var(--tc,var(--anchor));background:#12161d}
+  .ev .evt{font-size:11.5px;color:#cfd4dd} .ev .evm{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px}
+  .ev blockquote{margin:7px 0 0;padding-left:9px;border-left:2px solid #23262f;font-family:var(--serif);font-size:12.5px;line-height:1.5;color:#aeb4c0}
+  #ginspect .cl{position:relative;padding-right:16px;min-height:38px}
+  #ginspect .cl::after{content:"\203A";position:absolute;right:2px;top:6px;color:var(--faint);transition:transform .16s,color .16s}
+  #ginspect .cl:hover::after{transform:translateX(3px);color:var(--tc,var(--anchor))}
+  .pill.anchor{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;border:1px solid var(--anchor);color:var(--anchor);font-size:9px;letter-spacing:.05em;text-transform:uppercase;margin-left:4px}
+  @keyframes insSwap{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+  @keyframes confGrow{from{width:0}}
+  @media (prefers-reduced-motion: no-preference){
+    .ins-swap{animation:insSwap .3s var(--eout) both}
+    .ins-swap .ev,.ins-swap .cl,.ins-swap .conf{animation:fadeUp .3s var(--eout) both}
+    .conf .fill{animation:confGrow .55s var(--spring) both}
+  }
+  @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+</head>
+<body>
+  <header>
+    <span class="dot"></span><span class="brand" onclick="toGallery()">PERSONA</span>
+    <button class="back" id="backbtn" style="display:none" onclick="toGallery()">← gallery</button>
+    <button class="back" id="filesbtn" style="display:none" onclick="openFiles()">⧉ files</button>
+    <button class="back" id="graphbtn" style="display:none" onclick="openGraph()">◉ explore graph</button>
+    <button class="back" id="briefbtn" style="display:none" onclick="openBrief()">❋ brief / ask</button>
+    <button class="back" id="myworkbtn" style="display:none" onclick="$('#myworkfile').click()" title="upload your draft/paper — get cited support & contradictions on your own claims">⊹ check my work</button>
+    <input type="file" id="myworkfile" style="display:none" onchange="crossCheckWork(this)">
+    <button class="back" id="mapbtn" style="display:none" onclick="showFieldmap()">◈ field map</button>
+    <button class="back" id="delivbtn" style="display:none" onclick="requestDeliverable()">✎ review/paper</button>
+    <button class="back" id="buildbtn" style="display:none" onclick="requestBuild()">✦ build</button>
+    <button class="back" id="freebtn" style="display:none" onclick="freeMove()" title="let it choose its own next move">✧ free move</button>
+    <button class="back" id="goalbtn" style="display:none" onclick="giveGoal()" title="hand it a research goal to pursue for you">◱ give a goal</button>
+    <span class="ctl" id="controlbar">
+      <span class="pill RUNNING" id="runpill">running</span>
+      <span class="meter" title="today's spend / daily cap">
+        <span class="lab"><span>today</span><span><b id="spentv">$0.00</b> / <span class="cap" id="capv" onclick="editBudget()" title="click to change the daily cap">$0.00</span></span></span>
+        <span class="bar"><span class="fill" id="spendfill"></span></span>
+      </span>
+      <button id="pausebtn" onclick="togglePause()">⏸ pause</button>
+      <button class="halt" onclick="haltPersona()">■ halt</button>
+    </span>
+    <span class="status" id="status"></span>
+  </header>
+
+  <!-- GALLERY -->
+  <div id="gallery">
+    <h1>Your research minds</h1>
+    <div class="sub">Each persona is a separate, persistent researcher — its own interests, knowledge, and deliverables. Spawn one, give it interests, watch it grow.</div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dash">
+    <div class="grid">
+      <div class="col left">
+        <div class="sec" style="flex:0 0 auto"><h2>self · interests</h2><div id="interests"></div></div>
+        <div class="sec" style="flex:1 1 auto"><h2>open questions</h2><div id="questions"></div></div>
+        <div class="sec" style="flex:0 0 auto;max-height:30%"><h2>understanding · synthesis</h2><div id="notes"><div class="empty">nothing synthesized yet</div></div></div>
+        <div class="sec" style="flex:0 0 auto;max-height:26%"><h2>body of work</h2><div id="drafts"><div class="empty">no reports yet</div></div></div>
+      </div>
+      <div class="col" style="display:flex;flex-direction:column">
+        <div class="stream" id="stream"></div>
+        <div class="chatbar">
+          <div class="composer">
+            <input id="chatin" placeholder="steer it — or ask what it's doing…" onkeydown="if(event.key==='Enter')sendSay()">
+            <button class="send" id="sendbtn" onclick="sendSay()" title="send (Enter)">↵</button>
+          </div>
+          <span class="khint">/ focus · ↵ send</span>
+        </div>
+      </div>
+      <div class="col right">
+        <div id="graphwrap"><canvas id="graph"></canvas>
+          <div class="glegend"><span class="up">● raises</span><span class="down">● lowers</span>
+            <span style="color:var(--contra)">— contradiction</span></div></div>
+        <div class="tabs"><button class="on" data-t="beliefs" id="tabB">beliefs</button>
+          <button data-t="inbox" id="tabI">needs human <span id="inboxn"></span></button></div>
+        <div class="list" id="panelBeliefs"></div>
+        <div class="list" id="panelInbox" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+  <div id="modal"><div class="box" id="modalbox"></div></div>
+
+  <!-- FILE & ARTIFACT BROWSER -->
+  <div id="filesview">
+    <div class="fhead">
+      <span class="ttl" id="fttl">workspace</span>
+      <button class="back" onclick="$('#fupload').click()">⭱ upload</button>
+      <button class="back" style="margin-left:auto" onclick="closeFiles()">✕ close</button>
+    </div>
+    <div class="fbody">
+      <div id="ftree"></div>
+      <div style="display:flex;flex-direction:column;min-height:0">
+        <div class="fbar" id="fbar" style="display:none"></div>
+        <div id="fview"><div class="fplace">select a file — code, PDFs, figures, data, reports</div></div>
+      </div>
+    </div>
+    <input type="file" id="fupload" style="display:none" onchange="doUpload(this)">
+  </div>
+
+  <!-- BRIEF / ASK -->
+  <div id="briefview">
+    <div class="bhead">
+      <span style="font-family:var(--serif);font-size:16px">ask its mind</span>
+      <input id="briefq" placeholder="name a topic to be briefed on, or ask a question…" onkeydown="if(event.key==='Enter')runDigest()">
+      <button class="primary" onclick="runDigest()">brief me</button>
+      <button onclick="runAsk()">answer</button>
+      <button style="margin-left:auto" onclick="$('#briefview').style.display='none'">✕ close</button>
+    </div>
+    <div id="briefout"><div class="inner"><div class="bplace">Name a topic → a digestible, cited briefing of everything this mind has learned: what's settled, what's contested, what's open — every point clickable to its evidence. Or ask a question and get a grounded, cited answer.</div></div></div>
+  </div>
+
+  <!-- GRAPH EXPLORER -->
+  <div id="graphview">
+    <div class="ghead">
+      <span class="ttl">knowledge graph</span>
+      <input id="gsearch" placeholder="search entities / papers…" oninput="gxSearch(this.value)">
+      <div class="gfilters" id="gfilters"></div>
+      <button class="back" onclick="openGraph()">⟲ reset</button>
+      <button class="back" style="margin-left:auto" onclick="closeGraph()">✕ close</button>
+    </div>
+    <div id="gbody">
+      <div id="gcanvaswrap"><canvas id="gcanvas"></canvas>
+        <div id="ghint">drag to pan · scroll to zoom · click a node to inspect + expand · drag a node to pin</div>
+        <div id="gtime" style="display:none">
+          <button id="gplay" onclick="gxPlay()" title="replay how the graph grew">▶</button>
+          <input id="gslider" type="range" min="0" max="1000" value="1000" oninput="gxScrub(this.value)">
+          <span id="gtlabel">live</span>
+        </div>
+      </div>
+      <div id="ginspect"><div class="gplace">Click any node to see what it connects to — beliefs, the papers behind them, contradictions, syntheses. Then expand outward to walk the field.</div></div>
+    </div>
+  </div>
+
+<script>
+const $=s=>document.querySelector(s), esc=s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const ftime=iso=>{try{return new Date(iso).toLocaleTimeString([],{hour12:false})}catch{return""}};
+let PID=null, es=null, timers=[];
+
+/* ---------- gallery ---------- */
+async function loadGallery(){
+  const d=await (await fetch("/api/personas")).json();
+  window.__personas={}; (d.personas||[]).forEach(p=>window.__personas[p.id]=p);
+  const cards=(d.personas||[]).map(p=>
+    `<div class="pcard" onclick="openPersona('${p.id}')">`+
+    `<button class="del" title="delete this persona" onclick="event.stopPropagation();deletePersona('${p.id}')">✕</button>`+
+    `<div class="n">${esc(p.name)}</div>`+
+    `<div class="st ${p.status}">${p.status}</div><div class="stats">`+
+    `<span><b>${p.claims}</b> claims</span><span><b>${p.entities}</b> entities</span>`+
+    `<span>$<b>${(p.spent_today||0).toFixed(2)}</b></span></div></div>`).join("");
+  $("#cards").innerHTML = cards +
+    `<div class="newcard"><div class="h">+ spawn a new mind</div>`+
+    `<input id="pname" placeholder="name (e.g. Curie)"/>`+
+    `<input id="pint" placeholder="interests, comma-separated"/>`+
+    `<button onclick="createPersona()">create & seed</button></div>`;
+}
+async function createPersona(){
+  const name=$("#pname").value.trim(), interests=$("#pint").value.trim();
+  if(!name){$("#pname").focus();return;}
+  const btn=event&&event.target; if(btn){btn.disabled=true;btn.textContent="creating…";}
+  try{
+    const res=await fetch("/api/personas",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,interests})});
+    if(!res.ok) throw new Error("server "+res.status+": "+(await res.text()).slice(0,140));
+    const p=await res.json();
+    if(!p||!p.id) throw new Error("no persona id in response");
+    if(interests) openPersona(p.id); else loadGallery();
+  }catch(e){
+    alert("Could not create persona — "+e.message);
+    if(btn){btn.disabled=false;btn.textContent="create & seed";}
+  }
+}
+async function deletePersona(id){
+  const p=(window.__personas||{})[id]||{name:id,claims:0};
+  if(!confirm(`Delete "${p.name}"? This wipes its graph, notes, and ${p.claims||0} claims permanently.`)) return;
+  try{
+    const res=await fetch(`/api/persona/${id}/delete`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({wipe:true})});
+    if(!res.ok) throw new Error("server "+res.status);
+    loadGallery();
+  }catch(e){ alert("Delete failed — "+e.message); }
+}
+function toGallery(){
+  PID=null; if(es){es.close();es=null;} timers.forEach(clearInterval); timers=[];
+  $("#dash").style.display="none"; $("#gallery").style.display="block"; $("#backbtn").style.display="none"; $("#mapbtn").style.display="none";$("#delivbtn").style.display="none";$("#controlbar").style.display="none";$("#filesbtn").style.display="none";$("#graphbtn").style.display="none";$("#buildbtn").style.display="none";$("#freebtn").style.display="none";$("#briefbtn").style.display="none";$("#myworkbtn").style.display="none";$("#goalbtn").style.display="none";
+  $("#status").textContent=""; loadGallery();
+}
+async function requestDeliverable(){
+  const topic=prompt("Topic for the deliverable:"); if(!topic)return;
+  const kind=confirm("OK = LaTeX paper (compiled PDF)\nCancel = cited literature review")?"paper":"review";
+  const r=await (await fetch(A("/deliver"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,topic})})).json();
+  alert(r.ok?`Queued a ${kind} on "${topic}". Watch the stream; it appears in body of work when done.`:`Could not: ${r.reason}`);}
+/* ---------- brief / ask its mind (v6 P5) ---------- */
+function openBrief(){$("#briefview").style.display="flex";$("#briefq").focus();}
+const asArr=x=>Array.isArray(x)?x:(x?[x]:[]);
+function citeLinks(text,claims){return (text||"").replace(/\[(\d+)\]/g,(m,n)=>{const c=claims[+n-1];return c?`<span class="cite" onclick="prov('${c.claim_id}')">[${n}]</span>`:m;});}
+function srcList(cl){return cl.slice(0,40).map(c=>`[${c.n}] ${esc(c.text)}${c.doi?` · <a href="https://doi.org/${esc(c.doi)}" target="_blank" style="color:var(--anchor)">${esc(c.doi)}</a>`:''}`).join("<br>");}
+function sparkline(series){
+  if(!series||series.length<2) return '';
+  const w=130,h=26,pad=3,n=series.length;
+  const xs=series.map((_,i)=>pad+i*(w-2*pad)/(n-1));
+  const ys=series.map(s=>h-pad-(Math.max(0,Math.min(1,s.confidence)))*(h-2*pad));
+  const pts=xs.map((x,i)=>x.toFixed(1)+","+ys[i].toFixed(1)).join(" ");
+  const rising=series[n-1].confidence>=series[0].confidence, col=rising?"var(--live)":"var(--contra)";
+  return `<svg width="${w}" height="${h}" style="vertical-align:middle;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${xs[n-1].toFixed(1)}" cy="${ys[n-1].toFixed(1)}" r="2.2" fill="${col}"/></svg>`;
+}
+async function runDigest(){
+  const q=$("#briefq").value.trim(); if(!q) return;
+  $("#briefout").innerHTML='<div class="inner"><div class="bplace">reading everything I know on this…</div></div>';
+  try{ renderDigest(await (await fetch(A("/topic/digest?q="+encodeURIComponent(q)))).json(), q); }
+  catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not build the briefing</div></div>'; }
+}
+function renderDigest(d,q){
+  if(!d.ok){$("#briefout").innerHTML=`<div class="inner"><div class="bplace">I don't know enough about “${esc(q)}” yet — it needs to read more first.</div></div>`;return;}
+  const g=d.digest||{}, cl=d.claims||[];
+  const sec=(t,items,cls)=>asArr(items).length?`<h2>${t}</h2><ul class="${cls||''}">${asArr(items).map(x=>`<li>${citeLinks(esc(x),cl)}</li>`).join("")}</ul>`:'';
+  let h=`<div class="inner"><div class="bmeta">${d.n_claims} claims · ${d.n_sources} papers${d.evolution&&d.evolution.length?` · ${d.evolution.length} beliefs with an evolution trail`:''}</div>`;
+  h+=`<div class="tldr" style="margin-top:8px">${citeLinks(esc(g.tldr||''),cl)}</div>`;
+  h+=sec("what's settled",g.settled)+sec("what's contested",g.contested,"contested")+sec("open questions",g.open_questions);
+  if(g.narrative)h+=`<h2>synthesis</h2><div class="nar">${citeLinks(esc(g.narrative),cl)}</div>`;
+  if((d.evolution||[]).length)h+=`<h2>how these beliefs evolved</h2>`+d.evolution.map(e=>`<div style="display:flex;align-items:center;gap:12px;margin:6px 0;font-family:var(--mono);font-size:11.5px"><span style="flex:1;color:#cfd4dd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.text)}</span>${sparkline(e.series)}<span style="color:var(--dim);flex-shrink:0">${e.series.length} pts</span></div>`).join("");
+  if((d.contradictions||[]).length)h+=`<h2>live contradictions</h2>`+d.contradictions.map(c=>`<div style="color:var(--contra);font-family:var(--mono);font-size:12px;margin:3px 0">⚡ ${esc(c.subject)} → ${esc(c.object)}: +${c.pos_sources} vs −${c.neg_sources} labs</div>`).join("");
+  h+=`<h2>sources · click any [n] above</h2><div class="bmeta">${srcList(cl)}</div></div>`;
+  $("#briefout").innerHTML=h;
+}
+async function runAsk(){
+  const q=$("#briefq").value.trim(); if(!q) return;
+  $("#briefout").innerHTML='<div class="inner"><div class="bplace">consulting my graph…</div></div>';
+  try{
+    const a=await (await fetch(A("/ask"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})})).json();
+    const cl=a.claims||[];
+    $("#briefout").innerHTML=`<div class="inner"><div class="bmeta">answered from ${cl.length} evidence-backed claims · every [n] clicks to its source</div>`+
+      `<div class="nar" style="margin-top:10px">${citeLinks(esc(a.answer||'(no answer)'),cl)}</div>`+
+      (cl.length?`<h2>sources</h2><div class="bmeta">${srcList(cl)}</div>`:'')+`</div>`;
+  }catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not answer</div></div>'; }
+}
+async function crossCheckWork(input){
+  if(!input.files||!input.files[0]) return;
+  const fd=new FormData(); fd.append("file", input.files[0]);
+  openBrief();
+  $("#briefout").innerHTML='<div class="inner"><div class="bplace">reading your work and cross-checking every claim against the literature…</div></div>';
+  try{ renderCrosscheck(await (await fetch(A("/mywork"),{method:"POST",body:fd})).json()); }
+  catch(e){ $("#briefout").innerHTML='<div class="inner"><div class="bplace">could not process the file</div></div>'; }
+  input.value="";
+}
+function ccEvidence(items){return (items||[]).slice(0,4).map(s=>
+  `<div style="margin:2px 0 6px 14px"><span style="font-size:11.5px;color:#cfd4dd">${esc(s.text||'')} <span style="color:var(--dim)">(${s.labs} labs)</span></span>`+
+  (s.sources||[]).slice(0,2).map(x=>`<div style="font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-left:10px">${esc((x.title||x.slug||'').slice(0,78))}${x.doi?` · <a href="https://doi.org/${esc(x.doi)}" target="_blank" style="color:var(--anchor)">${esc(x.doi)}</a>`:''}${x.quote?`<br><span style="color:#9aa0ac">“${esc((x.quote||'').slice(0,140))}”</span>`:''}</div>`).join('')+`</div>`).join('');}
+function renderCrosscheck(r){
+  if(!r.ok){$("#briefout").innerHTML=`<div class="inner"><div class="bplace">Couldn't cross-check: ${esc(r.reason||'error')}</div></div>`;return;}
+  const col=st=>({supported:'var(--live)',contradicted:'var(--contra)',mixed:'var(--claim)',novel:'var(--dim)'}[st]||'var(--dim)');
+  let h=`<div class="inner"><div class="tldr" style="font-size:18px">Cross-check of “${esc(r.title)}”</div>`+
+    `<div class="bmeta" style="margin-bottom:16px">${r.n_claims} of your claims · <span style="color:var(--live)">${r.n_supported} with literature support</span> · <span style="color:var(--contra)">${r.n_contradicted} contradicted</span></div>`;
+  h+=(r.results||[]).map(c=>`<div style="border-left:3px solid ${col(c.status)};padding:2px 0 10px 14px;margin-bottom:14px">`+
+    `<div style="font-family:var(--mono);font-size:12.5px;color:#e4e8ef">${esc(c.your_claim)} <span style="color:${col(c.status)};text-transform:uppercase;font-size:9.5px;letter-spacing:.08em">· ${c.status}</span></div>`+
+    (c.quote?`<div style="font-family:var(--serif);font-size:12.5px;color:var(--dim);margin:3px 0">“${esc((c.quote||'').slice(0,180))}”</div>`:'')+
+    ((c.support||[]).length?`<div style="font-size:9.5px;color:var(--live);letter-spacing:.06em;margin-top:6px">SUPPORTED BY</div>`+ccEvidence(c.support):'')+
+    ((c.contradict||[]).length?`<div style="font-size:9.5px;color:var(--contra);letter-spacing:.06em;margin-top:6px">CONTRADICTED BY</div>`+ccEvidence(c.contradict):'')+
+    ((c.support||[]).length+(c.contradict||[]).length===0?`<div style="font-size:11px;color:var(--dim);margin-top:4px">novel — nothing in my reading speaks to this yet</div>`:'')+
+    `</div>`).join("");
+  $("#briefout").innerHTML=h+`</div>`;
+}
+async function requestBuild(){
+  const kind=prompt("Build what?  diagram · art · page · code","diagram"); if(!kind) return;
+  const topic=prompt("On what topic / question?"); if(!topic) return;
+  const r=await (await fetch(A("/build"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:kind.trim(),topic})})).json();
+  alert(r.ok?`Queued a ${kind.trim()}. Watch the stream; it appears in ⧉ files when done.`:`Could not: ${r.reason}`);
+}
+async function freeMove(){
+  const r=await (await fetch(A("/freemove"),{method:"POST"})).json();
+  alert(r.ok?"It's choosing its own next move — watch the stream.":`Could not: ${r.reason}`);
+}
+async function giveGoal(){
+  const g=prompt("Hand it a research goal/problem to pursue for you:"); if(!g) return;
+  const r=await (await fetch(A("/goal"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({goal:g})})).json();
+  alert(r.ok?"On it — it will read + run a real investigation toward this. Watch the stream; the result lands in ⧉ files / body of work.":`Could not: ${r.reason}`);
+}
+async function showFieldmap(){const m=await (await fetch(A("/fieldmap"))).json();
+  const html=(m.subtopics||[]).map(s=>`<div style="margin:16px 0;border-left:3px solid var(--anchor);padding-left:14px">`+
+    `<div style="font-family:var(--serif);font-size:18px">${esc(s.title)} `+
+    (s.has_note?`<span style="font-size:11px;font-family:var(--mono)"><a href="#" onclick="openNote('${encodeURIComponent(s.slug)}');return false">read synthesis →</a></span>`:'')+`</div>`+
+    `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin:2px 0 8px">${s.n_claims} claims · ${s.n_sources} papers · ${esc((s.entities||[]).slice(0,6).join(', '))}</div>`+
+    (s.beliefs.length?`<div style="font-family:var(--mono);font-size:12px">${s.beliefs.map(b=>`<div style="cursor:pointer" onclick="prov('${b.claim_id}')">• ${esc(b.text)} <span style="color:var(--dim)">(${b.labs} labs)</span></div>`).join("")}</div>`:'')+
+    (s.contradictions.length?`<div style="font-family:var(--mono);font-size:12px;color:var(--contra);margin-top:6px">${s.contradictions.map(c=>`⚡ ${esc(c.subject)} → ${esc(c.object)}: +${c.pos} vs −${c.neg}`).join("<br>")}</div>`:'')+
+    (s.open_questions.length?`<div style="font-family:var(--serif);font-size:13px;color:var(--claim);margin-top:6px">${s.open_questions.map(q=>`? ${esc(q)}`).join("<br>")}</div>`:'')+
+    `</div>`).join("");
+  $("#modalbox").innerHTML=`<h1>Field map — ${m.n_subtopics} subtopics, ${m.total_contradictions} open contradictions</h1>`+
+    `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px">the structure of what this mind has mapped · click a belief for evidence</div>`+(html||'<p>not enough mapped yet — it needs to read + consolidate more.</p>');
+  $("#modal").style.display="flex";}
+function openPersona(id){
+  PID=id; $("#gallery").style.display="none"; $("#dash").style.display="flex"; $("#backbtn").style.display="";$("#mapbtn").style.display="";$("#delivbtn").style.display="";$("#controlbar").style.display="inline-flex";$("#filesbtn").style.display="";$("#graphbtn").style.display="";$("#buildbtn").style.display="";$("#freebtn").style.display="";$("#briefbtn").style.display="";$("#myworkbtn").style.display="";$("#goalbtn").style.display="";
+  $("#stream").innerHTML="";
+  es=new EventSource(`/api/persona/${id}/stream`);
+  es.onmessage=m=>{try{const e=JSON.parse(m.data);addEvent(e);
+    if(["belief_update","contradiction","artifact","escalate"].includes(e.type)){refreshKG();refreshInbox();refreshWork();}
+    if(e.type==="cost"||e.type==="control"){refreshSpend();}
+    if(e.type==="synthesis"){refreshNotes();}}catch{}};
+  refreshStatus();refreshSelf();refreshWork();refreshNotes();refreshKG();refreshInbox();refreshSpend();
+  timers=[setInterval(refreshStatus,2500),setInterval(refreshSelf,8000),setInterval(refreshKG,9000),
+          setInterval(refreshInbox,9000),setInterval(refreshWork,12000),setInterval(refreshNotes,12000),
+          setInterval(refreshSpend,2500)];
+}
+/* ---------- cost / control bar (v6 P0) ---------- */
+async function refreshSpend(){
+  if(!PID) return;
+  try{
+    const s=await (await fetch(A("/spend"))).json();
+    $("#spentv").textContent="$"+s.spent_today.toFixed(2);
+    $("#capv").textContent="$"+s.cap_usd.toFixed(2);
+    const pct=s.cap_usd>0?Math.min(100,100*s.spent_today/s.cap_usd):0;
+    const f=$("#spendfill"); f.style.width=pct+"%";
+    f.style.background=pct>=99?"var(--contra)":pct>80?"var(--claim)":"var(--live)";
+    const rs=s.run_state,pill=$("#runpill");
+    pill.className="pill "+rs; pill.textContent=rs.toLowerCase();
+    $("#pausebtn").textContent=rs==="PAUSED"?"▶ resume":"⏸ pause";
+    $("#pausebtn").title=rs==="HALTED"?"halted — press to resume":"";
+  }catch{}
+}
+async function togglePause(){
+  const rs=$("#runpill").textContent.toUpperCase();
+  await fetch(A(rs==="RUNNING"?"/pause":"/resume"),{method:"POST"}); refreshSpend();
+}
+async function haltPersona(){
+  if(!confirm("Halt this persona? Its daemon stops — no reading, no building, no spend — until you resume.")) return;
+  await fetch(A("/halt"),{method:"POST"}); refreshSpend();
+}
+async function editBudget(){
+  const cur=$("#capv").textContent.replace("$","");
+  const v=prompt("Daily budget cap (USD) — the persona hard-stops spending at this:",cur); if(v===null) return;
+  const cap=parseFloat(v); if(isNaN(cap)||cap<0){alert("enter a non-negative number");return;}
+  await fetch(A("/budget"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cap_usd:cap})}); refreshSpend();
+}
+/* ---------- file & artifact browser (v6 P1) ---------- */
+const IMG_EXT=["png","jpg","jpeg","gif","webp","bmp","svg"], TXT_EXT=["py","md","txt","json","jsonl","csv","tsv","tex","log","yaml","yml","toml","ini","cfg","r","sh","js","ts","css"];
+function fmtSize(b){b=b||0;return b<1024?b+" B":b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";}
+const FT_TYPE={code:['py','js','ts','r','sh','css','html'],data:['csv','tsv','json','jsonl','npy'],doc:['md','txt','tex','log','rst'],pdf:['pdf'],image:['png','jpg','jpeg','gif','svg','webp'],config:['yaml','yml','toml','ini','cfg']};
+const FT_GLYPH={code:'›',data:'▦',doc:'≡',pdf:'▤',image:'◩',config:'⋮',file:'·'};
+function ftType(ext){ext=(ext||'').toLowerCase();for(const t in FT_TYPE)if(FT_TYPE[t].includes(ext))return t;return 'file';}
+function renderTree(nodes){
+  return nodes.map(n=>{
+    if(n.type==="dir")
+      return `<div class="node dir" data-p="${esc(n.path)}"><span class="ic">▸</span><span class="nm">${esc(n.name)}</span></div>`+
+             `<div class="kids"><div class="kids-in">${renderTree(n.children||[])}</div></div>`;
+    const ty=ftType(n.ext);
+    return `<div class="node file" data-p="${esc(n.path)}" data-ext="${esc(n.ext||'')}"><span class="ic" data-t="${ty}">${FT_GLYPH[ty]}</span>`+
+           `<span class="nm">${esc(n.name)}</span>`+
+           `<span class="ext">${esc(n.ext||'')}</span><span class="sz">${fmtSize(n.size)}</span></div>`;
+  }).join("");
+}
+async function openFiles(){
+  $("#filesview").style.display="flex"; $("#fttl").textContent="workspace · loading…";
+  try{
+    const d=await (await fetch(A("/files"))).json();
+    $("#fttl").textContent=d.root+" · workspace";
+    $("#ftree").innerHTML=renderTree(d.tree)||'<div class="empty">empty</div>';
+  }catch(e){ $("#ftree").innerHTML='<div class="empty">could not load</div>'; }
+}
+function closeFiles(){ $("#filesview").style.display="none"; }
+$("#ftree").onclick=e=>{
+  const node=e.target.closest(".node"); if(!node) return;
+  if(node.classList.contains("dir")){
+    node.classList.toggle("open"); node.nextElementSibling.classList.toggle("open"); return;
+  }
+  document.querySelectorAll("#ftree .node.sel").forEach(x=>x.classList.remove("sel"));
+  node.classList.add("sel");
+  viewFile(node.dataset.p, node.dataset.ext);
+};
+async function viewFile(path, ext){
+  const url=A("/file?path="+encodeURIComponent(path)), v=$("#fview"), bar=$("#fbar");
+  bar.style.display="flex";
+  bar.innerHTML=`<b>${esc(path.split("/").pop())}</b><span>${esc(path)}</span>`+
+    `<a class="dl" href="${url}" download>download ↓</a>`;
+  v.innerHTML='<div class="fplace">loading…</div>';
+  ext=(ext||"").toLowerCase();
+  if(IMG_EXT.includes(ext)){ v.innerHTML=`<img src="${url}" alt="${esc(path)}">`; return; }
+  if(ext==="pdf"){ v.innerHTML=`<iframe src="${url}"></iframe>`; return; }
+  if(ext==="html"||ext==="htm"){ v.innerHTML=`<iframe sandbox src="${url}"></iframe>`; return; }
+  try{
+    const txt=await (await fetch(url)).text();
+    if(ext==="md"){ v.innerHTML=`<div class="mdv">${md(txt)}</div>`; }
+    else if(ext==="csv"||ext==="tsv"){ v.innerHTML=csvTable(txt, ext==="tsv"?"\t":","); }
+    else { const pre=document.createElement("pre"); pre.textContent=txt; v.innerHTML=""; v.appendChild(pre); }
+  }catch{ v.innerHTML='<div class="fplace">could not render — try download</div>'; }
+}
+function csvTable(txt, sep){
+  const rows=txt.split(/\r?\n/).filter(r=>r.length).slice(0,400).map(r=>r.split(sep));
+  if(!rows.length) return '<div class="fplace">empty</div>';
+  const head=rows[0].map(c=>`<th>${esc(c)}</th>`).join("");
+  const body=rows.slice(1).map(r=>"<tr>"+r.map(c=>`<td>${esc(c)}</td>`).join("")+"</tr>").join("");
+  return `<table class="csv"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`+
+    (txt.split(/\r?\n/).length>400?'<div class="fbar">…truncated to 400 rows</div>':'');
+}
+async function sendSay(){
+  const inp=$("#chatin"), t=inp.value.trim(); if(!t) return;
+  inp.value=""; const btn=$("#sendbtn"); if(btn){btn.classList.add("sent");setTimeout(()=>btn.classList.remove("sent"),420);}
+  showPending();                          // ephemeral row until the real reply lands
+  try{ await fetch(A("/say"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:t})}); }
+  catch{ clearPending(); alert("could not send"); }
+  inp.focus(); refreshSpend();
+}
+async function doUpload(input){
+  if(!input.files||!input.files[0]) return;
+  const fd=new FormData(); fd.append("file", input.files[0]);
+  try{ await fetch(A("/upload"),{method:"POST",body:fd}); await openFiles(); }
+  catch{ alert("upload failed"); }
+  input.value="";
+}
+/* ---------- graph explorer (v6 P3) ---------- */
+const GX={n:new Map(),e:[],pos:new Map(),sel:null,hover:null,view:{x:0,y:0,s:1},drag:null,raf:null,W:0,H:0,hidden:new Set(),tcut:null,tmin:0,tmax:0,live:true,playIv:null};
+const GXCOLOR={entity:"#8a9cff",source:"#4fd0a0",note:"#e6c86e",claim:"#c9cdd6",experiment:"#e0864f",idea:"#c99cff",question:"#e5544b"};
+const gxColor=t=>GXCOLOR[t]||"#8a9cff", gcv=()=>$("#gcanvas");
+function gxResize(){const w=$("#gcanvaswrap");GX.W=w.clientWidth;GX.H=w.clientHeight;const c=gcv();c.width=GX.W*devicePixelRatio;c.height=GX.H*devicePixelRatio;c.getContext("2d").setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
+async function openGraph(){
+  $("#graphview").style.display="flex"; gxResize();
+  GX.n.clear();GX.e=[];GX.pos.clear();GX.sel=null;GX.hidden.clear();GX.view={x:0,y:0,s:1};GX.live=true;GX.tcut=null;if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";}
+  $("#ginspect").innerHTML='<div class="gplace">loading the graph…</div>';
+  try{
+    const d=await (await fetch(A("/graph/overview?limit=70"))).json();
+    gxAdd(d,true); gxRenderFilters();
+    $("#ginspect").innerHTML='<div class="gplace">Click any node to inspect it and expand its connections.</div>';
+  }catch(e){ $("#ginspect").innerHTML='<div class="gplace">could not load graph</div>'; }
+  if(!GX.raf) gxLoop();
+}
+function closeGraph(){ $("#graphview").style.display="none"; if(GX.raf){cancelAnimationFrame(GX.raf);GX.raf=null;} if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";} }
+function gxAdd(d,seed){
+  const cx=GX.W/2,cy=GX.H/2,N=(d.nodes||[]).length;
+  (d.nodes||[]).forEach((nd,i)=>{
+    if(!GX.n.has(nd.id)){
+      GX.n.set(nd.id,nd);
+      let x,y;
+      if(seed){const a=i/Math.max(1,N)*6.283, r=Math.min(GX.W,GX.H)*0.32; x=cx+Math.cos(a)*r; y=cy+Math.sin(a)*r;}
+      else{const s=GX.sel&&GX.pos.get(GX.sel), bx=s?s.x:cx, by=s?s.y:cy; x=bx+(Math.random()-.5)*140; y=by+(Math.random()-.5)*140;}
+      GX.pos.set(nd.id,{x,y,vx:0,vy:0,fixed:false});
+    } else Object.assign(GX.n.get(nd.id),nd);
+  });
+  const have=new Set(GX.e.map(e=>e.source+">"+e.target+">"+(e.claim_id||e.type)));
+  (d.edges||[]).forEach(ed=>{const k=ed.source+">"+ed.target+">"+(ed.claim_id||ed.type); if(!have.has(k)&&GX.n.has(ed.source)&&GX.n.has(ed.target)){have.add(k);if(ed.t)ed._ms=Date.parse(ed.t);GX.e.push(ed);}});
+  gxTimeBounds();
+}
+function gxTimeBounds(){
+  const ms=GX.e.map(e=>e._ms).filter(x=>x); if(ms.length<2){$("#gtime").style.display="none";return;}
+  GX.tmin=Math.min(...ms);GX.tmax=Math.max(...ms);
+  if(GX.tmax-GX.tmin<60000){$("#gtime").style.display="none";return;}   // all essentially same time
+  $("#gtime").style.display="flex";
+  if(GX.live){GX.tcut=null;$("#gslider").value=1000;$("#gtlabel").textContent="live";}
+}
+function gxScrub(v){
+  v=+v; if(v>=1000){GX.live=true;GX.tcut=null;$("#gtlabel").textContent="live";return;}
+  GX.live=false; GX.tcut=GX.tmin+(v/1000)*(GX.tmax-GX.tmin);
+  $("#gtlabel").textContent=new Date(GX.tcut).toISOString().slice(0,10);
+}
+function gxPlay(){
+  if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";return;}
+  $("#gplay").textContent="⏸"; let v=0; $("#gslider").value=0; gxScrub(0);
+  GX.playIv=setInterval(()=>{v+=25; if(v>=1000){v=1000;clearInterval(GX.playIv);GX.playIv=null;$("#gplay").textContent="▶";}
+    $("#gslider").value=v; gxScrub(v);},90);
+}
+function gxStep(){
+  const ids=[...GX.n.keys()].filter(id=>!GX.hidden.has(GX.n.get(id).type));
+  for(let i=0;i<ids.length;i++){const a=GX.pos.get(ids[i]);if(!a)continue;
+    for(let j=i+1;j<ids.length;j++){const b=GX.pos.get(ids[j]);if(!b)continue;
+      let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy||1;if(d2>90000)continue;const d=Math.sqrt(d2),f=1500/d2;a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;}}
+  GX.e.forEach(ed=>{const a=GX.pos.get(ed.source),b=GX.pos.get(ed.target);if(!a||!b)return;let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1,f=(d-115)*0.01;a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;});
+  const cx=GX.W/2,cy=GX.H/2;
+  ids.forEach(id=>{const p=GX.pos.get(id);if(p.fixed)return;p.vx+=(cx-p.x)*0.0008;p.vy+=(cy-p.y)*0.0008;p.vx*=0.85;p.vy*=0.85;p.x+=p.vx;p.y+=p.vy;});
+}
+const gxToScreen=p=>({x:(p.x-GX.W/2)*GX.view.s+GX.W/2+GX.view.x,y:(p.y-GX.H/2)*GX.view.s+GX.H/2+GX.view.y});
+const gxToWorld=(sx,sy)=>({x:(sx-GX.W/2-GX.view.x)/GX.view.s+GX.W/2,y:(sy-GX.H/2-GX.view.y)/GX.view.s+GX.H/2});
+const gxRadius=nd=>nd.type==="entity"?Math.min(15,5+Math.sqrt(nd.degree||1)):nd.type==="source"?5:6.5;
+const gxAdj=id=>GX.e.some(e=>(e.source===GX.sel&&e.target===id)||(e.target===GX.sel&&e.source===id));
+function gxDraw(){
+  const ctx=gcv().getContext("2d"); ctx.clearRect(0,0,GX.W,GX.H);
+  GX.e.forEach(ed=>{const a=GX.n.get(ed.source),b=GX.n.get(ed.target);if(!a||!b||GX.hidden.has(a.type)||GX.hidden.has(b.type))return;
+    if(ed.type==="claim"&&ed._ms&&GX.tcut!=null&&ed._ms>GX.tcut)return;   // time scrubber: not yet learned
+    const pa=gxToScreen(GX.pos.get(ed.source)),pb=gxToScreen(GX.pos.get(ed.target));
+    ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);
+    if(ed.type==="claim"){ctx.strokeStyle=ed.sign==="+"?"rgba(79,208,160,.55)":ed.sign==="-"?"rgba(229,84,75,.55)":"rgba(130,140,160,.4)";ctx.lineWidth=Math.min(3,1+(ed.independent_sources||1)*0.4);}
+    else if(ed.type==="synthesizes"){ctx.strokeStyle="rgba(230,200,110,.5)";ctx.lineWidth=1;ctx.setLineDash([4,3]);}
+    else{ctx.strokeStyle="rgba(90,100,120,.35)";ctx.lineWidth=1;}
+    ctx.stroke();ctx.setLineDash([]);});
+  const showLabel=GX.view.s>0.55;
+  GX.n.forEach((nd,id)=>{if(GX.hidden.has(nd.type))return;const p=gxToScreen(GX.pos.get(id)),r=gxRadius(nd)*Math.max(.6,Math.min(1.7,GX.view.s));
+    ctx.globalAlpha=(GX.sel&&GX.sel!==id&&!gxAdj(id))?0.45:1;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);ctx.fillStyle=gxColor(nd.type);ctx.fill();ctx.globalAlpha=1;
+    if(id===GX.sel){ctx.lineWidth=2.5;ctx.strokeStyle="#fff";ctx.stroke();}
+    else if(id===GX.hover){ctx.lineWidth=1.5;ctx.strokeStyle="rgba(255,255,255,.6)";ctx.stroke();}
+    if(showLabel||id===GX.sel||id===GX.hover){ctx.fillStyle="#aeb4c0";ctx.font="10px ui-monospace,monospace";ctx.fillText((nd.label||"").slice(0,26),p.x+r+3,p.y+3);}});
+}
+function gxLoop(){gxStep();gxDraw();GX.raf=requestAnimationFrame(gxLoop);}
+function gxHit(sx,sy){let best=null,bd=1e9;GX.n.forEach((nd,id)=>{if(GX.hidden.has(nd.type))return;const p=gxToScreen(GX.pos.get(id)),d=(p.x-sx)**2+(p.y-sy)**2,r=(gxRadius(nd)*Math.max(.6,Math.min(1.7,GX.view.s))+7)**2;if(d<r&&d<bd){bd=d;best=id;}});return best;}
+async function gxSelect(id){
+  GX.sel=id; $("#ginspect").innerHTML='<div class="gplace">loading…</div>';
+  try{
+    const det=await (await fetch(A("/graph/node?node="+encodeURIComponent(id)))).json();
+    gxSetInspect(det);
+    const nb=await (await fetch(A("/graph/neighbors?node="+encodeURIComponent(id)+"&limit=40"))).json();
+    gxAdd(nb,false); gxRenderFilters();
+  }catch(e){}
+}
+const GNGLYPH={entity:"◆",claim:"≡",source:"¶",note:"✎",experiment:"⌾"};
+function gxSetInspect(det){const el=$("#ginspect");el.scrollTop=0;el.innerHTML=`<div class="ins-swap" style="--tc:${gxColor(det.type||'entity')}">${gxInspect(det)}</div>`;}
+function confMeter(p){const pct=Math.round(Math.max(0,Math.min(1,p||0))*100);return `<div class="conf"><span class="track"><span class="fill" style="width:${pct}%"></span></span><span class="pv">p=${(p||0).toFixed(2)}</span></div>`;}
+function gxInspect(d){
+  const t=d.type||"node";
+  let h=`<div class="ihead"><div class="krow"><span>${GNGLYPH[t]||"·"}</span><span>${esc(t)}</span>`+
+    `<span class="gact" style="margin-left:auto;padding:3px 9px" onclick="gxExpand('${esc(d.id)}')" title="expand connections">⤢</span></div>`+
+    `<h3>${esc(d.label||d.subject||"")}</h3></div>`;
+  if(t==="entity"){
+    h+=`<div class="isec">${d.degree} connections</div><div class="isec">beliefs about this</div>`;
+    h+=(d.claims||[]).map(c=>`<div class="cl" tabindex="0" role="button" onclick="prov('${c.claim_id}')">${esc(c.text)}`+
+      `<div class="m">${c.labs} labs${c.anchored?' <span class="pill anchor">anchored</span>':''}</div>${confMeter(c.confidence)}</div>`).join("")||'<div class="gplace">no beliefs yet</div>';
+  } else if(t==="claim"){
+    h+=`<div class="isec">${d.independent_sources} independent labs · ${esc(d.provenance||'')}${d.anchored?' <span class="pill anchor">anchored</span>':''}</div>`+confMeter(d.confidence)+`<div class="isec">evidence</div>`;
+    h+=(d.sources||[]).map(s=>`<div class="ev"><div class="evt">${esc((s.title||s.slug||'').slice(0,90))}</div><div class="evm">${esc(s.lab||'')}${s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank" style="color:var(--anchor)">${esc(s.doi)}</a>`:''}</div>${s.quote?`<blockquote>${esc((s.quote||'').slice(0,180))}</blockquote>`:''}</div>`).join("")||'<div class="gplace">no sources</div>';
+  } else if(t==="source"){
+    h+=`<div class="isec">paper</div><div class="ev"><div class="evt">${d.year||''} · ${esc(d.lab||'')}</div><div class="evm">${d.doi?`<a href="https://doi.org/${esc(d.doi)}" target="_blank" style="color:var(--anchor)">${esc(d.doi)}</a>`:''}${d.url?` · <a href="${esc(d.url)}" target="_blank" style="color:var(--anchor)">open paper ↗</a>`:''}</div></div>`;
+  } else if(t==="note"){
+    h+=`<div class="isec">synthesis</div><div class="ev"><div class="evt">${esc((d.entities||[]).slice(0,8).join(', '))}</div></div><div style="margin-top:10px"><span class="gact" onclick="openNote('${encodeURIComponent(d.slug)}')">read synthesis →</span></div>`;
+  } else if(t==="experiment"){
+    h+=`<div class="isec">${esc(d.kind||'experiment')}</div>`+(d.artifact?`<div class="ev"><div class="evt">artifact</div><div class="evm"><a href="#" onclick="closeGraph();openFiles();return false" style="color:var(--anchor)">${esc(d.artifact)}</a></div></div>`:'<div class="gplace">no artifact</div>');
+  }
+  return h;
+}
+async function gxExpand(id){try{const nb=await (await fetch(A("/graph/neighbors?node="+encodeURIComponent(id)+"&limit=60"))).json();gxAdd(nb,false);gxRenderFilters();}catch(e){}}
+function gxRenderFilters(){
+  const types=[...new Set([...GX.n.values()].map(n=>n.type))];
+  $("#gfilters").innerHTML=types.map(t=>`<span class="gchip ${GX.hidden.has(t)?'off':''}" onclick="gxToggle('${t}')"><span class="d" style="background:${gxColor(t)}"></span>${t}</span>`).join("");
+}
+function gxToggle(t){GX.hidden.has(t)?GX.hidden.delete(t):GX.hidden.add(t);gxRenderFilters();}
+let gxST=null;
+function gxSearch(q){clearTimeout(gxST);gxST=setTimeout(async()=>{
+  q=q.trim(); if(!q){$("#ginspect").innerHTML='<div class="gplace">Click any node to inspect and expand.</div>';return;}
+  try{const r=await (await fetch(A("/graph/search?q="+encodeURIComponent(q)))).json();
+    $("#ginspect").innerHTML=`<div class="kind">search · ${esc(q)}</div>`+((r.results||[]).map(n=>`<div class="cl" onclick="gxGoto('${esc(n.id)}','${esc(n.label)}')"><span style="color:${gxColor(n.type)}">●</span> ${esc(n.label)} <span class="m">${n.type}</span></div>`).join("")||'<div class="gplace">no matches</div>');
+  }catch(e){}
+},250);}
+async function gxGoto(id,label){
+  if(!GX.n.has(id)){GX.n.set(id,{id,type:(id.split(':')[0]),label});GX.pos.set(id,{x:GX.W/2,y:GX.H/2,vx:0,vy:0,fixed:false});}
+  GX.view={x:0,y:0,s:1}; await gxSelect(id);
+}
+(function gxInit(){
+  const c=$("#gcanvas");
+  c.addEventListener("mousedown",e=>{const id=gxHit(e.offsetX,e.offsetY);GX.drag=id?{id,moved:false}:{pan:true,x:e.offsetX,y:e.offsetY,vx:GX.view.x,vy:GX.view.y,moved:false};});
+  c.addEventListener("mousemove",e=>{GX.hover=gxHit(e.offsetX,e.offsetY);c.style.cursor=GX.hover?"pointer":"grab";
+    if(!GX.drag)return;GX.drag.moved=true;
+    if(GX.drag.pan){GX.view.x=GX.drag.vx+(e.offsetX-GX.drag.x);GX.view.y=GX.drag.vy+(e.offsetY-GX.drag.y);}
+    else{const w=gxToWorld(e.offsetX,e.offsetY),p=GX.pos.get(GX.drag.id);p.x=w.x;p.y=w.y;p.vx=0;p.vy=0;p.fixed=true;}});
+  c.addEventListener("mouseup",()=>{if(GX.drag&&!GX.drag.moved&&GX.drag.id)gxSelect(GX.drag.id);GX.drag=null;});
+  c.addEventListener("wheel",e=>{e.preventDefault();GX.view.s=Math.max(0.2,Math.min(5,GX.view.s*(e.deltaY<0?1.1:0.9)));},{passive:false});
+  addEventListener("resize",()=>{if($("#graphview").style.display!=="none")gxResize();});
+})();
+
+/* ---------- dashboard fetches (per persona) ---------- */
+const A=p=>`/api/persona/${PID}${p}`;
+const stream=$("#stream"), MAX=1000;
+const GLYPH={thought:"∴",read:"▤",claim:"◆",belief_update:"⟳",contradiction:"◈",spawn:"▹",tool:"⌥",artifact:"✦",say:"›",reply:"‹",escalate:"!",boot:"●",error:"✕",control:"·",seed:"✧",schedule:"·",lease:"·",coherence:"~",cost:"$"};
+let pendingRow=null,pendingTO=null;
+function addEvent(e){
+  if(e.type==="reply")clearPending();
+  const near=stream.scrollHeight-stream.scrollTop-stream.clientHeight<90;
+  const d=document.createElement("div");
+  d.className="row "+(e.type||"thought")+(e.parent_id?" child":"");
+  d.innerHTML=`<span class="t">${ftime(e.ts)}</span><span class="g">${GLYPH[e.type]||"·"}</span>`+
+    `<span class="msg">${esc(e.message)} <span class="who">· ${esc(e.actor||"")}</span></span>`;
+  stream.appendChild(d); while(stream.childNodes.length>MAX)stream.removeChild(stream.firstChild);
+  if(near)stream.scrollTop=stream.scrollHeight;
+}
+function showPending(){
+  clearPending();
+  const d=document.createElement("div"); d.className="row reply pending";
+  d.innerHTML=`<span class="t"></span><span class="g">‹</span><span class="msg"><span class="typing"><i></i><i></i><i></i></span> <span class="who">· thinking</span></span>`;
+  stream.appendChild(d); pendingRow=d; stream.scrollTop=stream.scrollHeight;
+  pendingTO=setTimeout(()=>{ if(pendingRow) pendingRow.querySelector(".msg").innerHTML='<span class="who" style="color:var(--faint)">· no reply yet — still working</span>'; },25000);
+}
+function clearPending(){ if(pendingTO){clearTimeout(pendingTO);pendingTO=null;} if(pendingRow){pendingRow.remove();pendingRow=null;} }
+async function refreshStatus(){try{const s=await (await fetch(A("/status"))).json();const q=s.queue||{};
+  $("#status").textContent=`${esc(s.name)} · ${s.status} · ${s.workers||0}w · ${q.pending||0} queued · $${(s.spent_today||0).toFixed(2)}`;}catch{}}
+async function refreshSelf(){try{const s=await (await fetch(A("/self"))).json();
+  $("#interests").innerHTML=(s.interests||[]).map(([n])=>`<span class="chip">${esc(n)}</span>`).join("")||'<div class="empty">not seeded</div>';
+  $("#questions").innerHTML=(s.open_questions||[]).slice(0,10).map(q=>`<p class="q">${esc(q)}</p>`).join("")||'<div class="empty">—</div>';}catch{}}
+async function refreshWork(){try{const w=await (await fetch(A("/workspace"))).json();
+  const items=[...(w.deliverables||[]),...(w.drafts||[])];
+  $("#drafts").innerHTML=items.map(d=>`<span class="draft" onclick="openDraft('${encodeURIComponent(d)}')"><span class="k">▸</span>${esc(d.replace(/\.md$/,''))}</span>`).join("")||'<div class="empty">no reports yet</div>';}catch{}}
+async function openDraft(name){const r=await (await fetch(A("/draft/")+name)).json();
+  $("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
+async function refreshNotes(){try{const w=await (await fetch(A("/synthesis"))).json();
+  $("#notes").innerHTML=(w.notes||[]).map(n=>`<span class="draft" onclick="openNote('${encodeURIComponent(n.slug)}')"><span class="k" style="color:var(--live)">◆</span>${esc(n.title)}</span>`).join("")||'<div class="empty">nothing synthesized yet</div>';}catch{}}
+async function openNote(slug){const r=await (await fetch(A("/note/")+slug)).json();
+  $("#modalbox").innerHTML=md(r.content||"(empty)");$("#modal").style.display="flex";}
+$("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").style.display="none";};
+/* Escape closes the topmost overlay (interactive clarity) */
+addEventListener("keydown",e=>{
+  const shown=id=>getComputedStyle($("#"+id)).display!=="none";
+  if(e.key==="/" && PID && $("#dash").style.display!=="none" && !/^(input|textarea)$/i.test(document.activeElement.tagName)
+     && !shown("filesview") && !shown("graphview") && !shown("briefview") && !shown("modal")){
+    e.preventDefault(); $("#chatin").focus(); return;
+  }
+  if(e.key!=="Escape") return;
+  if(shown("modal")){$("#modal").style.display="none";}
+  else if(shown("briefview")){$("#briefview").style.display="none";}
+  else if(shown("graphview")){closeGraph();}
+  else if(shown("filesview")){closeFiles();}
+});
+function md(t){return t.split("\n").map(l=>{
+  if(/^#\s/.test(l))return`<h1>${esc(l.slice(2))}</h1>`;if(/^##\s/.test(l))return`<h2>${esc(l.slice(3))}</h2>`;
+  if(/^\s*[-*]\s/.test(l))return`<li>${esc(l.replace(/^\s*[-*]\s/,''))}</li>`;
+  if(!l.trim())return"<br>";return`<p>${esc(l)}</p>`;}).join("");}
+
+let CUR="beliefs";
+$("#tabB").onclick=()=>swi("beliefs");$("#tabI").onclick=()=>swi("inbox");
+function swi(t){CUR=t;$("#tabB").classList.toggle("on",t=="beliefs");$("#tabI").classList.toggle("on",t=="inbox");
+  $("#panelBeliefs").style.display=t=="beliefs"?"block":"none";$("#panelInbox").style.display=t=="inbox"?"block":"none";}
+let KG={nodes:[],edges:[]};
+async function refreshKG(){try{const k=await (await fetch(A("/kg"))).json();if(!k.available)return;
+  KG=k.graph||{nodes:[],edges:[]};seed();
+  const ar=s=>s=="+"?'<span class="up">↑</span>':s=="-"?'<span class="down">↓</span>':'·';
+  $("#panelBeliefs").innerHTML=(k.beliefs||[]).map(b=>
+    `<div class="belief" style="cursor:pointer" onclick="prov('${b.claim_id}')" title="click for sources + quotes"><span class="s">${esc(b.subject)}</span> ${ar(b.effect_sign)} ${esc(b.object)}`+
+    `<div class="m">${b.independent_sources} lab${b.independent_sources>1?'s':''} · p=${(b.confidence||0).toFixed(2)}${b.anchored?' ⚓':''} · ▸ evidence</div></div>`).join("")||'<div class="empty">no beliefs yet</div>';}catch{}}
+async function prov(cid){const p=await (await fetch(A("/provenance/")+cid)).json();
+  const srcs=(p.sources||[]).map(s=>`<div style="margin:12px 0;padding-left:12px;border-left:2px solid var(--anchor)">`+
+    `<div style="font-family:var(--mono);font-size:12px;color:var(--anchor)">${esc(s.title||s.slug)} · ${esc(s.lab||'')} · ${s.year||''}`+
+    (s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank">${esc(s.doi)}</a>`:(s.url?` · <a href="${esc(s.url)}" target="_blank">link</a>`:''))+`</div>`+
+    `<div style="margin-top:4px">“${esc(s.quote||'(no quote)')}”</div></div>`).join("");
+  $("#modalbox").innerHTML=`<h1>${esc(p.subject)} ${p.effect_sign=='+'?'raises':p.effect_sign=='-'?'lowers':'relates to'} ${esc(p.object)}</h1>`+
+    `<div style="font-family:var(--mono);font-size:12px;color:var(--dim)">${p.independent_sources} independent lab(s) · p=${(p.confidence||0).toFixed(2)} · ${esc(p.provenance)}${p.anchored?' · ⚓ anchored':''}</div>`+
+    `<h2>evidence</h2>${srcs||'<p>no sources</p>'}`;
+  $("#modal").style.display="flex";}
+async function refreshInbox(){try{const r=await (await fetch(A("/inbox"))).json();const it=r.items||[];
+  $("#inboxn").textContent=it.length?`(${it.length})`:"";
+  $("#panelInbox").innerHTML=it.map((c,i)=>`<div class="contra"><div class="h">⚡ ${esc(c.subject)} → ${esc(c.object)}</div>`+
+    `<div class="m" style="color:var(--dim);font-size:10.5px;margin-bottom:6px">+${c.pos_sources} lab(s) raises · −${c.neg_sources} lab(s) lowers</div>`+
+    `<button onclick="contraEvidence('${c.pos_claim}','${c.neg_claim}','${esc(c.subject)}','${esc(c.object)}')">◆ evidence</button>`+
+    `<button onclick="resolve('${c.pos_claim}')">raises ✓</button><button onclick="resolve('${c.neg_claim}')">lowers ✓</button></div>`).join("")||'<div class="empty">nothing needs a human</div>';}catch{}}
+async function resolve(cid){await fetch(A("/inbox/resolve"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({claim_id:cid,truth:true})});refreshInbox();refreshKG();$("#modal").style.display="none";}
+async function contraEvidence(pos,neg,subj,obj){
+  const [pp,pn]=await Promise.all([fetch(A("/provenance/")+pos).then(r=>r.json()),fetch(A("/provenance/")+neg).then(r=>r.json())]);
+  const side=(p,label,color)=>`<div style="margin:10px 0"><div style="color:${color};font-family:var(--mono)">${label} (${(p.sources||[]).length} source(s))</div>`+
+    (p.sources||[]).map(s=>`<div style="margin:6px 0;padding-left:10px;border-left:2px solid ${color}"><div style="font-family:var(--mono);font-size:11px;color:var(--dim)">${esc(s.title||s.slug)} · ${esc(s.lab||'')}`+(s.doi?` · <a href="https://doi.org/${esc(s.doi)}" target="_blank">${esc(s.doi)}</a>`:'')+`</div><div>“${esc(s.quote||'')}”</div></div>`).join("")+`</div>`;
+  $("#modalbox").innerHTML=`<h1>Contradiction: ${esc(subj)} → ${esc(obj)}</h1>`+
+    `<div style="font-family:var(--mono);font-size:11px;color:var(--dim)">Which does the evidence support? Your answer anchors that side (protected henceforth).</div>`+
+    side(pp,"RAISES",'var(--live)')+side(pn,"LOWERS",'var(--contra)')+
+    `<div style="margin-top:14px"><button class="contra" style="padding:8px 16px" onclick="resolve('${pos}')">✓ raises holds</button> `+
+    `<button class="contra" style="padding:8px 16px" onclick="resolve('${neg}')">✓ lowers holds</button></div>`;
+  $("#modal").style.display="flex";}
+
+/* canvas graph */
+const cv=$("#graph"),ctx=cv.getContext("2d");let P={},V={},drag=null,view={s:1,x:0,y:0},sel=null;
+function seed(){const ids=KG.nodes.map(n=>n.id);
+  ids.forEach((id,i)=>{if(!(id in P)){const a=i*2.399;P[id]={x:Math.cos(a)*(40+i*3),y:Math.sin(a)*(40+i*3)};V[id]={x:0,y:0};}});
+  Object.keys(P).forEach(id=>{if(!ids.includes(id)){delete P[id];delete V[id];}});}
+function stepf(){const ids=Object.keys(P);
+  for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const a=P[ids[i]],b=P[ids[j]];
+    let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+.01,f=280/d2,d=Math.sqrt(d2);dx/=d;dy/=d;
+    V[ids[i]].x+=dx*f;V[ids[i]].y+=dy*f;V[ids[j]].x-=dx*f;V[ids[j]].y-=dy*f;}
+  KG.edges.forEach(e=>{const a=P[e.source],b=P[e.target];if(!a||!b)return;
+    let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.01,f=(d-70)*.008;dx/=d;dy/=d;
+    V[e.source].x+=dx*f;V[e.source].y+=dy*f;V[e.target].x-=dx*f;V[e.target].y-=dy*f;});
+  ids.forEach(id=>{V[id].x*=.86;V[id].y*=.86;P[id].x+=V[id].x;P[id].y+=V[id].y;});}
+function draw(){if(!cv.clientWidth)return;const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;
+  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr;}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  const T=p=>[w/2+p.x*view.s+view.x,h/2+p.y*view.s+view.y];
+  KG.edges.forEach(e=>{const a=P[e.source],b=P[e.target];if(!a||!b)return;const A=T(a),B=T(b);
+    ctx.strokeStyle=e.sign=="+"?"rgba(79,208,160,.35)":e.sign=="-"?"rgba(229,84,75,.32)":"rgba(120,126,140,.2)";
+    ctx.lineWidth=Math.min(2.4,.4+(e.independent_sources||1)*.5);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();});
+  KG.nodes.forEach(n=>{const p=P[n.id];if(!p)return;const[x,y]=T(p);const r=4*Math.sqrt(view.s);
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=n.id===sel?"#fff":"#8a9cff";ctx.fill();
+    if(view.s>.7){ctx.fillStyle="rgba(160,168,182,.8)";ctx.font="9px monospace";ctx.fillText(n.id.slice(0,22),x+r+2,y+3);}});}
+function loop(){if(PID){stepf();draw();}requestAnimationFrame(loop);}
+cv.addEventListener("wheel",e=>{e.preventDefault();view.s=Math.max(.2,Math.min(6,view.s*(e.deltaY<0?1.1:.9)));},{passive:false});
+cv.addEventListener("mousedown",e=>drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y});
+addEventListener("mousemove",e=>{if(drag){view.x=drag.vx+(e.clientX-drag.x);view.y=drag.vy+(e.clientY-drag.y);}});
+addEventListener("mouseup",()=>drag=null);
+requestAnimationFrame(loop);
+
+toGallery();
+</script>
+</body>
+</html>

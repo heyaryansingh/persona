@@ -8,6 +8,9 @@ is present). The Batch-API bulk path + structure-aware chunking is P3; this is t
 """
 from __future__ import annotations
 
+import math
+import unicodedata
+
 from .. import config
 
 EXTRACT_TOOL = {
@@ -42,6 +45,38 @@ _SYSTEM = ("You extract specific, falsifiable factual claims from research text,
            "effect sign and a VERBATIM quote from the text. Use canonical, short entity names and "
            "drop modifiers so the same claim from different papers matches. Never invent claims not "
            "supported by a quote. Prefer mechanistic/causal claims over background.")
+
+
+def _norm(text: str) -> str:
+    return " ".join(unicodedata.normalize("NFKC", text or "").casefold().split())
+
+
+def validate_claims(claims: object, source_text: str) -> tuple[list[dict], list[dict]]:
+    """Return exact-span, schema-valid claims and a preserved rejection audit."""
+    if not isinstance(claims, list):
+        return [], [{"reason": "claims-not-a-list", "claim": claims}]
+    haystack = _norm(source_text)
+    accepted, rejected = [], []
+    for claim in claims:
+        reason = None
+        if not isinstance(claim, dict):
+            reason = "claim-not-an-object"
+        elif any(not isinstance(claim.get(k), str) or not claim[k].strip()
+                 for k in ("subject", "relation", "object", "quote")):
+            reason = "missing-text-field"
+        elif claim.get("effect_sign") not in {"+", "-", "0", "na"}:
+            reason = "invalid-effect-sign"
+        elif "confidence" in claim and (not isinstance(claim["confidence"], (int, float)) or
+                                         not math.isfinite(float(claim["confidence"])) or
+                                         not 0 <= float(claim["confidence"]) <= 1):
+            reason = "invalid-confidence"
+        elif _norm(claim["quote"]) not in haystack:
+            reason = "quote-not-verbatim"
+        if reason:
+            rejected.append({"reason": reason, "claim": claim})
+        else:
+            accepted.append(claim)
+    return accepted, rejected
 
 
 def extract_claims(text: str, title: str = "", *, model: str = None, client=None) -> tuple[list[dict], dict]:

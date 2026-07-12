@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import subprocess
 import uuid
+import hashlib
+import re
 from pathlib import Path
 
 IMAGE = "persona-sandbox"
@@ -47,27 +49,60 @@ def run_python(code: str, workdir: Path, *, data_dir: Path = None, timeout: int 
         return {"exit_code": -1, "stdout": "", "stderr": "docker not available", "timeout": False}
 
 
-def compile_latex(workdir: Path, tex: str = "main.tex", timeout: int = 150, image: str = IMAGE) -> dict:
+def compile_latex(workdir: Path, tex: str = "main.tex", timeout: int = 150, image: str = IMAGE,
+                  source_date_epoch: int = 0) -> dict:
     """Compile a LaTeX file to PDF inside the sandbox (offline pdflatex, run twice for refs).
-    workdir mounted rw at /work. Returns {ok, pdf, log}."""
-    workdir = Path(workdir)
-    name = "persona_tex_" + uuid.uuid4().hex[:10]
-    cmd = (f"pdflatex -interaction=nonstopmode -halt-on-error {tex} >/work/_tex.log 2>&1; "
-           f"pdflatex -interaction=nonstopmode -halt-on-error {tex} >>/work/_tex.log 2>&1; true")
-    args = ["docker", "run", "--rm", "--name", name, "--network", "none",
-            "--memory", "1g", "--cpus", "1", "--pids-limit", "256",
-            "-v", f"{_dockerize(workdir)}:/work", "-w", "/work", image, "sh", "-c", cmd]
-    try:
-        subprocess.run(args, capture_output=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        subprocess.run(["docker", "kill", name], capture_output=True)
-        return {"ok": False, "pdf": None, "log": "compile timed out"}
-    except FileNotFoundError:
-        return {"ok": False, "pdf": None, "log": "docker not available"}
-    pdf = workdir / tex.replace(".tex", ".pdf")
+    The root filesystem is read-only; only /work and /tmp are writable. A stale PDF can never count
+    as success. SOURCE_DATE_EPOCH makes identical source/environment builds byte-reproducible."""
+    workdir = Path(workdir).resolve()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+\.tex", tex or ""):
+        return {"ok": False, "pdf": None, "log": "invalid LaTeX filename", "exit_code": -1}
+    source = workdir / tex
+    if not source.is_file():
+        return {"ok": False, "pdf": None, "log": "LaTeX source not found", "exit_code": -1}
+    pdf = source.with_suffix(".pdf")
     logf = workdir / "_tex.log"
-    return {"ok": pdf.exists(), "pdf": str(pdf) if pdf.exists() else None,
-            "log": (logf.read_text(encoding="utf-8", errors="replace")[-3000:] if logf.exists() else "")}
+    for stale in (pdf, logf, source.with_suffix(".aux"), source.with_suffix(".out"),
+                  source.with_suffix(".toc")):
+        stale.unlink(missing_ok=True)
+
+    logs, exit_code = [], -1
+    base = ["docker", "run", "--rm", "--network", "none", "--read-only",
+            "--tmpfs", "/tmp:size=256m", "--memory", "1g", "--cpus", "1",
+            "--pids-limit", "256", "-e", f"SOURCE_DATE_EPOCH={int(source_date_epoch)}",
+            "-e", "FORCE_SOURCE_DATE=1", "-e", "TZ=UTC",
+            "-v", f"{_dockerize(workdir)}:/work", "-w", "/work", image,
+            "pdflatex", "-interaction=nonstopmode", "-halt-on-error", tex]
+    for run_number in range(2):
+        name = "persona_tex_" + uuid.uuid4().hex[:10]
+        args = base[:3] + ["--name", name] + base[3:]
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
+                                    encoding="utf-8", errors="replace")
+        except subprocess.TimeoutExpired:
+            subprocess.run(["docker", "kill", name], capture_output=True)
+            logs.append(f"pass {run_number + 1}: compile timed out")
+            exit_code = -1
+            break
+        except FileNotFoundError:
+            logs.append("docker not available")
+            exit_code = -1
+            break
+        exit_code = result.returncode
+        logs.append(f"--- pass {run_number + 1} · exit {exit_code} ---\n"
+                    f"{result.stdout or ''}\n{result.stderr or ''}")
+        if exit_code != 0:
+            break
+    log_text = "\n".join(logs)
+    logf.write_text(log_text, encoding="utf-8", errors="replace")
+    ok = exit_code == 0 and pdf.is_file() and pdf.stat().st_size > 0
+    if not ok:
+        pdf.unlink(missing_ok=True)
+    pdf_sha = hashlib.sha256(pdf.read_bytes()).hexdigest() if ok else ""
+    return {"ok": ok, "pdf": str(pdf) if ok else None, "log": log_text[-8000:],
+            "exit_code": exit_code, "pdf_sha256": pdf_sha,
+            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "image_digest": image_digest(image)}
 
 
 def image_ready(image: str = IMAGE) -> bool:

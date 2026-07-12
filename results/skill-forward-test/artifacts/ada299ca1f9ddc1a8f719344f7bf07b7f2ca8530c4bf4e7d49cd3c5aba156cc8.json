@@ -1,0 +1,31 @@
+{
+  "check": "alpha_synuclein_ferroptosis_local_span_consistency_v1",
+  "checks": {
+    "active_registry_contains_pair": true,
+    "existing_integrity_result_contains_pair": true,
+    "negative_claim_quote_exact_after_whitespace_normalization": false,
+    "negative_source_contains_omitted_not_only": true,
+    "negative_span_has_frozen_causal_phrase": true,
+    "positive_claim_quote_exact_after_whitespace_normalization": true,
+    "positive_span_has_frozen_causal_phrase": true,
+    "same_normalized_object": true,
+    "same_normalized_subject": true,
+    "stored_signs": {
+      "clm_3e15db860262": "+",
+      "clm_3f58a556a969": "-"
+    },
+    "stored_signs_are_opposite": true
+  },
+  "deterministic": true,
+  "scoped_result": {
+    "classification": "INFERRED_EXTRACTION_OR_NORMALIZATION_ERROR",
+    "does_not_establish": [
+      "the direction of every result in either full paper",
+      "the direction of the wider α-synuclein/ferroptosis literature",
+      "absence of population, model, dose, or temporal context elsewhere in the papers"
+    ],
+    "exact_local_spans_express_opposite_directions": false,
+    "reason": "Both exact local source windows contain explicit induction-to-ferroptosis language, while one stored claim is negative. Its stored quote also omits 'not only' from the local source window.",
+    "stored_sign_collision_present": true
+  }
+}

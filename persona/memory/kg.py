@@ -137,6 +137,7 @@ class KG:
             """
             MATCH (a:Claim {pair_key:$pk}), (b:Claim {pair_key:$pk})
             WHERE a.effect_sign='+' AND b.effect_sign='-'
+              AND a.valid_to IS NULL AND b.valid_to IS NULL
             MERGE (a)-[:CONTRADICTS]->(b)
             MERGE (b)-[:CONTRADICTS]->(a)
             RETURN count(*) AS n
@@ -149,6 +150,7 @@ class KG:
             """
             MATCH (a:Claim), (b:Claim)
             WHERE a.pair_key = b.pair_key AND a.effect_sign='+' AND b.effect_sign='-'
+              AND a.valid_to IS NULL AND b.valid_to IS NULL
             MERGE (a)-[:CONTRADICTS]->(b)
             MERGE (b)-[:CONTRADICTS]->(a)
             RETURN count(*) AS n
@@ -162,6 +164,19 @@ class KG:
             "c.confidence = CASE WHEN $truth THEN 0.99 ELSE 0.01 END, "
             "c.valid_to = CASE WHEN $truth THEN null ELSE $now END",
             {"cid": claim_id, "prov": provenance, "truth": truth, "now": _now()})
+
+    def retire_extraction_claim(self, claim_id: str, reason: str, session_id: str) -> bool:
+        """Retire a bad extraction while preserving its node and provenance for audit."""
+        r = self._q(
+            "MATCH (c:Claim {claim_id:$cid}) SET c.valid_to=$now, "
+            "c.provenance='REJECTED_EXTRACTION', c.correction_reason=$reason, "
+            "c.correction_session=$sid RETURN c.claim_id",
+            {"cid": claim_id, "now": _now(), "reason": reason[:500], "sid": session_id})
+        if not r.result_set:
+            return False
+        self._q("MATCH (c:Claim {claim_id:$cid})-[r:CONTRADICTS]->() DELETE r", {"cid": claim_id})
+        self._q("MATCH ()-[r:CONTRADICTS]->(c:Claim {claim_id:$cid}) DELETE r", {"cid": claim_id})
+        return True
 
     def human_resolve(self, claim_id: str, truth: bool, provenance: str = "HUMAN_CONFIRMED") -> dict:
         """A human resolves an escalated contradiction: anchor the chosen side (protected henceforth)."""
@@ -204,11 +219,17 @@ class KG:
             """
             MATCH (a:Claim)-[:CONTRADICTS]->(b:Claim)
             WHERE a.effect_sign='+' AND b.effect_sign='-'
+              AND a.valid_to IS NULL AND b.valid_to IS NULL
             RETURN a.subject, a.object, a.independent_source_count, b.independent_source_count,
                    a.claim_id, b.claim_id LIMIT $lim
             """, {"lim": limit})
         cols = ["subject", "object", "pos_sources", "neg_sources", "pos_claim", "neg_claim"]
         return [dict(zip(cols, row)) for row in r.result_set]
+
+    def candidate_conflicts(self, limit: int = 100) -> list:
+        """Opposite stored signs are candidates until exact evidence and qualifiers are verified."""
+        return [{**c, "status": "candidate_conflict", "conflict_type": "unverified",
+                 "needs_human_review": True} for c in self.contradictions(limit)]
 
     def provenance(self, claim_id: str) -> dict:
         """The full defensible chain for a belief: claim → every supporting source + verbatim quote."""
@@ -368,6 +389,7 @@ class KG:
             "MATCH (e:Entity) RETURN e.name LIMIT $lim", {"lim": limit}).result_set
         edges = self._q(
             """MATCH (c:Claim)-[:ABOUT_SUBJECT]->(s:Entity), (c)-[:ABOUT_OBJECT]->(o:Entity)
+               WHERE c.valid_to IS NULL
                RETURN s.name, o.name, c.effect_sign, c.independent_source_count, c.confidence
                LIMIT $lim""", {"lim": limit}).result_set
         return {"nodes": [{"id": n[0]} for n in nodes],
@@ -484,8 +506,15 @@ class KG:
             r = self._q("MATCH (s:Source {slug:$k}) RETURN s.title, s.doi, s.url, s.year, s.lab",
                         {"k": key}).result_set
             row = r[0] if r else [key, "", "", 0, ""]
+            claims = self._q(
+                "MATCH (c:Claim)-[:SUPPORTED_BY]->(s:Source {slug:$k}) "
+                "RETURN c.claim_id, c.subject, c.effect_sign, c.object, c.independent_source_count, "
+                "c.confidence, c.anchored ORDER BY c.independent_source_count DESC LIMIT 25",
+                {"k": key}).result_set
             return {"id": node_id, "type": "source", "label": row[0] or key, "doi": row[1],
-                    "url": row[2], "year": row[3], "lab": row[4]}
+                    "url": row[2], "year": row[3], "lab": row[4], "slug": key,
+                    "claims": [{"claim_id": c[0], "text": f"{c[1]} [{c[2]}] {c[3]}", "labs": c[4],
+                                "confidence": c[5], "anchored": c[6]} for c in claims]}
         if kind == "note":
             r = self._q("MATCH (n:SynthesisNote {slug:$k}) RETURN n.title, n.entities, n.updated",
                         {"k": key}).result_set

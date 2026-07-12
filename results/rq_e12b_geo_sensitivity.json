@@ -1,0 +1,155 @@
+{
+  "experiment": "RQ-E12b sensitivity",
+  "session_id": "20260711T194501Z-does-a-prespecified-nrf2-associated-tran-08c6fd9b",
+  "summary": {
+    "bootstrap_draws": 10000,
+    "corrected_preregistered_branch": "inconclusive",
+    "datasets": {
+      "GSE1297": {
+        "ftl_magnitude_reduction_percent": 47.6227143116,
+        "full_panel": {
+          "bootstrap_95_high": 0.289331457293,
+          "bootstrap_95_low": -0.007757868662,
+          "bootstrap_mean": 0.117332991538,
+          "bootstrap_valid": 10000,
+          "condition_number": 22.410543831513,
+          "cooks_over_4_over_n": 2,
+          "fitted_residual_correlation": -0.0,
+          "hc3_se": 0.078431070614,
+          "hc3_t95_high": 0.268300362722,
+          "hc3_t95_low": -0.054134386381,
+          "leverage_over_2p_over_n": 2,
+          "max_abs_studentized_residual": 2.352352063741,
+          "max_cooks_distance": 0.181004499979,
+          "max_leverage": 0.351325286539,
+          "n": 30,
+          "rank": 4,
+          "residual_excess_kurtosis": -0.587890492298,
+          "residual_skew": -0.05131066027,
+          "severity_beta": 0.107082988171
+        },
+        "without_ftl": {
+          "bootstrap_95_high": 0.273968780208,
+          "bootstrap_95_low": -0.071810225472,
+          "bootstrap_mean": 0.0686702581,
+          "bootstrap_valid": 10000,
+          "condition_number": 22.410543831513,
+          "cooks_over_4_over_n": 4,
+          "fitted_residual_correlation": 0.0,
+          "hc3_se": 0.094606692839,
+          "hc3_t95_high": 0.250554004861,
+          "hc3_t95_low": -0.138379679586,
+          "leverage_over_2p_over_n": 2,
+          "max_abs_studentized_residual": 2.459654610112,
+          "max_cooks_distance": 0.339188340203,
+          "max_leverage": 0.351325286539,
+          "n": 30,
+          "rank": 4,
+          "residual_excess_kurtosis": -0.340640046644,
+          "residual_skew": 0.238008867711,
+          "severity_beta": 0.056087162638
+        }
+      },
+      "GSE28146": {
+        "ftl_magnitude_reduction_percent": 67.224543580718,
+        "full_panel": {
+          "bootstrap_95_high": 0.181120603251,
+          "bootstrap_95_low": -0.068220331505,
+          "bootstrap_mean": 0.061260729845,
+          "bootstrap_valid": 10000,
+          "condition_number": 22.410543831513,
+          "cooks_over_4_over_n": 3,
+          "fitted_residual_correlation": -0.0,
+          "hc3_se": 0.069419257429,
+          "hc3_t95_high": 0.204621337052,
+          "hc3_t95_low": -0.080765317455,
+          "leverage_over_2p_over_n": 2,
+          "max_abs_studentized_residual": 2.009583346935,
+          "max_cooks_distance": 0.34208313357,
+          "max_leverage": 0.351325286539,
+          "n": 30,
+          "rank": 4,
+          "residual_excess_kurtosis": -0.66606583507,
+          "residual_skew": -0.661193563583,
+          "severity_beta": 0.061928009799
+        },
+        "without_ftl": {
+          "bootstrap_95_high": 0.140014720918,
+          "bootstrap_95_low": -0.115857824457,
+          "bootstrap_mean": 0.019313966974,
+          "bootstrap_valid": 10000,
+          "condition_number": 22.410543831513,
+          "cooks_over_4_over_n": 2,
+          "fitted_residual_correlation": -0.0,
+          "hc3_se": 0.069438256461,
+          "hc3_t95_high": 0.163029568187,
+          "hc3_t95_low": -0.122435192461,
+          "leverage_over_2p_over_n": 2,
+          "max_abs_studentized_residual": 2.282224831455,
+          "max_cooks_distance": 0.182643565096,
+          "max_leverage": 0.351325286539,
+          "n": 30,
+          "rank": 4,
+          "residual_excess_kurtosis": -0.286214684473,
+          "residual_skew": -0.951720867191,
+          "severity_beta": 0.020297187863
+        }
+      }
+    },
+    "experiment": "RQ-E12b append-only sensitivity audit",
+    "input_sha256": {
+      "GPL96.annot.gz": "88e0b22362bac779eb220b3b185c80faa6510a92b9358eaad159a561ab4351c4",
+      "GSE1297_series_matrix.txt.gz": "7fe93d1e78ea1567625a066a267e28a62de2d421d517f3dd7a12576628d89009",
+      "GSE28146_series_matrix.txt.gz": "10416f47a2f531d344b07a366f11d5c1df83665e55b00c84588770caa4791a09"
+    },
+    "limitations": [
+      "The two preparations use the same donors and are not independent cohorts.",
+      "Both FTL probes are cross-hybridizing _x_at probes.",
+      "Sensitivity analyses were added after independent review and do not rewrite the preregistered result.",
+      "Expression is a proxy, not NRF2 activity, oxidative damage, ferroptosis, or causality."
+    ],
+    "original_30_draw_branch": "inconclusive",
+    "paired_donor_resampling": true,
+    "status": "post_preregistration_sensitivity",
+    "verdict": "contested_scientific_interpretation_computation_reproduced"
+  },
+  "checks": {
+    "original_integrity": {
+      "ok": true,
+      "session_id": "20260711T194501Z-does-a-prespecified-nrf2-associated-tran-08c6fd9b",
+      "errors": [],
+      "warnings": [],
+      "checks": {
+        "events": 55,
+        "artifacts": 28,
+        "required_evidence": 2,
+        "required_evidence_cited": 2,
+        "model_cost_usd": 0,
+        "status": "completed",
+        "verification": "contested"
+      }
+    },
+    "bootstrap_draws": 10000,
+    "corrected_branch": "inconclusive",
+    "all_full_panel_intervals_include_zero": true,
+    "all_no_ftl_intervals_include_zero": true,
+    "sandbox_image_digest": "sha256:a6a829418f84a8b5d5b596489ee0506b65008f951a10fba98df670115b76ecf9",
+    "model_cost_usd": 0.0,
+    "ok": true
+  },
+  "session_audit": {
+    "ok": true,
+    "session_id": "20260711T194501Z-does-a-prespecified-nrf2-associated-tran-08c6fd9b",
+    "errors": [],
+    "warnings": [],
+    "checks": {
+      "events": 58,
+      "artifacts": 30,
+      "required_evidence": 2,
+      "required_evidence_cited": 2,
+      "model_cost_usd": 0,
+      "status": "completed",
+      "verification": "contested"
+    }
+  }
+}

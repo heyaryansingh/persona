@@ -1,0 +1,1355 @@
+{
+  "experiment": "RQ-E01a claim integrity audit",
+  "seeds": 30,
+  "sample_claims_per_seed": 500,
+  "total_claims": 5704,
+  "summary": {
+    "baseline": {
+      "retention_rate": {
+        "mean": 1.0,
+        "ci95_half": 0.0
+      },
+      "invalid_schema_admitted_rate": {
+        "mean": 0.0,
+        "ci95_half": 0.0
+      },
+      "nonverbatim_admitted_rate": {
+        "mean": 0.24000000000000002,
+        "ci95_half": 0.0074684848361047385
+      },
+      "direction_mismatch_admitted_rate": {
+        "mean": 0.2764708347918232,
+        "ci95_half": 0.01419163536762396
+      }
+    },
+    "exact": {
+      "retention_rate": {
+        "mean": 0.76,
+        "ci95_half": 0.0074684848361047445
+      },
+      "invalid_schema_admitted_rate": {
+        "mean": 0.0,
+        "ci95_half": 0.0
+      },
+      "nonverbatim_admitted_rate": {
+        "mean": 0.0,
+        "ci95_half": 0.0
+      },
+      "direction_mismatch_admitted_rate": {
+        "mean": 0.27042253186684456,
+        "ci95_half": 0.016693884961706144
+      }
+    },
+    "strict": {
+      "retention_rate": {
+        "mean": 0.7116,
+        "ci95_half": 0.008106709376777987
+      },
+      "invalid_schema_admitted_rate": {
+        "mean": 0.0,
+        "ci95_half": 0.0
+      },
+      "nonverbatim_admitted_rate": {
+        "mean": 0.0,
+        "ci95_half": 0.0
+      },
+      "direction_mismatch_admitted_rate": {
+        "mean": 0.0,
+        "ci95_half": 0.0
+      }
+    }
+  },
+  "seed_rows": [
+    {
+      "seed": 0,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.264,
+        "direction_mismatch_admitted_rate": 0.3115942028985507,
+        "accepted": 500,
+        "direction_checkable": 138
+      },
+      "exact": {
+        "retention_rate": 0.736,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.30526315789473685,
+        "accepted": 368,
+        "direction_checkable": 95
+      },
+      "strict": {
+        "retention_rate": 0.678,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 339,
+        "direction_checkable": 66
+      }
+    },
+    {
+      "seed": 1,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.196,
+        "direction_mismatch_admitted_rate": 0.22857142857142856,
+        "accepted": 500,
+        "direction_checkable": 140
+      },
+      "exact": {
+        "retention_rate": 0.804,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.21649484536082475,
+        "accepted": 402,
+        "direction_checkable": 97
+      },
+      "strict": {
+        "retention_rate": 0.762,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 381,
+        "direction_checkable": 76
+      }
+    },
+    {
+      "seed": 2,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.212,
+        "direction_mismatch_admitted_rate": 0.248,
+        "accepted": 500,
+        "direction_checkable": 125
+      },
+      "exact": {
+        "retention_rate": 0.788,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.27058823529411763,
+        "accepted": 394,
+        "direction_checkable": 85
+      },
+      "strict": {
+        "retention_rate": 0.742,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 371,
+        "direction_checkable": 62
+      }
+    },
+    {
+      "seed": 3,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.218,
+        "direction_mismatch_admitted_rate": 0.2857142857142857,
+        "accepted": 500,
+        "direction_checkable": 133
+      },
+      "exact": {
+        "retention_rate": 0.782,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.2872340425531915,
+        "accepted": 391,
+        "direction_checkable": 94
+      },
+      "strict": {
+        "retention_rate": 0.728,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 364,
+        "direction_checkable": 67
+      }
+    },
+    {
+      "seed": 4,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.226,
+        "direction_mismatch_admitted_rate": 0.25984251968503935,
+        "accepted": 500,
+        "direction_checkable": 127
+      },
+      "exact": {
+        "retention_rate": 0.774,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.2441860465116279,
+        "accepted": 387,
+        "direction_checkable": 86
+      },
+      "strict": {
+        "retention_rate": 0.732,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 366,
+        "direction_checkable": 65
+      }
+    },
+    {
+      "seed": 5,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.248,
+        "direction_mismatch_admitted_rate": 0.2809917355371901,
+        "accepted": 500,
+        "direction_checkable": 121
+      },
+      "exact": {
+        "retention_rate": 0.752,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.28205128205128205,
+        "accepted": 376,
+        "direction_checkable": 78
+      },
+      "strict": {
+        "retention_rate": 0.708,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 354,
+        "direction_checkable": 56
+      }
+    },
+    {
+      "seed": 6,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.26,
+        "direction_mismatch_admitted_rate": 0.296551724137931,
+        "accepted": 500,
+        "direction_checkable": 145
+      },
+      "exact": {
+        "retention_rate": 0.74,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.3047619047619048,
+        "accepted": 370,
+        "direction_checkable": 105
+      },
+      "strict": {
+        "retention_rate": 0.676,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 338,
+        "direction_checkable": 73
+      }
+    },
+    {
+      "seed": 7,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.282,
+        "direction_mismatch_admitted_rate": 0.3,
+        "accepted": 500,
+        "direction_checkable": 130
+      },
+      "exact": {
+        "retention_rate": 0.718,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.3125,
+        "accepted": 359,
+        "direction_checkable": 80
+      },
+      "strict": {
+        "retention_rate": 0.668,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 334,
+        "direction_checkable": 55
+      }
+    },
+    {
+      "seed": 8,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.222,
+        "direction_mismatch_admitted_rate": 0.32653061224489793,
+        "accepted": 500,
+        "direction_checkable": 147
+      },
+      "exact": {
+        "retention_rate": 0.778,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.2912621359223301,
+        "accepted": 389,
+        "direction_checkable": 103
+      },
+      "strict": {
+        "retention_rate": 0.718,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 359,
+        "direction_checkable": 73
+      }
+    },
+    {
+      "seed": 9,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.222,
+        "direction_mismatch_admitted_rate": 0.32867132867132864,
+        "accepted": 500,
+        "direction_checkable": 143
+      },
+      "exact": {
+        "retention_rate": 0.778,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.3,
+        "accepted": 389,
+        "direction_checkable": 110
+      },
+      "strict": {
+        "retention_rate": 0.712,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 356,
+        "direction_checkable": 77
+      }
+    },
+    {
+      "seed": 10,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.238,
+        "direction_mismatch_admitted_rate": 0.23529411764705882,
+        "accepted": 500,
+        "direction_checkable": 119
+      },
+      "exact": {
+        "retention_rate": 0.762,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.20481927710843373,
+        "accepted": 381,
+        "direction_checkable": 83
+      },
+      "strict": {
+        "retention_rate": 0.728,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 364,
+        "direction_checkable": 66
+      }
+    },
+    {
+      "seed": 11,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.256,
+        "direction_mismatch_admitted_rate": 0.36585365853658536,
+        "accepted": 500,
+        "direction_checkable": 123
+      },
+      "exact": {
+        "retention_rate": 0.744,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.3855421686746988,
+        "accepted": 372,
+        "direction_checkable": 83
+      },
+      "strict": {
+        "retention_rate": 0.68,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 340,
+        "direction_checkable": 51
+      }
+    },
+    {
+      "seed": 12,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.3,
+        "direction_mismatch_admitted_rate": 0.29133858267716534,
+        "accepted": 500,
+        "direction_checkable": 127
+      },
+      "exact": {
+        "retention_rate": 0.7,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.25675675675675674,
+        "accepted": 350,
+        "direction_checkable": 74
+      },
+      "strict": {
+        "retention_rate": 0.662,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 331,
+        "direction_checkable": 55
+      }
+    },
+    {
+      "seed": 13,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.232,
+        "direction_mismatch_admitted_rate": 0.27972027972027974,
+        "accepted": 500,
+        "direction_checkable": 143
+      },
+      "exact": {
+        "retention_rate": 0.768,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.27722772277227725,
+        "accepted": 384,
+        "direction_checkable": 101
+      },
+      "strict": {
+        "retention_rate": 0.712,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 356,
+        "direction_checkable": 73
+      }
+    },
+    {
+      "seed": 14,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.238,
+        "direction_mismatch_admitted_rate": 0.1796875,
+        "accepted": 500,
+        "direction_checkable": 128
+      },
+      "exact": {
+        "retention_rate": 0.762,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.18478260869565216,
+        "accepted": 381,
+        "direction_checkable": 92
+      },
+      "strict": {
+        "retention_rate": 0.728,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 364,
+        "direction_checkable": 75
+      }
+    },
+    {
+      "seed": 15,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.248,
+        "direction_mismatch_admitted_rate": 0.30434782608695654,
+        "accepted": 500,
+        "direction_checkable": 138
+      },
+      "exact": {
+        "retention_rate": 0.752,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.27472527472527475,
+        "accepted": 376,
+        "direction_checkable": 91
+      },
+      "strict": {
+        "retention_rate": 0.702,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 351,
+        "direction_checkable": 66
+      }
+    },
+    {
+      "seed": 16,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.234,
+        "direction_mismatch_admitted_rate": 0.2773722627737226,
+        "accepted": 500,
+        "direction_checkable": 137
+      },
+      "exact": {
+        "retention_rate": 0.766,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.22105263157894736,
+        "accepted": 383,
+        "direction_checkable": 95
+      },
+      "strict": {
+        "retention_rate": 0.724,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 362,
+        "direction_checkable": 74
+      }
+    },
+    {
+      "seed": 17,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.238,
+        "direction_mismatch_admitted_rate": 0.26956521739130435,
+        "accepted": 500,
+        "direction_checkable": 115
+      },
+      "exact": {
+        "retention_rate": 0.762,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.30864197530864196,
+        "accepted": 381,
+        "direction_checkable": 81
+      },
+      "strict": {
+        "retention_rate": 0.712,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 356,
+        "direction_checkable": 56
+      }
+    },
+    {
+      "seed": 18,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.246,
+        "direction_mismatch_admitted_rate": 0.24324324324324326,
+        "accepted": 500,
+        "direction_checkable": 148
+      },
+      "exact": {
+        "retention_rate": 0.754,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.19230769230769232,
+        "accepted": 377,
+        "direction_checkable": 104
+      },
+      "strict": {
+        "retention_rate": 0.714,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 357,
+        "direction_checkable": 84
+      }
+    },
+    {
+      "seed": 19,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.218,
+        "direction_mismatch_admitted_rate": 0.226890756302521,
+        "accepted": 500,
+        "direction_checkable": 119
+      },
+      "exact": {
+        "retention_rate": 0.782,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.2441860465116279,
+        "accepted": 391,
+        "direction_checkable": 86
+      },
+      "strict": {
+        "retention_rate": 0.74,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 370,
+        "direction_checkable": 65
+      }
+    },
+    {
+      "seed": 20,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.242,
+        "direction_mismatch_admitted_rate": 0.26666666666666666,
+        "accepted": 500,
+        "direction_checkable": 135
+      },
+      "exact": {
+        "retention_rate": 0.758,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.23711340206185566,
+        "accepted": 379,
+        "direction_checkable": 97
+      },
+      "strict": {
+        "retention_rate": 0.712,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 356,
+        "direction_checkable": 74
+      }
+    },
+    {
+      "seed": 21,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.234,
+        "direction_mismatch_admitted_rate": 0.24242424242424243,
+        "accepted": 500,
+        "direction_checkable": 132
+      },
+      "exact": {
+        "retention_rate": 0.766,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.23958333333333334,
+        "accepted": 383,
+        "direction_checkable": 96
+      },
+      "strict": {
+        "retention_rate": 0.72,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 360,
+        "direction_checkable": 73
+      }
+    },
+    {
+      "seed": 22,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.246,
+        "direction_mismatch_admitted_rate": 0.32857142857142857,
+        "accepted": 500,
+        "direction_checkable": 140
+      },
+      "exact": {
+        "retention_rate": 0.754,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.3076923076923077,
+        "accepted": 377,
+        "direction_checkable": 91
+      },
+      "strict": {
+        "retention_rate": 0.698,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 349,
+        "direction_checkable": 63
+      }
+    },
+    {
+      "seed": 23,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.226,
+        "direction_mismatch_admitted_rate": 0.23134328358208955,
+        "accepted": 500,
+        "direction_checkable": 134
+      },
+      "exact": {
+        "retention_rate": 0.774,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.25,
+        "accepted": 387,
+        "direction_checkable": 92
+      },
+      "strict": {
+        "retention_rate": 0.728,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 364,
+        "direction_checkable": 69
+      }
+    },
+    {
+      "seed": 24,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.262,
+        "direction_mismatch_admitted_rate": 0.2916666666666667,
+        "accepted": 500,
+        "direction_checkable": 120
+      },
+      "exact": {
+        "retention_rate": 0.738,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.2625,
+        "accepted": 369,
+        "direction_checkable": 80
+      },
+      "strict": {
+        "retention_rate": 0.696,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 348,
+        "direction_checkable": 59
+      }
+    },
+    {
+      "seed": 25,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.234,
+        "direction_mismatch_admitted_rate": 0.22556390977443608,
+        "accepted": 500,
+        "direction_checkable": 133
+      },
+      "exact": {
+        "retention_rate": 0.766,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.22826086956521738,
+        "accepted": 383,
+        "direction_checkable": 92
+      },
+      "strict": {
+        "retention_rate": 0.724,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 362,
+        "direction_checkable": 71
+      }
+    },
+    {
+      "seed": 26,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.24,
+        "direction_mismatch_admitted_rate": 0.2714285714285714,
+        "accepted": 500,
+        "direction_checkable": 140
+      },
+      "exact": {
+        "retention_rate": 0.76,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.24468085106382978,
+        "accepted": 380,
+        "direction_checkable": 94
+      },
+      "strict": {
+        "retention_rate": 0.714,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 357,
+        "direction_checkable": 71
+      }
+    },
+    {
+      "seed": 27,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.234,
+        "direction_mismatch_admitted_rate": 0.2956521739130435,
+        "accepted": 500,
+        "direction_checkable": 115
+      },
+      "exact": {
+        "retention_rate": 0.766,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.3333333333333333,
+        "accepted": 383,
+        "direction_checkable": 69
+      },
+      "strict": {
+        "retention_rate": 0.72,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 360,
+        "direction_checkable": 46
+      }
+    },
+    {
+      "seed": 28,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.256,
+        "direction_mismatch_admitted_rate": 0.2824427480916031,
+        "accepted": 500,
+        "direction_checkable": 131
+      },
+      "exact": {
+        "retention_rate": 0.744,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.29069767441860467,
+        "accepted": 372,
+        "direction_checkable": 86
+      },
+      "strict": {
+        "retention_rate": 0.694,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 347,
+        "direction_checkable": 61
+      }
+    },
+    {
+      "seed": 29,
+      "baseline": {
+        "retention_rate": 1.0,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.228,
+        "direction_mismatch_admitted_rate": 0.3185840707964602,
+        "accepted": 500,
+        "direction_checkable": 113
+      },
+      "exact": {
+        "retention_rate": 0.772,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.35443037974683544,
+        "accepted": 386,
+        "direction_checkable": 79
+      },
+      "strict": {
+        "retention_rate": 0.716,
+        "invalid_schema_admitted_rate": 0.0,
+        "nonverbatim_admitted_rate": 0.0,
+        "direction_mismatch_admitted_rate": 0.0,
+        "accepted": 358,
+        "direction_checkable": 51
+      }
+    }
+  ],
+  "candidate_conflicts": 17,
+  "false_conflict_proxy_count": 3,
+  "false_conflict_proxy_rate": 0.17647058823529413,
+  "false_conflict_proxy_examples": [
+    {
+      "subject": "gpx4",
+      "object": "ferroptosis",
+      "same_quote_direction": [
+        "-"
+      ],
+      "positive": [
+        {
+          "claim_id": "clm_1624cf241235",
+          "quote": "The major cellular protector against ferroptosis is glutathione peroxidase 4 (GPX4), a membrane-associated selenoenzyme that reduces deleterious phospholipid hydroperoxides to their corresponding benign phospholipid alcohols in a glutathione-dependent manner",
+          "proxy": "-"
+        }
+      ],
+      "negative": [
+        {
+          "claim_id": "clm_a3e067d14a62",
+          "quote": "GPX4 is the only known enzyme that can detoxify phospholipid hydroperoxides directly in membranes.",
+          "proxy": null
+        },
+        {
+          "claim_id": "clm_365327712785",
+          "quote": "GPX4 serves as an essential regulator of ferroptosis",
+          "proxy": null
+        }
+      ]
+    },
+    {
+      "subject": "α-synuclein aggregation",
+      "object": "ferroptosis",
+      "same_quote_direction": [
+        "+"
+      ],
+      "positive": [
+        {
+          "claim_id": "clm_3e15db860262",
+          "quote": "Here we demonstrate that aggregate-membrane interaction is critical to induce a form of cell death called ferroptosis.",
+          "proxy": "+"
+        }
+      ],
+      "negative": [
+        {
+          "claim_id": "clm_3f58a556a969",
+          "quote": "α-syn aggregation directly induces ferroptosis but also disrupts iron homeostasis, while iron accumulation in turn accelerates α-syn fibrillation and oxidative stress, forming a vicious cycle that propagates neurodegeneration.",
+          "proxy": "+"
+        }
+      ]
+    },
+    {
+      "subject": "gpx4 downregulation",
+      "object": "ferroptosis",
+      "same_quote_direction": [
+        "-"
+      ],
+      "positive": [
+        {
+          "claim_id": "clm_37c2d21d30f8",
+          "quote": "Yang et al. found that cells with downregulated GPX4 expression were more sensitive to ferroptosis, while the upregulation of GPX4 expression inhibits ferroptosis.",
+          "proxy": "-"
+        }
+      ],
+      "negative": [
+        {
+          "claim_id": "clm_0138c33c6a72",
+          "quote": "Glutathione peroxidase 4 (GPX4) is the primary enzyme that negatively regulate ferroptosis. It physiologically reduces PUFA-OOH to non-toxic PUFA-OH, thus playing a detoxifying role and preventing ferroptosis.",
+          "proxy": "-"
+        }
+      ]
+    }
+  ],
+  "direction_mismatch_examples": [
+    {
+      "claim_id": "clm_63770daca54f",
+      "source_path": "personas\\curie-3c33\\sources\\doi_01c66ec2698c",
+      "subject": "synaptic_dysfunction",
+      "relation": "causes",
+      "object": "loss_of_cognition",
+      "effect_sign": "-",
+      "quote": "the current understanding of the basis of the loss of cognition: the accumulation of misfolded proteins, which cause oxidative and inflammatory damage to the brain and, ultimately, synaptic dysfunction",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_7ac4982ab46b",
+      "source_path": "personas\\curie-3c33\\sources\\doi_01c66ec2698c",
+      "subject": "misfolded_proteins",
+      "relation": "causes",
+      "object": "loss_of_cognition",
+      "effect_sign": "-",
+      "quote": "the accumulation of misfolded proteins, which cause oxidative and inflammatory damage to the brain and, ultimately, synaptic dysfunction",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_8935b01f5676",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0390ddf0bd5d",
+      "subject": "Aβ oligomers",
+      "relation": "inhibits",
+      "object": "long-term potentiation",
+      "effect_sign": "-",
+      "quote": "Aβ oligomers begin to accumulate in vivo 10 years or even decades before clinical symptoms and contribute to long-term potentiation (LTP) inhibition as well as enhanced long-term depression (LTD)",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_3a557a716e37",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0390ddf0bd5d",
+      "subject": "hyperphosphorylated tau",
+      "relation": "causes",
+      "object": "loss of microtubule polymerization capacity",
+      "effect_sign": "-",
+      "quote": "Hyperphosphorylated tau in AD patients' brains causes configuration changes and the loss of tubulin polymerization capacity",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_0b764e49fe12",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0390ddf0bd5d",
+      "subject": "Aβ",
+      "relation": "generates",
+      "object": "reactive oxygen species",
+      "effect_sign": "+",
+      "quote": "Aβ involved the generation of reactive oxygen species (ROS), mainly by NOX4 (reduced nicotinamide adenine dinucleotide phosphate oxidase 4), which then triggered the release of endothelin (ET)-1, thereby acting on ETA receptors to evoke pericyte contraction",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_7234329327bb",
+      "source_path": "personas\\curie-3c33\\sources\\doi_04b94fbbd130",
+      "subject": "Liproxstatin-1",
+      "relation": "preserves",
+      "object": "mitochondrial structural integrity",
+      "effect_sign": "+",
+      "quote": "liproxstatin‐1 treatment decreased myocardial infarction size, ROS production, and VDAC1 expression as well as preserved mitochondrial structural integrity by protecting cristae from damage.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_3c12a87854a2",
+      "source_path": "personas\\curie-3c33\\sources\\doi_063533c8ee32",
+      "subject": "human-AI collaboration in population breast cancer screening program",
+      "relation": "has_potential_to_improve",
+      "object": "accuracy and lower radiologist workload and costs",
+      "effect_sign": "+",
+      "quote": "This study demonstrated that human-AI collaboration in a population breast cancer screening program has potential to improve accuracy and lower radiologist workload and costs in real world screening programs.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_fb56cffae7e2",
+      "source_path": "personas\\curie-3c33\\sources\\doi_06647dba06a4",
+      "subject": "ML model",
+      "relation": "identifies",
+      "object": "autistic individuals with more symptoms and lower cognitive levels",
+      "effect_sign": "+",
+      "quote": "robust model performance was observed to identify autistic individuals with more symptoms and lower cognitive levels.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_50325c81077f",
+      "source_path": "personas\\curie-3c33\\sources\\doi_091758578744",
+      "subject": "CERAD neuropathology protocol",
+      "relation": "enables",
+      "object": "common language",
+      "effect_sign": "+",
+      "quote": "The protocol provides neuropathologic definitions of such terms as 'definite Alzheimer's disease' (AD), 'probable AD,' 'possible AD,' and 'normal brain' to indicate levels of diagnostic certainty, reduce subjective interpretation, and assure common language",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_96c74881f45d",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0c060d97f25e",
+      "subject": "TGFβ1_Smad3_signaling_impairment",
+      "relation": "facilitates",
+      "object": "microglia_cytotoxic_activation",
+      "effect_sign": "+",
+      "quote": "TGFβ1 induction and activation of Smad3 signaling after inflammatory stimulation are reduced in adult mice... could result in the reduction of protective activation and the facilitation of cytotoxic activation of microglia, resulting in the promotion of neurodegenerative diseases.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_907fa633eeea",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0c91de45e385",
+      "subject": "p75NTR internalization",
+      "relation": "increases",
+      "object": "Aβ processing",
+      "effect_sign": "+",
+      "quote": "p75NTR can bind APP to enable APP trafficking to the endosomal compartment. Hence, in AD mouse models, removal of p75NTR or disruption of its internalization substantially lowers amyloidogenic processing, Aβ levels, and reduces cognitive decline",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_52e090945b59",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0ffc32276168",
+      "subject": "medical device connectivity",
+      "relation": "increases",
+      "object": "safety concerns",
+      "effect_sign": "-",
+      "quote": "Similarly with connectivity, the ability to exchange information or to control directly between medical devices is likely to increase safety concerns.",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_60b0b8dfd1fa",
+      "source_path": "personas\\curie-3c33\\sources\\doi_0ffc32276168",
+      "subject": "robotic surgery systems",
+      "relation": "achieves",
+      "object": "higher precision than human hand",
+      "effect_sign": "+",
+      "quote": "Robotic systems often perform with better movement accuracy in relation to the human hand, and reduces the hand movement north/south to minimize the associated tremor.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_0503ad873694",
+      "source_path": "personas\\curie-3c33\\sources\\doi_10a040ce66d8",
+      "subject": "mutations in APP, PSEN1, PSEN2",
+      "relation": "associated_with_variable",
+      "object": "age at onset",
+      "effect_sign": "0",
+      "quote": "Rare coding variants in APP, PSEN1 and PSEN2, increase risk for or cause late onset AD. The presence of variants in these genes in LOAD and early-onset AD demonstrates that factors other than the mutation can impact the age at onset and penetrance of at least some variants associated with AD.",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_33221739b82b",
+      "source_path": "personas\\curie-3c33\\sources\\doi_11bd5e93835b",
+      "subject": "LightGBM with histogram-based algorithms",
+      "relation": "reduces",
+      "object": "memory usage and training time",
+      "effect_sign": "+",
+      "quote": "What makes LightGBM special is that it uses histogram-based algorithms that discretize continuous values of features into discrete bins. The gain in reduced memory usage and faster training is thereby drastic.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_dfa8864962c4",
+      "source_path": "personas\\curie-3c33\\sources\\doi_131f6bb2adb1",
+      "subject": "stem cell-derived exosomes",
+      "relation": "substitute_for",
+      "object": "therapeutic stem cells without tumorigenicity risk",
+      "effect_sign": "+",
+      "quote": "It is worth emphasizing that stem cells-derived exosomes are a good substitute for therapeutic stem cells as they are not associated with the clinical concern of tumorigenicity.",
+      "quote_direction_proxy": "0"
+    },
+    {
+      "claim_id": "clm_134ffbdc9a5a",
+      "source_path": "personas\\curie-3c33\\sources\\doi_146ad8b0a47e",
+      "subject": "alignment and safety tuning",
+      "relation": "reduces",
+      "object": "GPT-4 medical benchmark performance",
+      "effect_sign": "-",
+      "quote": "we observe a notable increase of 3-5% when using the base versus the release model...The observed diminishment of raw performance accompanying the alignment process",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_13ef22a81483",
+      "source_path": "personas\\curie-3c33\\sources\\doi_148affb93886",
+      "subject": "early detection of hemorrhagic stroke",
+      "relation": "improves",
+      "object": "patient outcomes",
+      "effect_sign": "+",
+      "quote": "Early detection of hemorrhagic stroke is crucial for improving patient outcomes, as timely intervention can significantly reduce morbidity and mortality",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_89aa5e6958c1",
+      "source_path": "personas\\curie-3c33\\sources\\doi_157fa91c1956",
+      "subject": "hyperglycemia",
+      "relation": "causes",
+      "object": "dopaminergic neuron degeneration",
+      "effect_sign": "-",
+      "quote": "dopaminergic neurons located in the mesencephalic substantia nigra appear to be particularly vulnerable to oxidative stress and degeneration, likely because of their intrinsic susceptibility to mitochondrial dysfunction, which may represent a direct consequence of hyperglycemia and hyperglycemia-induced oxidative stress",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_0c431327c919",
+      "source_path": "personas\\curie-3c33\\sources\\doi_157fa91c1956",
+      "subject": "intracellular glucose accumulation",
+      "relation": "causes",
+      "object": "neuronal damage via glucotoxicity",
+      "effect_sign": "-",
+      "quote": "hyperglycemia causes an upwelling of intraneuronal glucose likely to hold pathological implications for cellular fitness",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_9b64bf619efe",
+      "source_path": "personas\\curie-3c33\\sources\\doi_15a94193dc53",
+      "subject": "hydroxyl radicals",
+      "relation": "causes_damage_to",
+      "object": "DNA",
+      "effect_sign": "-",
+      "quote": "Hydroxyl radical is one of the most reactive radicals occurring in biological systems and causes damage to all important biomolecules involving DNA, proteins, and membranes",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_632e508683d1",
+      "source_path": "personas\\curie-3c33\\sources\\doi_15a94193dc53",
+      "subject": "ROS",
+      "relation": "activates",
+      "object": "NF-κB",
+      "effect_sign": "+",
+      "quote": "ROS activates NF-κB by inhibiting the phosphorylation of IκBα",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_e628108f3903",
+      "source_path": "personas\\curie-3c33\\sources\\doi_15a94193dc53",
+      "subject": "peroxynitrite",
+      "relation": "causes_damage_to",
+      "object": "proteins",
+      "effect_sign": "-",
+      "quote": "Peroxynitrite is a very powerful oxidant capable of causing damage to biomolecules including proteins and DNA. Peroxynitrite is interfering with signaling pathways by nitrating protein amino acid residues",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_b73b19139bbb",
+      "source_path": "personas\\curie-3c33\\sources\\doi_15aebe0eb9db",
+      "subject": "DeepMind's CNN-based breast cancer screening system",
+      "relation": "reduces",
+      "object": "false positives in mammography",
+      "effect_sign": "-",
+      "quote": "DeepMind's CNN-based system enhanced breast cancer screening, reducing false positives by 5.7% and false negatives by 9.4% using large mammogram datasets",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_22046dd59446",
+      "source_path": "personas\\curie-3c33\\sources\\doi_15aebe0eb9db",
+      "subject": "iNav diagnostic tool",
+      "relation": "reduces",
+      "object": "pancreatic cancer diagnosis-to-treatment time",
+      "effect_sign": "-",
+      "quote": "It cut the diagnosis-to-treatment time by 50%, tripled biospecimen study participation, and increased referrals to multidisciplinary clinics",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_4b80aab6cb49",
+      "source_path": "personas\\curie-3c33\\sources\\doi_15ca8ec641a3",
+      "subject": "dementia",
+      "relation": "causes",
+      "object": "disability among older adults",
+      "effect_sign": "-",
+      "quote": "Dementia is considered worldwide as one of the main causes of disability among older adults.",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_2d9205cc0d2d",
+      "source_path": "personas\\curie-3c33\\sources\\doi_17b8faa20293",
+      "subject": "PERK inhibition",
+      "relation": "restores",
+      "object": "protein synthesis rates",
+      "effect_sign": "+",
+      "quote": "PERK inhibitor treatment restored global protein synthesis rates to normal in 8-month-old tau+P301L mice, in contrast to vehicle-treated animals, which showed markedly reduced translation rates at this time point.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_7bc77d1c4e1f",
+      "source_path": "personas\\curie-3c33\\sources\\doi_17cdd7040804",
+      "subject": "LXR genetic ablation",
+      "relation": "increases",
+      "object": "myelin protein degradation",
+      "effect_sign": "+",
+      "quote": "LXR extinction led to a decrease of both MPZ and PMP22 protein levels (−50% for MPZ, and −75% for PMP22)",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_9fdaa0cd4100",
+      "source_path": "personas\\curie-3c33\\sources\\doi_17cdd7040804",
+      "subject": "LXR agonist TO901317",
+      "relation": "prevents",
+      "object": "tert-butylhydroperoxide-induced cell death",
+      "effect_sign": "+",
+      "quote": "TO9 treatment is able to prevent cell death elicited by tBHP treatment",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_b8ce1ed07618",
+      "source_path": "personas\\curie-3c33\\sources\\doi_17cdd7040804",
+      "subject": "LXR ablation",
+      "relation": "causes",
+      "object": "locomotor defects",
+      "effect_sign": "-",
+      "quote": "the absence of LXRs in mice leads to increased ROS production in the sciatic nerve that alters cellular constituents and compromises myelin integrity...that could be reversed by treating the mice with N-Acetylcysteine",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_5e71ca8cff9f",
+      "source_path": "personas\\curie-3c33\\sources\\doi_1877a871839a",
+      "subject": "ROS",
+      "relation": "damages",
+      "object": "mitochondrial DNA",
+      "effect_sign": "-",
+      "quote": "Long term exposure to increased levels of pro-oxidant factors can cause structural defects at a mitochondrial DNA level, as well as functional alteration of several enzymes and cellular structures leading to aberrations in gene expression.",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_fbde805cdc61",
+      "source_path": "personas\\curie-3c33\\sources\\doi_19466a0b42f7",
+      "subject": "cytosolic_lipofuscin",
+      "relation": "produces",
+      "object": "reactive_oxygen_species",
+      "effect_sign": "+",
+      "quote": "cytosolic LF deposits produce ROS, decreasing cellular viability by defective cytosolic protein degradation",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_ab5c19bb86aa",
+      "source_path": "personas\\curie-3c33\\sources\\doi_19466a0b42f7",
+      "subject": "lipofuscin_accumulation",
+      "relation": "correlates_with",
+      "object": "neuronal_loss",
+      "effect_sign": "-",
+      "quote": "in neurodegenerative disorders, LF aggregates appear to increase not only with age but also with pathological processes such as neuronal loss, proliferation, and activation of glial cells",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_c194e0d7d8f3",
+      "source_path": "personas\\curie-3c33\\sources\\doi_19466a0b42f7",
+      "subject": "autophagy_upregulation",
+      "relation": "reduces",
+      "object": "lipofuscin_levels",
+      "effect_sign": "-",
+      "quote": "1Q-htt expression increases autophagosome synthesis, arguing that this autophagy upregulation may be beneficial in diseases caused by toxic intracellular aggregate-prone proteins",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_d520d53754b3",
+      "source_path": "personas\\curie-3c33\\sources\\doi_1b871c05f345",
+      "subject": "unsupervised learning",
+      "relation": "enables",
+      "object": "clustering and dimensionality reduction",
+      "effect_sign": "+",
+      "quote": "With its prowess in clustering and dimensionality reduction, unsupervised learning (USL) is explored alongside ensemble methods, including bagging and potent boosting algorithms.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_8acdccf5fb15",
+      "source_path": "personas\\curie-3c33\\sources\\doi_1e59898efaeb",
+      "subject": "single or multicomponent interventions",
+      "relation": "prevent",
+      "object": "post-stroke cognitive decline",
+      "effect_sign": "0",
+      "quote": "There was limited randomised controlled trial evidence regarding single or multicomponent interventions to prevent post-stroke cognitive decline.",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_24c33d345c02",
+      "source_path": "personas\\curie-3c33\\sources\\doi_1ec81de2dabe",
+      "subject": "GSH depletion",
+      "relation": "triggers",
+      "object": "ferroptosis",
+      "effect_sign": "+",
+      "quote": "Ferroptosis can be triggered by GSH consumption (such as the consumption of GSH by erastin indirectly inactivates GPX4) or direct reduction of GSH synthesis",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_e21a2246346f",
+      "source_path": "personas\\curie-3c33\\sources\\doi_1f393e06077d",
+      "subject": "epigenetic repression of Nrf2",
+      "relation": "enables",
+      "object": "neuronal development",
+      "effect_sign": "+",
+      "quote": "Neuronal Nrf2 inactivation seems to be required for proper development: in maturing neurons, ectopic Nrf2 expression inhibits neurite outgrowth and aborization, and electrophysiological maturation",
+      "quote_direction_proxy": "-"
+    },
+    {
+      "claim_id": "clm_969c91e1461f",
+      "source_path": "personas\\curie-3c33\\sources\\doi_21d0269f326f",
+      "subject": "AI deployment",
+      "relation": "raises",
+      "object": "patient dignity concerns",
+      "effect_sign": "-",
+      "quote": "its deployment in highly sensitive contexts-of-use, such as in healthcare, raises issues associated with patients' perceptions of (un)dignified treatment",
+      "quote_direction_proxy": "+"
+    },
+    {
+      "claim_id": "clm_c7da5ce9f811",
+      "source_path": "personas\\curie-3c33\\sources\\doi_2319cd9f2b0e",
+      "subject": "antioxidant_supplements",
+      "relation": "does_not_increase",
+      "object": "lifespan",
+      "effect_sign": "0",
+      "quote": "Recent evidence suggests that antioxidant supplements (although highly recommended by the pharmaceutical industry and taken by many individuals) do not offer sufficient protection against oxidative stress, oxidative damage or increase the lifespan",
+      "quote_direction_proxy": "+"
+    }
+  ],
+  "limitations": [
+    "Polarity lexicon is a diagnostic proxy, not expert ground truth.",
+    "Bootstrap resamples stored claims; it does not test a new LLM extractor.",
+    "Normalized exact-span matching tolerates whitespace and Unicode normalization."
+  ],
+  "verdict": "GO exact-span admission gate; keep enriched extraction and contradiction typing gated."
+}

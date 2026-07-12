@@ -1,0 +1,134 @@
+{
+  "experiment": "RQ-E12b",
+  "session_id": "20260711T201417Z-does-a-prespecified-nrf2-associated-tran-9a665916",
+  "gate_passed": true,
+  "clean_reruns": 20,
+  "branch": "inconclusive",
+  "datasets": {
+    "GSE1297": {
+      "age_beta": -0.013879191383,
+      "analytic_normal95_high": 0.233926007431,
+      "analytic_normal95_low": -0.01976003109,
+      "analytic_se": 0.064715826153,
+      "bootstrap_95_high": 0.281697388962,
+      "bootstrap_95_low": 0.024459531699,
+      "bootstrap_mean": 0.125376509184,
+      "bootstrap_valid": 30,
+      "condition_number": 22.410543831513,
+      "intercept": -0.228823141218,
+      "loo_same_sign": 7,
+      "male_beta": 0.194612647472,
+      "n": 30,
+      "rank": 4,
+      "raw_expression_quantiles": [
+        0.4,
+        223.9,
+        2604.540000000002,
+        8311.39600000002,
+        118417.8
+      ],
+      "residual_df": 26,
+      "residual_sd": 0.35612272396,
+      "severity_beta": 0.107082988171,
+      "transform": "log2(x+1), then within-dataset probe z-score"
+    },
+    "GSE28146": {
+      "age_beta": 0.014117606143,
+      "analytic_normal95_high": 0.177872976935,
+      "analytic_normal95_low": -0.054016957337,
+      "analytic_se": 0.059155595477,
+      "bootstrap_95_high": 0.205641350538,
+      "bootstrap_95_low": -0.033328717209,
+      "bootstrap_mean": 0.076235377317,
+      "bootstrap_valid": 30,
+      "condition_number": 22.410543831513,
+      "intercept": -0.135551054002,
+      "loo_same_sign": 7,
+      "male_beta": 0.140512958821,
+      "n": 30,
+      "rank": 4,
+      "raw_expression_quantiles": [
+        0.3,
+        220.7,
+        2722.554999999981,
+        10293.302000000001,
+        2124224.3
+      ],
+      "residual_df": 26,
+      "residual_sd": 0.325525502046,
+      "severity_beta": 0.061928009799,
+      "transform": "log2(x+1), then within-dataset probe z-score"
+    }
+  },
+  "input_manifest": {
+    "files": [
+      {
+        "name": "GSE1297_series_matrix.txt.gz",
+        "bytes": 1622090,
+        "sha256": "7fe93d1e78ea1567625a066a267e28a62de2d421d517f3dd7a12576628d89009"
+      },
+      {
+        "name": "GSE28146_series_matrix.txt.gz",
+        "bytes": 3858604,
+        "sha256": "10416f47a2f531d344b07a366f11d5c1df83665e55b00c84588770caa4791a09"
+      },
+      {
+        "name": "GPL96.annot.gz",
+        "bytes": 4522748,
+        "sha256": "88e0b22362bac779eb220b3b185c80faa6510a92b9358eaad159a561ab4351c4"
+      }
+    ],
+    "data_root": "personas/curie-3c33/projects/the-converged-belief-oxidative-stress-lowers-neu/data"
+  },
+  "method_checks": {
+    "input_hashes_match": true,
+    "sample_counts": {
+      "GSE1297": 31,
+      "GSE28146": 30,
+      "matched_donors": 30
+    },
+    "probe_counts": {
+      "GSE1297": 22283,
+      "GSE28146": 54675,
+      "panel": 13,
+      "shared": 22277
+    },
+    "panel_genes": [
+      "FTH1",
+      "FTL",
+      "GCLC",
+      "GPX4",
+      "HMOX1",
+      "SLC7A11",
+      "TFRC"
+    ],
+    "panel_probe_count": 13,
+    "paired_bootstrap_seeds": 30,
+    "clean_reruns": 20,
+    "exact_core_hashes": {
+      "summary.json": "ecacea6953346091b57a8ddb948356926e7f5c04780f08229ed89955d236b0eb",
+      "scores.csv": "1a5757fa4577b368a8d2c0fd5be6f5dee411635f6190f183795c280d8747d51e",
+      "bootstrap.csv": "ea4b2d57183de9db7de7e1699f645f632cfbd25750961f59cb3e6b6ef8f9e0f4",
+      "leave_one_gene_out.csv": "83b6fcfa8671341720d3acdc0dc05640a50d7fb77fed89a359c6b552ebbb3948"
+    },
+    "numeric_max_abs_error": 0,
+    "model_cost_usd": 0.0,
+    "causal_claim_authorized": false,
+    "ok": true
+  },
+  "session_audit": {
+    "ok": true,
+    "session_id": "20260711T201417Z-does-a-prespecified-nrf2-associated-tran-9a665916",
+    "errors": [],
+    "warnings": [],
+    "checks": {
+      "events": 43,
+      "artifacts": 17,
+      "required_evidence": 2,
+      "required_evidence_cited": 2,
+      "model_cost_usd": 0,
+      "status": "completed",
+      "verification": "verified"
+    }
+  }
+}

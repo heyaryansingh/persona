@@ -16,6 +16,10 @@ from .queue import TaskQueue
 from . import worker
 
 
+def _should_reflect(depth: int, now: float, last_reflect: float) -> bool:
+    return depth < config.QUEUE_MIN_DEPTH and now - last_reflect >= config.SCOUT_INTERVAL_S
+
+
 class Daemon:
     def __init__(self, n_workers: int = None, queue: TaskQueue = None, scheduler: bool = True,
                  persona=None):
@@ -57,7 +61,10 @@ class Daemon:
         from .. import selfmind
         self_every = max(1, int(config.SELF_INTERVAL_S / config.SCHEDULER_INTERVAL_S))
         tick = 0
-        started = False
+        # A new mind pulses immediately. A restarted mind waits for the cooldown instead of
+        # multiplying work across every persona whenever the API process is inspected/restarted.
+        last_reflect = (asyncio.get_running_loop().time() if self.queue.counts()
+                        else float("-inf"))
         announced_wait = False
         while not self._stop.is_set():
             try:
@@ -73,16 +80,15 @@ class Daemon:
                 if self.persona.is_paused():             # PAUSE: generate no new work, no spend
                     await asyncio.sleep(config.SCHEDULER_INTERVAL_S)
                     continue
-                if not started:                         # seeded → fire the first pulse of work
-                    self.queue.enqueue("reflect", priority=0)
-                    started = True
+                now = asyncio.get_running_loop().time()
                 tick += 1
                 depth = self.queue.depth()
-                if depth < config.QUEUE_MIN_DEPTH:
-                    # never idle: if we're low on work, reflect (which generates readers)
+                if _should_reflect(depth, now, last_reflect):
                     self.queue.enqueue("reflect", priority=0)
+                    last_reflect = now
                     log().emit("schedule",
-                               f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); generating work",
+                               f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); starting a "
+                               f"cooldown-gated research pulse",
                                actor="scheduler", depth=depth)
                 if tick % self_every == 0:
                     # slower cadence: consolidate → evolve the self → discover leads & act on them
