@@ -88,8 +88,10 @@ _VIS_SYS = ("You write ONE self-contained Python matplotlib script that produces
             "numpy/pandas/matplotlib. Return ONLY the code via the tool.")
 
 
-def build_visual(kind: str, topic: str, *, parent_id=None, kg=None) -> dict:
-    """kind='diagram' (an explanatory figure) or 'art' (a generative data-art piece from its mind)."""
+def build_visual(kind: str, topic: str, *, parent_id=None, kg=None, max_attempts: int = 2) -> dict:
+    """kind='diagram' (an explanatory figure) or 'art' (a generative data-art piece from its mind).
+    max_attempts>1 enables a render-retry (feed sandbox stderr back); callers that fan out many figures
+    under a task lease pass max_attempts=1 to bound latency."""
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
     if not sandbox.image_ready():
@@ -104,30 +106,42 @@ def build_visual(kind: str, topic: str, *, parent_id=None, kg=None) -> dict:
     tool = {"name": "write_fig", "description": "Write the matplotlib script.",
             "input_schema": {"type": "object", "properties": {
                 "title": {"type": "string"}, "code": {"type": "string"}}, "required": ["title", "code"]}}
-    resp = client.messages.create(
-        model=config.MODEL_WORKER, max_tokens=8000, system=_VIS_SYS, tools=[tool],
-        tool_choice={"type": "tool", "name": "write_fig"},
-        messages=[{"role": "user", "content": f"Topic: {topic}\n\nMake {intent}.\n\n{ctx}\n\n"
-                   f"Write the script; save the figure to /work/results/figure.png."}])
-    u = resp.usage
-    cost = (u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000
-    budget().add(cost)
-    out = next((b.input for b in resp.content if b.type == "tool_use"), {})
-    if not out.get("code"):
-        return {"ok": False, "reason": "no-code"}
-    title = out.get("title", topic)[:120]
     project = get_persona().paths.projects_dir / f"{kind}-{_slug(topic)}"
     (project / "results").mkdir(parents=True, exist_ok=True)
-    (project / "figure.py").write_text(out["code"], encoding="utf-8")
-    r = sandbox.run_python(out["code"], project, timeout=90)
     png = project / "results" / "figure.png"
+    messages = [{"role": "user", "content": f"Topic: {topic}\n\nMake {intent}.\n\n{ctx}\n\n"
+                 f"Write the script; save the figure to /work/results/figure.png."}]
+    # render-retry: LLM matplotlib for abstract topics errors ~half the time; feed the sandbox stderr
+    # back and let it fix the code (one retry). This is why 6/10 papers had no figure.
+    title, cost = topic[:120], 0.0
+    for attempt in range(max(1, max_attempts)):
+        if not budget().can_spend():
+            break
+        png.unlink(missing_ok=True)
+        resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=8000, system=_VIS_SYS,
+                                      tools=[tool], tool_choice={"type": "tool", "name": "write_fig"},
+                                      messages=messages)
+        u = resp.usage
+        cost += (u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000
+        budget().add((u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000)
+        tu = next((b for b in resp.content if b.type == "tool_use"), None)
+        if not tu or not tu.input.get("code"):
+            continue
+        title, code = tu.input.get("title", topic)[:120], tu.input["code"]
+        (project / "figure.py").write_text(code, encoding="utf-8")
+        r = sandbox.run_python(code, project, timeout=90)
+        if png.exists():
+            break
+        messages.append({"role": "assistant", "content": resp.content})
+        messages.append({"role": "user", "content": [{"type": "tool_result", "tool_use_id": tu.id,
+            "content": "figure.png was NOT created. Fix the script and call write_fig again.\nstderr:\n"
+                       + (r.get("stderr") or "")[-1500:]}]})
     if not png.exists():
-        log().emit("error", f"{kind} “{title}” did not render (exit {r['exit_code']})",
-                   actor="builder", parent_id=parent_id)
-        return {"ok": False, "reason": "no-figure", "stderr": (r.get("stderr") or "")[-400:]}
+        log().emit("error", f"{kind} “{title}” did not render", actor="builder", parent_id=parent_id)
+        return {"ok": False, "reason": "no-figure"}
     rel = f"projects/{project.name}/results/figure.png"
     _manifest(project, {"kind": kind, "title": title, "topic": topic, "cost_usd": round(cost, 4),
-                        "code_sha256": hashlib.sha256(out["code"].encode()).hexdigest()[:16]})
+                        "code_sha256": hashlib.sha256(code.encode()).hexdigest()[:16]})
     _record_experiment(kind, title, ents, rel, {"cost_usd": round(cost, 4)}, kg)
     log().emit("artifact", f"built a {kind}: “{title}” → {rel}", actor="builder",
                parent_id=parent_id, file=rel, kind=kind)

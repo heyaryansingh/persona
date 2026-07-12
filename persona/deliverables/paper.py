@@ -30,12 +30,29 @@ _TOOL = {"name": "write_paper", "description": "Write a complete research paper 
                  "be rigorous and honest about what is established vs open."}},
              "required": ["title", "markdown"]}}
 
-_SYSTEM = ("You write a concise, rigorous research paper in MARKDOWN from the mind's cited synthesis "
-           "notes. Structure: Title, Abstract, Introduction, 2-4 body sections, Discussion, References. "
-           "Ground every claim in the provided notes/sources and cite inline as [n]; list the numbered "
-           "sources with their DOIs under References. Use $…$ for math. If a figure file is provided, "
-           "embed it once with ![caption](figure.png). Be honest — distinguish what is established, "
-           "contested, and open; never claim a proof you do not have.")
+_SYSTEM = (
+    "You write a rigorous research paper in MARKDOWN from the mind's cited synthesis notes, prior "
+    "beliefs, and prior papers. Follow this structure EXACTLY:\n"
+    "1. `# Title` — specific and informative.\n"
+    "2. `## Abstract` — ONE tight paragraph, ≤180 words: the question, what you actually establish, "
+    "and the single most important takeaway. No walls of text.\n"
+    "3. `## Main result` — state precisely what THIS paper establishes as a short bulleted list, and "
+    "TAG each item with its status: **[PROVED HERE]** (a complete argument given below), "
+    "**[VERIFIED NUMERICALLY]** (checked by computation), **[CITED]** (established elsewhere, with "
+    "[n]), or **[OPEN]** (conjecture / not settled). Be scrupulously honest — do not tag something "
+    "PROVED HERE unless the argument is actually in the paper.\n"
+    "4. `## Introduction` — the problem and why it matters.\n"
+    "5. 2–4 body `##` sections carrying the actual argument/derivation/computation. Show the reasoning, "
+    "not just conclusions. Refer to Figure 1 / Figure 2 where they clarify.\n"
+    "6. `## Reasoning chain` — a short numbered chain that traces each Main-result item to its support: "
+    "either a cited source `[n]`, a prior belief, or a step proved above. A reader must be able to walk "
+    "the logic from evidence to conclusion.\n"
+    "7. `## Discussion` — what is established vs contested vs open, and the next question.\n"
+    "8. `## References` — number every source `1. Authors/title — venue (doi:…)` and make sure every "
+    "inline `[n]` resolves to an entry here.\n"
+    "Use $…$ / $$…$$ for math. Embed EACH provided figure once as `![caption](figureN.png)` at the "
+    "point it is discussed. Ground every claim in the provided material; never claim a proof you do "
+    "not have — an honest 'this is not settled by the present evidence' is worth more than a bluff.")
 
 
 def _slug(t): return (re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")[:50] or "paper")
@@ -53,39 +70,71 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
         return {"ok": False, "reason": "no-notes-yet"}
     slugs = [h["slug"] for h in p.vectors.search(topic, k=max_notes) if h.get("slug")] or \
             [f.stem for f in sorted(nd.glob("*.md"))[:max_notes]]
-    notes, sources, snum = [], [], {}
+    notes, sources = [], []               # sources: unique "[n] Title — venue (doi:…)" strings, numbered 1..N
     for s in slugs:
         f = nd / f"{s}.md"
         if f.exists():
             txt = f.read_text(encoding="utf-8")
             notes.append(txt[:3000])
             for m in re.finditer(r"^\[(\d+)\]\s*(.+)$", txt, re.M):
-                if m.group(2).strip() not in snum and len(sources) < 24:  # cap refs so the
-                    snum[m.group(2).strip()] = f"s{len(sources)+1}"       # tail list can't blow the token budget
-                    sources.append(m.group(2).strip())
+                cite = m.group(2).strip()
+                if cite not in sources and len(sources) < 24:      # cap so the ref tail can't blow tokens
+                    sources.append(cite)
     if not notes:
         return {"ok": False, "reason": "no-notes-matched"}
-    src_list = "\n".join(f"{snum[k]}: {k}" for k in sources)
+    # canonical numbered reference list — the paper MUST cite [n] against this, and we guarantee it
+    # resolves by appending this exact list as ## References if the model forgets (see post-process).
+    references_md = "## References\n\n" + "\n".join(f"{i}. {t}" for i, t in enumerate(sources, 1))
+    src_list = "\n".join(f"[{i}] {t}" for i, t in enumerate(sources, 1))
+
+    # reasoning chain to PRIOR work: the mind's own beliefs + the titles of its earlier papers, so the
+    # paper can trace its argument to established belief-state and past deliverables, not just fresh notes.
+    beliefs = ""
+    bf = p.paths.self_dir / "beliefs.md"
+    if bf.exists():
+        blines = [l for l in bf.read_text(encoding="utf-8").splitlines() if l.strip().startswith(("-", "*"))][:10]
+        if blines:
+            beliefs = "\n\nPRIOR BELIEFS (this mind's current belief-state — cite as 'prior belief'):\n" + "\n".join(blines)
+    prior = []
+    for pf in sorted(p.paths.projects_dir.glob("paper-*/*/paper.md"))[-12:]:
+        try:
+            hm = re.search(r"^#\s+(.+)$", pf.read_text(encoding="utf-8"), re.M)
+            if hm and _slug(hm.group(1)) != _slug(topic):
+                prior.append(hm.group(1).strip())
+        except Exception:
+            pass
+    prior_md = ("\n\nRELATED PRIOR PAPERS BY THIS MIND (reference where relevant):\n"
+                + "\n".join(f"- {t}" for t in prior[-6:])) if prior else ""
 
     from anthropic import Anthropic
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    msgs = [{"role": "user", "content": f"Topic: {topic}\n\nSYNTHESIS NOTES:\n"
-             + "\n\n=== NOTE ===\n".join(notes) + f"\n\nSOURCES (cite as [n], list under References):\n{src_list}\n\n"
-             f"Write the complete paper in Markdown."}]
+    msgs = [{"role": "user", "content": f"Topic / question:\n{topic}\n\nSYNTHESIS NOTES:\n"
+             + "\n\n=== NOTE ===\n".join(notes) + f"\n\nNUMBERED SOURCES (cite inline as [n]; list ALL "
+             f"under ## References):\n{src_list}{beliefs}{prior_md}\n\nWrite the complete paper in Markdown."}]
     run_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}"
     project = p.paths.projects_dir / f"paper-{_slug(topic)}" / run_id
     project.mkdir(parents=True, exist_ok=True)
-    # embed ONE real, grounded figure — matplotlib written by the builder and run in the sandbox
+    # TWO real, grounded figures (matplotlib written by the builder, run in the sandbox): a structural
+    # diagram and a data/quantities plot. More than one figure was the main formatting gap (6/10 papers
+    # had none). Budget-gated: build what we can afford.
+    fignums = []
     try:
         from ..agents import builder
-        fig = builder.build_visual("diagram", topic, parent_id=parent_id)
-        src_png = p.paths.workspace / (fig.get("artifact") or "")
-        if fig.get("ok") and src_png.is_file():
-            shutil.copy2(src_png, project / "figure.png")
-            msgs[0]["content"] += ("\n\nA FIGURE is available as figure.png. Embed it once as "
-                "![<one-line caption>](figure.png) and refer to it in the text.")
+        framings = [("figure1.png", f"{topic} — a labeled diagram of the core objects/mechanism and how they relate"),
+                    ("figure2.png", f"{topic} — the key quantities, distribution, or structure plotted as a clean data figure")]
+        for i, (fname, framing) in enumerate(framings, 1):
+            if not budget().can_spend():
+                break
+            fg = builder.build_visual("diagram", framing, parent_id=parent_id, max_attempts=1)
+            sp = p.paths.workspace / (fg.get("artifact") or "")
+            if fg.get("ok") and sp.is_file():
+                shutil.copy2(sp, project / fname)
+                fignums.append(i)
     except Exception:
         pass
+    if fignums:
+        msgs[0]["content"] += ("\n\nFIGURES available: " + ", ".join(f"figure{i}.png" for i in fignums)
+            + ". Embed EACH once as ![caption](figureN.png) at the point it is discussed; refer to it as Figure N.")
     # Generate the paper as plain-text MARKDOWN (NOT a forced tool call — that truncates the JSON at
     # max_tokens and yields an empty paper). Then compile via the robust document pipeline.
     from .document import compile_source, sanitize_markdown
@@ -96,6 +145,18 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     call_cost = (u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000
     budget().add(call_cost); total_cost += call_cost
     md = sanitize_markdown("".join(b.text for b in resp.content if b.type == "text"))
+    # ENFORCE figures: the model often ignores the embed instruction, so inject any built-but-unreferenced
+    # figure into the body (before Discussion/References) — a paper with no diagrams was the main gap.
+    missing = [i for i in fignums if f"figure{i}.png" not in md]
+    if missing:
+        caps = {1: "structure and objects of the problem", 2: "key quantities / distribution"}
+        block = "\n\n" + "\n\n".join(f"![Figure {i}. {caps.get(i,'')}](figure{i}.png)" for i in missing) + "\n\n"
+        anchor = re.search(r"^##\s*(discussion|reasoning chain|references)", md, re.I | re.M)
+        md = (md[:anchor.start()] + block + md[anchor.start():]) if anchor else (md.rstrip() + block)
+    # guarantee citations resolve: if the model omitted (or truncated) the References section, append
+    # the canonical numbered list so every inline [n] traces to a real source with its DOI.
+    if sources and not re.search(r"^##\s*references", md, re.I | re.M):
+        md = md.rstrip() + "\n\n" + references_md + "\n"
     hm = re.search(r"^#\s+(.+)$", md, re.M)
     title = (hm.group(1).strip() if hm else "") or topic
     if len(md) >= 300:                                # require real substance, not an empty stub
