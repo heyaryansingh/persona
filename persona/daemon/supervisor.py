@@ -58,10 +58,18 @@ class Daemon:
                            actor=f"worker-{wid}", task_id=task.id)
 
     # When a mind runs out of easy reading it must not die — it should think, test, write, and
-    # grow its own agenda. The scheduler keeps a rotating cognitive backlog going whenever the mind
-    # is otherwise idle and still has budget. free_move lets it CHOOSE its next act (scout/investigate/
-    # review/paper/diagram/…); discover ideates; consolidate writes up; deliberate grows new interests.
-    IDLE_AGENDA = ("free_move", "discover", "consolidate", "free_move", "deliberate")
+    # grow its own agenda. free_move lets it CHOOSE its next act; discover ideates; consolidate writes up.
+    IDLE_AGENDA = ("free_move", "discover", "consolidate", "deliberate")
+    # Once the reading budget is spent (READING_BUDGET_FRACTION), switch to PRODUCING outputs with the
+    # reserved budget — synthesize, write reviews and compiled papers — so a mind ships, not just reads.
+    OUTPUT_AGENDA = ("consolidate", "review", "paper", "free_move", "discover")
+
+    def _top_interest(self) -> str:
+        try:
+            ints = selfmind.interests()
+            return ints[0][0] if ints else self.persona.name
+        except Exception:
+            return self.persona.name
 
     async def _scheduler_loop(self) -> None:
         from .. import selfmind
@@ -88,26 +96,61 @@ class Daemon:
                 depth = counts.get("pending", 0)
                 active = depth + counts.get("leased", 0)   # queued OR currently running
                 can_spend = self.persona.budget.can_spend()
+                can_read = self.persona.budget.can_read()   # False once the reading reserve is spent
                 enqueued = False
-                # 1. keep the reading fresh (cooldown-gated so it doesn't re-scout the same interests)
-                if _should_reflect(depth, now, last_reflect):
-                    self.queue.enqueue("reflect", priority=0)
+                # 0. DRIVE INVESTIGATIONS — the master line of thought. Every open question inside a
+                #    specialization becomes a persistent multistep PROGRAM worked by a team of agents
+                #    (gather → harvest → synthesize → analyze → write → finalize), chained by the
+                #    queue's dependency engine. This is the primary work; reading below just feeds it.
+                if can_spend:
+                    try:
+                        from ..research.investigation import Investigation
+                        invs = Investigation.list_all()
+                        active_invs = [i for i in invs if i.meta.get("status") == "running"]
+                        if len(active_invs) < config.MAX_ACTIVE_INVESTIGATIONS:
+                            taken = {i.question for i in invs}
+                            q = next((x for x in selfmind.open_questions() if x not in taken), None)
+                            if q:
+                                inv = Investigation.create(q, specialization=self._top_interest())
+                                inv.launch(self.queue)
+                                log().emit("thought", f"opened an investigation: “{q[:70]}” — a "
+                                           f"{len(inv.meta['steps'])}-agent team is on it", actor="self")
+                                enqueued = True
+                    except Exception as e:
+                        log().emit("error", f"investigation driver: {str(e)[:150]}", actor="scheduler")
+                # 1. keep the reading fresh — ONLY while within the reading budget (the rest is
+                #    reserved for producing outputs, so a mind never spends its whole day reading).
+                if can_read and _should_reflect(depth, now, last_reflect):
+                    self.queue.enqueue("reflect", priority=1)
                     last_reflect = now; enqueued = True
                     log().emit("schedule", f"queue low ({depth} < {config.QUEUE_MIN_DEPTH}); "
                                "starting a research pulse", actor="scheduler", depth=depth)
-                # 2. periodic reflective cognition: consolidate → evolve the self → discover leads
+                # 2. periodic reflective cognition + SHIP THE FIRST PAPER once enough is synthesized.
                 if now - last_self >= config.SELF_INTERVAL_S:
-                    self.queue.enqueue("consolidate", priority=6)
-                    self.queue.enqueue("deliberate", priority=1)
-                    self.queue.enqueue("discover", priority=6)
+                    self.queue.enqueue("consolidate", priority=2)
+                    self.queue.enqueue("deliberate", priority=3)
+                    self.queue.enqueue("discover", priority=4)
+                    try:
+                        notes = sum(1 for _ in self.persona.paths.notes_dir.glob("*.md"))
+                        has_paper = any(self.persona.paths.deliverables_dir.glob("paper-*.pdf"))
+                    except Exception:
+                        notes, has_paper = 0, True
+                    if notes >= 4 and not has_paper and can_spend:
+                        self.queue.enqueue("paper", priority=0, params={"topic": self._top_interest()})
+                        log().emit("schedule", "enough synthesis — writing a compiled paper",
+                                   actor="scheduler")
                     last_self = now; enqueued = True
-                # 3. NEVER IDLE: if nothing is queued or running and there's budget left, take the
-                #    next cognitive action so the mind keeps ideating, testing, exploring, and writing.
+                # 3. NEVER IDLE: keep ideating/testing/writing. Once the reading reserve is spent,
+                #    switch to PRODUCING outputs (reviews/papers) with the reserved budget.
                 if not enqueued and active == 0 and can_spend:
-                    act = self.IDLE_AGENDA[idle_i % len(self.IDLE_AGENDA)]; idle_i += 1
-                    self.queue.enqueue(act, priority=3)
-                    log().emit("schedule", f"idle — keeping the research alive with a {act} pulse",
-                               actor="scheduler")
+                    agenda = self.IDLE_AGENDA if can_read else self.OUTPUT_AGENDA
+                    act = agenda[idle_i % len(agenda)]; idle_i += 1
+                    params = {"topic": self._top_interest()} if act in ("paper", "review") else {}
+                    self.queue.enqueue(act, priority=(0 if act in ("paper", "review") else 3),
+                                       params=params)
+                    log().emit("schedule",
+                               f"{'producing outputs' if not can_read else 'keeping research alive'} "
+                               f"— a {act} pulse", actor="scheduler")
             except Exception as e:
                 log().emit("error", f"scheduler: {str(e)[:200]}", actor="scheduler")
             await asyncio.sleep(config.SCHEDULER_INTERVAL_S)

@@ -26,6 +26,8 @@ class Paths:
     @property
     def runs_dir(self): return self.workspace / "runs"
     @property
+    def investigations_dir(self): return self.workspace / "investigations"
+    @property
     def ops_dir(self): return self.workspace / ".persona"
     @property
     def queue_db(self): return self.ops_dir / "queue.db"
@@ -42,7 +44,7 @@ class Paths:
     def ensure(self) -> None:
         for d in (self.self_dir, self.notes_dir, self.sources_dir, self.datasets_dir,
                   self.projects_dir, self.drafts_dir, self.deliverables_dir, self.runs_dir,
-                  self.ops_dir):
+                  self.investigations_dir, self.ops_dir):
             d.mkdir(parents=True, exist_ok=True)
 
     def safe(self, relpath: str) -> Path:

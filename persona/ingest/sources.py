@@ -23,14 +23,14 @@ def _doi_norm(doi) -> str:
 
 
 def _mk(id_fallback: str, *, title, abstract, year, doi, authors, affiliations,
-        pdf_url=None, landing_url=None, venue=None) -> Work:
+        pdf_url=None, landing_url=None, venue=None, field=None, field_id=None) -> Work:
     dn = _doi_norm(doi)
     wid = ("doi_" + hashlib.sha1(dn.encode()).hexdigest()[:12]) if dn else id_fallback
     return Work(id=wid, title=(title or "").strip(), abstract=(abstract or "").strip(),
                 year=year, doi=(dn or None), authors=[a for a in authors if a],
                 affiliations=list(dict.fromkeys([a for a in affiliations if a])),
                 pdf_url=pdf_url, landing_url=landing_url or (f"https://doi.org/{dn}" if dn else None),
-                venue=venue, cited_by=0)
+                venue=venue, cited_by=0, field=field, field_id=field_id)
 
 
 # ------------------------------------------------------------------ OpenAlex
@@ -42,7 +42,7 @@ def _reconstruct_abstract(inv):
     return " ".join(w for _, w in pos)
 
 
-def openalex_search(query: str, limit: int, page: int = 1) -> list[Work]:
+def openalex_search(query: str, limit: int, page: int = 1, field_ids=None) -> list[Work]:
     from .. import config
     # OpenAlex treats ? and * as wildcards and rejects them under its default stemmed search.
     query = re.sub(r"[*?]+", " ", query or "").strip()
@@ -50,6 +50,10 @@ def openalex_search(query: str, limit: int, page: int = 1) -> list[Work]:
         return []
     params = {"search": query, "per_page": max(1, min(limit, 50)), "page": page,
               "mailto": config.OPENALEX_MAILTO, "sort": "relevance_score:desc"}
+    # field filter: keep the persona ON its declared fields (OpenAlex classifies every work into a
+    # primary_topic.field, so biomed/education never even get fetched). See exp_rq_e15 — decisive.
+    if field_ids:
+        params["filter"] = "primary_topic.field.id:" + "|".join(f"fields/{f}" for f in field_ids)
     if config.OPENALEX_API_KEY:                       # premium pool: higher rate limits, no shared-pool ban
         params["api_key"] = config.OPENALEX_API_KEY
     d = service().get_json("https://api.openalex.org/works", params)
@@ -59,13 +63,16 @@ def openalex_search(query: str, limit: int, page: int = 1) -> list[Work]:
                 for inst in (a.get("institutions") or []) if inst.get("display_name")]
         boa = r.get("best_oa_location") or {}
         ploc = r.get("primary_location") or {}
+        fld = (r.get("primary_topic") or {}).get("field") or {}
         out.append(_mk(r.get("id", "").rsplit("/", 1)[-1],
                        title=r.get("title"), abstract=_reconstruct_abstract(r.get("abstract_inverted_index")),
                        year=r.get("publication_year"), doi=r.get("doi"),
                        authors=[a.get("author", {}).get("display_name", "") for a in r.get("authorships", [])],
                        affiliations=affs, pdf_url=boa.get("pdf_url") or ploc.get("pdf_url"),
                        landing_url=boa.get("landing_page_url") or ploc.get("landing_page_url"),
-                       venue=((ploc.get("source") or {}).get("display_name"))))
+                       venue=((ploc.get("source") or {}).get("display_name")),
+                       field=fld.get("display_name"),
+                       field_id=(fld.get("id") or "").rsplit("/", 1)[-1] or None))
     return out
 
 
@@ -151,13 +158,14 @@ _SOURCES = [("openalex", openalex_search), ("crossref", crossref_search),
             ("europepmc", europepmc_search), ("arxiv", arxiv_search)]
 
 
-def search_multi(query: str, limit: int = 25, *, log=None) -> tuple[list[Work], str]:
+def search_multi(query: str, limit: int = 25, *, field_ids=None, log=None) -> tuple[list[Work], str]:
     """Try each source in order; return (works, source_used). Fails over on error/empty; only
-    returns ([], 'none') if ALL sources fail. `log(msg)` optional for surfacing which source hit."""
+    returns ([], 'none') if ALL sources fail. `log(msg)` optional for surfacing which source hit.
+    `field_ids` (OpenAlex field ids) constrains the primary source to the persona's fields."""
     tried = []
     for name, fn in _SOURCES:
         try:
-            works = fn(query, limit)
+            works = fn(query, limit, field_ids=field_ids) if name == "openalex" else fn(query, limit)
         except Exception as e:
             tried.append(f"{name}:err")
             if log:

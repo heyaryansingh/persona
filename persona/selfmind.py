@@ -94,6 +94,53 @@ def open_questions() -> list[str]:
             if ln.strip().startswith("- ")]
 
 
+def allowed_field_ids(max_fields: int = 3) -> list[str]:
+    """The persona's allowed OpenAlex field ids — its declared research fields. Reading is
+    hard-constrained to these so a math mind never fetches biomed/education papers (validated
+    decisive in experiments/exp_rq_e15_field_question_gate.py). Derived ONCE from the top interests
+    via OpenAlex's own primary_topic.field taxonomy and cached in .persona/fields.json; re-derived
+    when interests change. Returns [] (no constraint) for a blank slate or on any error — fail OPEN,
+    a classification hiccup must never silently stop a mind from reading."""
+    import json
+    ints = interests()
+    if not ints:
+        return []
+    key = str(abs(hash(tuple(sorted(n for n, _ in ints)))))[:16]
+    cache = get_persona().paths.ops_dir / "fields.json"
+    try:
+        if cache.exists():
+            c = json.loads(cache.read_text(encoding="utf-8"))
+            if c.get("key") == key:
+                return c.get("fields", [])
+    except Exception:
+        pass
+    try:
+        from collections import Counter
+        from .ingest.sources import service
+        cnt = Counter()
+        for name, _w in sorted(ints, key=lambda x: -x[1])[:6]:
+            d = service().get_json("https://api.openalex.org/works",
+                                   {"search": name, "per_page": 3, "mailto": config.OPENALEX_MAILTO,
+                                    "sort": "relevance_score:desc"})
+            for r in d.get("results", []):
+                fid = ((r.get("primary_topic") or {}).get("field") or {}).get("id", "").rsplit("/", 1)[-1]
+                if fid:
+                    cnt[fid] += 1
+        # keep only STRONG-majority fields (share ≥ 0.35): a noisy interest search that mis-hits one
+        # off-field paper (e.g. a biochem match for "representations") must NOT admit that whole field.
+        # A blank result (all noise) falls back to the single top field. Explicit seeding (Phase B)
+        # overrides this heuristic when the user declares the specializations.
+        total = sum(cnt.values()) or 1
+        fields = [f for f, c in cnt.most_common() if c / total >= 0.35][:max_fields] or \
+                 [f for f, _ in cnt.most_common(1)]
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps({"key": key, "fields": fields, "counts": dict(cnt)}, indent=2),
+                         encoding="utf-8")
+        return fields
+    except Exception:
+        return []
+
+
 def read_self() -> dict:
     """The self as a dict of {filename: text} — fed (excerpted) into agent prompts."""
     out = {}

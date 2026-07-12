@@ -45,6 +45,13 @@ class DailyBudget:
     def can_spend(self) -> bool:
         return self.remaining() > 0.0
 
+    def can_read(self) -> bool:
+        """Reading (scout/observe/bulk) stops at READING_BUDGET_FRACTION of the daily cap, RESERVING
+        the rest of the budget for producing outputs — synthesis, papers, reviews, investigations —
+        so a mind never burns its whole day on reading and ships nothing (the 'no paper produced' bug)."""
+        frac = getattr(config, "READING_BUDGET_FRACTION", 0.65)
+        return self.spent_today() < self.cap * frac and self.can_spend()
+
     def add(self, usd: float) -> None:
         self._db().execute(
             "INSERT INTO budget (date, spent) VALUES (?, ?) "

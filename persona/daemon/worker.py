@@ -57,12 +57,13 @@ async def _reflect(task, queue) -> str:
 async def _bulk(task, queue) -> str:
     """Background bulk sweep: scout a batch of papers and submit them to the Batch API."""
     import asyncio
+    from .. import config
     from ..reading import reader, batch
     from ..budget import budget
     interest = task.params.get("interest", task.prompt)
-    if not budget().can_spend():
-        return "bulk: budget reached"
-    works = await asyncio.to_thread(reader.scout, interest, 25)
+    if not budget().can_read():
+        return "bulk: reading budget reserved for outputs"
+    works = await asyncio.to_thread(reader.scout, interest, config.BATCH_SWEEP)
     if not works:
         return "bulk: nothing new"
     res = await asyncio.to_thread(batch.submit, works, interest)
@@ -82,6 +83,9 @@ async def _scout(task, queue) -> str:
     """Discover many unread papers for an interest and fan out one reader per paper (volume)."""
     import asyncio
     from ..reading import reader
+    from ..budget import budget
+    if not budget().can_read():
+        return "scout: reading budget reserved for outputs (synthesis/papers)"
     interest = task.params.get("interest", task.prompt)
     works = await asyncio.to_thread(reader.scout, interest, 20)
     for w in works:
@@ -90,6 +94,58 @@ async def _scout(task, queue) -> str:
     log().emit("spawn", f"found {len(works)} unread paper(s) on “{interest}” → queued readers",
                actor="scout", parent_id=task.parent_id, interest=interest, n=len(works))
     return f"scout: queued {len(works)} readers for {interest}"
+
+
+@handler("gather")
+async def _gather(task, queue) -> str:
+    """An investigation's evidence step: scout the question (field + relevance gated) and read the
+    top-K papers INLINE, so the evidence is on disk before the dependent harvest step runs."""
+    import asyncio
+    from .. import config
+    from ..reading import reader
+    from ..budget import budget
+    interest = task.params.get("interest", task.prompt)
+    if not budget().can_read():
+        return "gather: reading budget reserved for outputs"
+    works = await asyncio.to_thread(reader.scout, interest, config.GATHER_READS)
+    read = 0
+    for w in works:
+        if not budget().can_read():
+            break
+        r = await asyncio.to_thread(reader.read_work, w, interest, parent_id=task.parent_id)
+        if r.get("ok") and r.get("read", True) is not False:
+            read += 1
+    log().emit("spawn", f"gathered {read} on-topic paper(s) for “{interest[:60]}”", actor="gather",
+               parent_id=task.parent_id, interest=interest, n=read)
+    return f"gather: read {read} paper(s) for the question"
+
+
+@handler("finalize_investigation")
+async def _finalize_investigation(task, queue) -> str:
+    """Close an investigation: aggregate step outcomes into findings.md and mark it done."""
+    import asyncio
+    from ..research.investigation import Investigation
+    inv = Investigation.load(task.params.get("investigation_id") or "")
+    if inv is None:
+        return "finalize: no investigation"
+    await asyncio.to_thread(inv.finalize, queue)
+    report = (inv.meta.get("findings") or {}).get("report")
+    log().emit("thought", f"closed the investigation “{inv.question[:64]}”"
+               + (f" → {report}" if report else ""), actor="self", parent_id=task.parent_id)
+    return f"finalize: {inv.slug} done" + (f" ({report})" if report else "")
+
+
+@handler("prove")
+async def _prove(task, queue) -> str:
+    """Reasoning/proof step: produce a structured derivation and machine-check its steps with sympy."""
+    import asyncio
+    from ..agents import reason
+    q = task.params.get("question", task.params.get("topic", task.prompt))
+    res = await asyncio.to_thread(reason.prove, q, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"prove: {res.get('reason')}"
+    return f"prove: {res.get('verified')}/{res.get('checks')} steps verified" \
+           + (f" → {res['doc']}" if res.get("doc") else "")
 
 
 @handler("read_url")
@@ -244,6 +300,9 @@ async def _observe(task, queue) -> str:
     Runs the blocking fetch+LLM off the event loop so other workers keep going."""
     import asyncio
     from ..reading import reader
+    from ..budget import budget
+    if not budget().can_read():
+        return "observe: reading budget reserved for outputs"
     work = task.params.get("work")
     interest = task.params.get("interest", "")
     if not work:

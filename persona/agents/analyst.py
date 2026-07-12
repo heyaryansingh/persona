@@ -261,17 +261,26 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
     for turn in range(max_turns):
         if not budget().can_spend():
             break
+        # Wrap-up: once code has run and turns are almost out, FORCE the finish tool so a real report
+        # lands instead of being discarded as "no-finish" (turn-exhaustion was the main cause of lost,
+        # already-paid-for investigations). Two forced turns leave one retry if the first finish is rejected.
+        force_finish = ran_code and turn >= max_turns - 2
+        sys_prompt = _SYSTEM if not force_finish else (_SYSTEM +
+            "\n\nYou are out of turns. Call finish NOW with your report and at least one conclusion. "
+            "Cite ONLY evidence IDs shown to you; mark anything else UNSUPPORTED_HYPOTHESIS (needs no IDs).")
         message_json = json.dumps(messages, ensure_ascii=False, default=str)
         request_payload = {"turn": turn, "message_count": len(messages),
                            "messages_sha256": _hl.sha256(message_json.encode()).hexdigest(),
-                           "allowed_claim_ids": sorted(claim_ids)}
+                           "allowed_claim_ids": sorted(claim_ids), "forced_finish": force_finish}
         if turn == 0:
             request_payload.update({"system": _SYSTEM, "messages": messages})
         request_id = session.record("model_request", request_payload,
                                     parent_event_id=request_parent)
         call_started = perf_counter()
-        resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=4096, system=_SYSTEM,
-                                      tools=TOOLS, messages=messages)
+        resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=4096, system=sys_prompt,
+                                      tools=TOOLS, messages=messages,
+                                      tool_choice=({"type": "tool", "name": "finish"} if force_finish
+                                                   else {"type": "auto"}))
         model_latency_ms = round((perf_counter() - call_started) * 1000)
         u = resp.usage
         call_cost = (u.input_tokens * 3.0 + u.output_tokens * 15.0) / 1_000_000
@@ -362,11 +371,19 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         title = title[:117].rsplit(" ", 1)[0] + "..."
     report = finished.get("report_markdown", "")
     conclusions = finished.get("conclusions", [])
+    # substance banner: grade the whole report by whether any conclusion is actually evidence-backed,
+    # so an all-hypotheses report reads as exploratory, not a finding (the substance gate for reports).
+    statuses = {c.get("status") for c in conclusions}
+    rtier = ("verified" if "SUPPORTED" in statuses else
+             "provisional" if "INFERRED" in statuses else "exploratory")
+    rbanner = {"verified": "> **verified** — at least one conclusion is backed by cited evidence.",
+               "provisional": "> **provisional** — conclusions are inferred, not directly evidenced.",
+               "exploratory": "> **exploratory** — hypotheses only; nothing here is evidence-backed yet."}[rtier]
     conclusion_lines = ["## Evidence-linked conclusions"] + [
         f"- **{item['status']} · confidence {float(item['confidence']):.2f}:** {item['claim']} "
         f"({' '.join(f'[{e}]' for e in item['evidence_ids']) or '[no evidence — hypothesis]'})"
         for item in conclusions]
-    report = report.rstrip() + "\n\n" + "\n".join(conclusion_lines) + "\n"
+    report = rbanner + "\n\n" + report.rstrip() + "\n\n" + "\n".join(conclusion_lines) + "\n"
     draft = get_persona().paths.drafts_dir / f"{_slug(question)}-{session.id[-8:]}.md"
     get_persona().paths.drafts_dir.mkdir(parents=True, exist_ok=True)
     draft.write_text(f"# {title}\n\n_{_now()} · question: {question}_\n\n{report}\n", encoding="utf-8")
@@ -403,9 +420,9 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
     session.update(cost_usd=round(total_cost, 6))
     session.finalize("completed", title=title, conclusions=conclusions,
                      parent_event_id=finish_event_id)
-    log().emit("artifact", f"wrote a report: “{title}” (real analysis{' with code' if ran_code else ''})",
+    log().emit("artifact", f"wrote a report: “{title}” [{rtier}] (real analysis{' with code' if ran_code else ''})",
                actor="analyst", parent_id=parent_id, draft=str(draft.name), ran_code=ran_code,
-               session_id=session.id)
+               session_id=session.id, tier=rtier)
     return {"ok": True, "title": title, "draft": str(draft),
             "project": str(project.relative_to(get_persona().paths.projects_dir)).replace("\\", "/"),
             "session_id": session.id, "ran_code": ran_code}

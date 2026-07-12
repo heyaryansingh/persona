@@ -1,0 +1,95 @@
+{
+  "ok": true,
+  "n": 14,
+  "accuracy": 0.929,
+  "on_topic_recall": 0.857,
+  "off_field_dropped": 1.0,
+  "named_off_field_dropped": "1/1",
+  "verdict": "SHIP",
+  "rows": [
+    {
+      "title": "On the Erd\u0151s\u2013Straus conjecture",
+      "label": 1,
+      "field_id": "26",
+      "passes": true
+    },
+    {
+      "title": "Denser Egyptian fractions",
+      "label": 1,
+      "field_id": "26",
+      "passes": true
+    },
+    {
+      "title": "Unit fractions and the Erd\u0151s\u2013Graham problem",
+      "label": 1,
+      "field_id": "26",
+      "passes": true
+    },
+    {
+      "title": "The distribution of solutions to the Erd\u0151s\u2013Straus equation",
+      "label": 1,
+      "field_id": "26",
+      "passes": true
+    },
+    {
+      "title": "Covering systems and the Erd\u0151s\u2013Straus conjecture",
+      "label": 1,
+      "field_id": "26",
+      "passes": true
+    },
+    {
+      "title": "On sums of unit fractions and the large sieve",
+      "label": 1,
+      "field_id": "22",
+      "passes": false
+    },
+    {
+      "title": "A note on Egyptian fractions",
+      "label": 1,
+      "field_id": "26",
+      "passes": true
+    },
+    {
+      "title": "Sixth Grade Students Skills of Using Multiple Representation",
+      "label": 0,
+      "field_id": "33",
+      "passes": false
+    },
+    {
+      "title": "Denser Egyptian fractions in the mathematics classroom",
+      "label": 0,
+      "field_id": "33",
+      "passes": false
+    },
+    {
+      "title": "Higuchi fractal dimension in EEG aging studies",
+      "label": 0,
+      "field_id": "28",
+      "passes": false
+    },
+    {
+      "title": "Aberrant gene activation in synovial sarcoma",
+      "label": 0,
+      "field_id": "27",
+      "passes": false
+    },
+    {
+      "title": "Blast induced vibrations in open pit mining",
+      "label": 0,
+      "field_id": "23",
+      "passes": false
+    },
+    {
+      "title": "Photonic crystal waveguides for optical computing",
+      "label": 0,
+      "field_id": "31",
+      "passes": false
+    },
+    {
+      "title": "Capital asset prices: a theory of market equilibrium",
+      "label": 0,
+      "field_id": "20",
+      "passes": false
+    }
+  ]
+}

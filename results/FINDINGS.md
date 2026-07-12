@@ -587,3 +587,58 @@ produce identical result JSON. Random search was marginally best (`0.810 ± 0.01
 (`0.810 ± 0.010`) and archive (`0.808 ± 0.010`), so the archive hypothesis did not win. The valid
 conclusion is that the keep/revert harness works on this proxy, not that Persona should automate
 human escalation.
+
+## RQ-E14 — objective-relevance reading gate (SHIP)
+
+Persona read with ZERO relevance filtering: `reader.scout` admitted any unread work its query
+returned, so the `erdos` math persona (Erdős–Straus conjecture) pulled ~59% off-objective papers
+(synovial sarcoma, EEG/Higuchi fractal dimension, microstrip lines, capital-asset pricing) that then
+polluted its belief graph and produced incoherent, empty-bodied syntheses — the persona's own
+`identity.md` is a repeated complaint about "Higuchi/EEG/photonic-crystal noise topping the graph."
+
+Hypothesis: gating a scouted paper's TITLE on its max cosine similarity (bge-small — the embedder the
+daemon already runs, free/local/no-API) to the persona's DURABLE objective (its top-weighted
+interests) separates on- from off-topic well enough to ship as a default.
+
+Deterministic (bge-small is deterministic); measured on the persona's own 646 real scouted titles,
+keyword-labeled with vocabulary DISJOINT from the embedding (219 clear-ON, 51 clear-OFF).
+
+| tau | balanced acc | on-topic kept | off-topic dropped | all titles passing |
+|-----|--------------|---------------|-------------------|--------------------|
+| 0.66 | — | 95% | 78% | 67% |
+| 0.68 | — | 95% | 88% | 61% |
+| **0.70** | **0.939** | **94%** | **94%** | **56%** |
+| 0.72 | 0.927 | 91% | 94% | 49% |
+
+Pre-registered gate (balanced accuracy ≥ 0.90 AND on-topic recall ≥ 0.90) is met at tau=0.70 →
+**SHIP**. Wired into `persona/reading/reader.py::_relevance_filter` (before the `want` cap, so a
+mind reads only the on-objective few, not 20 fakes), `PERSONA_RELEVANCE_TAU=0.70`, fails OPEN with no
+anchor so a blank slate is never blocked. Live end-to-end check on a worst-case off-topic query
+dropped 20/25; on real focused interests it keeps the on-topic majority. Script:
+`experiments/exp_rq_e14_relevance_gate.py`; raw: `results/rq_e14_relevance_gate.json`.
+
+## RQ-E15 — source-level FIELD gate (SHIP, precision-biased)
+
+The τ=0.70 title-embedding gate (RQ-E14) still admits near-neighbour off-field papers — math
+*education* ("Sixth Grade Students … Addition and Subtraction", cos 0.727) sits next to "unit
+fractions". OpenAlex classifies every work into a `primary_topic.field`, so a math persona can filter
+at the SOURCE: off-field papers are never fetched.
+
+On 14 labeled real titles, the Mathematics-field filter (`primary_topic.field.id:fields/26`):
+
+| metric | value |
+|--------|-------|
+| off-field dropped | **100%** (education/Social-Sci 33, EEG/Neuro 28, Medicine 27, mining 23, photonics 31, finance 20) |
+| named title ("Sixth Grade Students…") | **dropped** (field 33) |
+| on-topic recall | 85.7% (one "large sieve" paper OpenAlex mis-filed under Engineering 22) |
+| accuracy | 0.929 |
+
+**SHIP** under a precision-biased gate (the user explicitly wants "stop reading useless papers,
+everything serves a purpose"): drops 100% of clearly-off-field noise while keeping on-topic recall
+≥ 0.85. The residual recall cost is bounded (OpenAlex occasionally files a math paper under an
+adjacent field), mitigated by the complementary RQ-E14 embedding gate and by explicit specialization
+seeding. **Auto-deriving fields is noisy** — searching interest phrases mis-hit a biochem paper and
+would have admitted field 13; fixed by keeping only strong-majority fields (share ≥ 0.35), which
+yields a clean `{26}` for Erdos. Wired: `ingest/sources.py::openalex_search(field_ids=…)`,
+`selfmind.allowed_field_ids()`, `reader.scout`. Script `experiments/exp_rq_e15_field_question_gate.py`;
+raw `results/rq_e15_field_gate.json`; tests `tests/test_field_gate.py`.

@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "persona": "erdos",
+  "n_titles": 646,
+  "n_anchor": 9,
+  "labeled_on": 219,
+  "labeled_off": 51,
+  "on_mean_cos": 0.81,
+  "off_mean_cos": 0.615,
+  "best": {
+    "tau": 0.7,
+    "balanced_acc": 0.939,
+    "on_topic_recall": 0.936,
+    "off_topic_drop": 0.941,
+    "frac_all_pass": 0.559
+  },
+  "verdict": "SHIP"
+}

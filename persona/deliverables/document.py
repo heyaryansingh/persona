@@ -105,6 +105,17 @@ def _inline(text: str) -> str:
     return text
 
 
+def sanitize_markdown(md: str) -> str:
+    """Strip pseudo-XML tool markers the model sometimes leaks into prose (</synthesis_markdown>,
+    <parameter …>, antml/tool tags) and collapse runaway blank lines — so notes read like prose."""
+    md = md or ""
+    md = re.sub(r"</?(?:synthesis_markdown|report_markdown|parameter|invoke|tool_use|"
+                r"function_calls|antml:[A-Za-z_:]+)[^>]*>", "", md)
+    md = re.sub(r'<parameter\b[^>]*>', "", md)
+    md = re.sub(r"\n{4,}", "\n\n\n", md)
+    return md.strip()
+
+
 def md_to_latex(md: str, title: str = "") -> str:
     """Pragmatic markdown -> LaTeX body (headings, lists, code fences, blockquotes, images, math)."""
     lines = (md or "").replace("\r\n", "\n").split("\n")
@@ -156,13 +167,38 @@ def md_to_latex(md: str, title: str = "") -> str:
     return "\n".join(out)
 
 
+def _decl_unicode() -> str:
+    """Declare the Unicode math/Greek chars LLM LaTeX emits, so pdflatex accepts them anywhere."""
+    out = []
+    for ch, repl in _UNI.items():
+        cp = ord(ch)
+        if cp < 0x80:
+            continue
+        m = repl.strip()
+        body = ("\\ensuremath{%s}" % m[1:-1]) if (m.startswith("$") and m.endswith("$")) else m
+        out.append("\\DeclareUnicodeCharacter{%04X}{%s}" % (cp, body))
+    return "\n".join(out)
+
+
+def harden_latex(tex: str) -> str:
+    """Make LLM-written LaTeX actually compile: strip combining marks, replace the model's own
+    inputenc/fontenc with robust ones, and DECLARE the Unicode math chars it emits (≥, ≤, ∑, α…) so
+    pdflatex never dies on 'Unicode character not set up'. Non-destructive to real math."""
+    tex = "".join(c for c in (tex or "") if not (0x0300 <= ord(c) <= 0x036F))
+    tex = re.sub(r"\\usepackage(?:\[[^\]]*\])?\{(?:inputenc|fontenc)\}\s*", "", tex)
+    inject = ("\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n"
+              "\\usepackage{amsmath,amssymb}\n" + _decl_unicode() + "\n")
+    m = re.search(r"\\documentclass(?:\[[^\]]*\])?\{[^}]*\}", tex)
+    return (tex[:m.end()] + inject + tex[m.end():]) if m else ("\\documentclass{article}" + inject + tex)
+
+
 def compile_source(source: str, fmt: str, project: Path, *, title: str = "") -> dict:
     """Write `source` (md|tex) as main.tex in `project` and compile to PDF. Deterministic, offline."""
     project.mkdir(parents=True, exist_ok=True)
     if fmt == "tex":
         tex = source
     else:
-        body = md_to_latex(source, title)
+        body = md_to_latex(sanitize_markdown(source), title)
         tex = _TEMPLATE % {"title": _scrub(_esc(title or "Document")), "body": body}
     (project / "main.tex").write_text(tex, encoding="utf-8")
     r = sandbox.compile_latex(project, "main.tex")

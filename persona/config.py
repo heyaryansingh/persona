@@ -56,12 +56,30 @@ INGEST_INTERVAL_MULT = float(os.environ.get("PERSONA_INGEST_GENTLE", "1.0"))
 HTTP_CACHE_TTL_DAYS = float(os.environ.get("PERSONA_HTTP_CACHE_TTL_DAYS", "7"))
 
 # daemon knobs
-N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "3"))
+# Live workers: budget/rate-limits are the real governor (E07a: effective reading-team saturates
+# ~14-15), so 8 approaches that ceiling with headroom without pretending to be "hundreds". The real
+# thousands/day scale lever is the Batch API (reading/batch.py, 0.5x cost, non-blocking).
+N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "8"))
+# Relevance gate: drop scouted papers whose title is off the persona's objective (max cosine to its
+# top interests, bge-small). tau=0.70 validated on 646 real Erdos titles = 0.939 balanced accuracy,
+# keeps 94% on-topic / drops 94% off-topic — see experiments/exp_rq_e14_relevance_gate.py.
+RELEVANCE_TAU = float(os.environ.get("PERSONA_RELEVANCE_TAU", "0.70"))
+RELEVANCE_GATE = os.environ.get("PERSONA_RELEVANCE_GATE", "1") not in ("0", "false", "")
+# Paper compile: repair-and-retry loop feeds the pdflatex error log back to the model (LLM LaTeX
+# usually needs a pass or two). Bounded by budget().can_spend() in the loop.
+PAPER_COMPILE_ATTEMPTS = int(os.environ.get("PERSONA_PAPER_COMPILE_ATTEMPTS", "3"))
+BATCH_SWEEP = int(os.environ.get("PERSONA_BATCH_SWEEP", "75"))   # papers per background Batch-API sweep
+# Investigation engine (v7): a research program is a chain of role-steps worked by a team.
+GATHER_READS = int(os.environ.get("PERSONA_GATHER_READS", "6"))   # papers read inline per gather step
+MAX_ACTIVE_INVESTIGATIONS = int(os.environ.get("PERSONA_MAX_INVESTIGATIONS", "4"))  # concurrent programs
+FLEET_TARGET = int(os.environ.get("PERSONA_FLEET_TARGET", "50"))  # honest target in-flight agent-tasks
+LIVE_CONCURRENCY = int(os.environ.get("PERSONA_LIVE_CONCURRENCY", str(N_WORKERS)))  # paid parallelism cap
 QUEUE_MIN_DEPTH = int(os.environ.get("PERSONA_QUEUE_MIN_DEPTH", "4"))   # scheduler tops up below this
 SCHEDULER_INTERVAL_S = float(os.environ.get("PERSONA_SCHEDULER_INTERVAL", "5"))
 SCOUT_INTERVAL_S = float(os.environ.get("PERSONA_SCOUT_INTERVAL", "900"))  # minimum between broad pulses
 SELF_INTERVAL_S = float(os.environ.get("PERSONA_SELF_INTERVAL", "1800"))   # reflecting-self cadence
 DAILY_BUDGET_USD = float(os.environ.get("PERSONA_DAILY_BUDGET_USD", "15"))
+READING_BUDGET_FRACTION = float(os.environ.get("PERSONA_READING_FRACTION", "0.65"))  # reserve rest for outputs
 LEASE_SECONDS = int(os.environ.get("PERSONA_LEASE_SECONDS", "300"))
 
 

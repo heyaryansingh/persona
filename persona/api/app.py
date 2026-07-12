@@ -163,6 +163,96 @@ def status(pid: str):
                 "have_key": config.have_key()}
 
 
+@app.get("/api/persona/{pid}/swarm")
+def swarm(pid: str):
+    """Live swarm snapshot for the real-time view: worker count, what each active (leased) task is
+    doing with a human target, recent completions, queued steps, and run-state — the truth behind the
+    animation (all real tasks; nothing padded). `investigation_id` on a task groups it into a team."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    with context.use(p):
+        q = d.queue if d else p.queue()
+        snap = q.active()
+        counts = snap.get("counts", {})
+        snap["in_flight"] = counts.get("pending", 0) + counts.get("leased", 0)  # honest fleet size
+        snap["live_cap"] = config.LIVE_CONCURRENCY
+    snap["workers"] = d.n_workers if d else 0
+    snap["run_state"] = p.to_card().get("run_state")
+    return snap
+
+
+@app.get("/api/persona/{pid}/investigations")
+def investigations(pid: str):
+    """The persona's research programs (the master lines of thought): each open question as a
+    persistent multistep investigation with per-step progress. Documents live under investigations/."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    with context.use(p):
+        from ..research.investigation import Investigation
+        q = d.queue if d else p.queue()
+        out = []
+        for inv in sorted(Investigation.list_all(), key=lambda i: i.meta.get("updated", ""), reverse=True):
+            qsteps = {s["step_idx"]: s for s in q.investigation_steps(inv.id)}
+            steps = [{"role": s["role"], "type": s["type"],
+                      "status": qsteps.get(s["idx"], {}).get("status", s.get("status", "pending"))}
+                     for s in inv.meta.get("steps", [])]
+            done = sum(1 for s in steps if s["status"] == "done")
+            out.append({"slug": inv.slug, "question": inv.question,
+                        "specialization": inv.meta.get("specialization", ""),
+                        "status": inv.meta.get("status", "open"), "updated": inv.meta.get("updated"),
+                        "steps": steps, "done": done, "total": len(steps),
+                        "report": (inv.meta.get("findings") or {}).get("report")})
+    return {"investigations": out, "n": len(out)}
+
+
+@app.get("/api/persona/{pid}/now")
+def now(pid: str):
+    """The master line of thought as data: the persona's specializations, active investigations with
+    live progress, recently produced reports, and open questions — powers the UI's 'current work'."""
+    p = _p(pid)
+    d = manager()._daemons.get(pid)
+    with context.use(p):
+        from ..research.investigation import Investigation
+        q = d.queue if d else p.queue()
+        invs = Investigation.list_all()
+        active = []
+        for i in invs:
+            if i.meta.get("status") != "running":
+                continue
+            steps = {s["step_idx"]: s for s in q.investigation_steps(i.id)}
+            nd = sum(1 for s in steps.values() if s["status"] == "done")
+            active.append({"slug": i.slug, "question": i.question, "done": nd,
+                           "total": len(i.meta.get("steps", []))})
+        recent = [{"slug": i.slug, "question": i.question,
+                   "report": (i.meta.get("findings") or {}).get("report")}
+                  for i in sorted([x for x in invs if x.meta.get("status") == "done"],
+                                  key=lambda x: x.meta.get("updated", ""), reverse=True)[:6]]
+        return {"specializations": [n for n, _ in sorted(selfmind.interests(), key=lambda x: -x[1])[:5]],
+                "open_questions": selfmind.open_questions()[:10], "active": active, "recent": recent}
+
+
+@app.get("/api/persona/{pid}/folder/bundle")
+def folder_bundle(pid: str, path: str):
+    """Export any folder the persona built as a .zip (a real research directory you can take away)."""
+    import io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+    p = _p(pid)
+    with context.use(p):
+        base = p.paths.safe(path)
+        if not base.is_dir():
+            return {"ok": False, "reason": "not-a-folder"}
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for f in base.rglob("*"):
+                if f.is_file() and ".persona" not in f.parts:
+                    z.write(f, f.relative_to(base))
+        buf.seek(0)
+        name = (base.name or "folder") + ".zip"
+    return StreamingResponse(buf, media_type="application/zip",
+                             headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
 @app.get("/api/persona/{pid}/events")
 def events(pid: str, after: int = 0, limit: int = 500):
     with context.use(_p(pid)):
@@ -452,7 +542,7 @@ def deliver(pid: str, payload: dict):
     topic = payload.get("topic", "")
     if d is None:
         return {"ok": False, "reason": "daemon not running (seed the persona first)"}
-    tid = d.queue.enqueue("paper" if kind == "paper" else "review", priority=2,
+    tid = d.queue.enqueue("paper" if kind == "paper" else "review", priority=0,
                           params={"topic": topic})
     return {"ok": True, "queued": kind, "task": tid}
 
@@ -709,25 +799,56 @@ _TEXT_EXT = {".py", ".md", ".txt", ".json", ".jsonl", ".csv", ".tsv", ".tex", ".
 @app.get("/api/persona/{pid}/files")
 def files(pid: str):
     """The persona's workspace as a jailed recursive tree (dirs + files, sizes) — so every
-    experiment, script, figure, dataset, and compiled deliverable it made is browsable."""
+    experiment, script, figure, dataset, and compiled deliverable it made is browsable. Investigation
+    folders are labelled with their question; over-large dirs (e.g. 600+ sources) are capped per
+    directory so the document folders are never starved by the raw read-paper pile."""
+    import json as _json
     p = _p(pid)
     root = p.paths.workspace.resolve()
-    budget = [4000]
+    budget = [6000]
+    PER_DIR = 300                       # cap children per directory; surface the remainder as a count
+    # document-first ordering: the folders a scientist reads come first; raw sources last
+    ORDER = {"investigations": 0, "deliverables": 1, "notes": 2, "drafts": 3, "self": 4,
+             "projects": 5, "datasets": 6, "runs": 7, "uploads": 8, "sources": 9}
+
+    def _label(e):
+        if e.parent.name == "investigations":            # annotate an investigation folder
+            try:
+                m = _json.loads((e / "investigation.json").read_text(encoding="utf-8"))
+                st = m.get("status", "")
+                return f"{m.get('question', '')[:80]}" + (f" · {st}" if st else "")
+            except Exception:
+                return None
+        return None
 
     def walk(d, depth):
         out = []
         try:
-            entries = sorted(d.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+            entries = list(d.iterdir())
         except Exception:
             return out
+        if depth == 0:
+            entries.sort(key=lambda x: (ORDER.get(x.name, 50), x.name.lower()))
+        else:
+            entries.sort(key=lambda x: (x.is_file(), x.name.lower()))
+        shown = 0
         for e in entries:
             if e.name.startswith(".") or budget[0] <= 0:
                 continue
+            if shown >= PER_DIR:
+                out.append({"name": f"… {len(entries) - shown} more", "type": "more",
+                            "count": len(entries) - shown})
+                break
+            shown += 1
             budget[0] -= 1
             rel = str(e.relative_to(root)).replace("\\", "/")
             if e.is_dir():
-                out.append({"name": e.name, "path": rel, "type": "dir",
-                            "children": walk(e, depth + 1) if depth < 7 else []})
+                node = {"name": e.name, "path": rel, "type": "dir",
+                        "children": walk(e, depth + 1) if depth < 7 else []}
+                lab = _label(e)
+                if lab:
+                    node["label"] = lab
+                out.append(node)
             else:
                 try:
                     sz = e.stat().st_size

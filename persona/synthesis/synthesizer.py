@@ -39,6 +39,41 @@ def _slug(entities: list) -> str:
     return (s or "topic")[:60]
 
 
+def substance_tier(support_rate: float | None, n_claims: int) -> str:
+    """Objective substance grade for a synthesis, from the two signals we actually measure:
+    what fraction of the prose traces back to a stored verbatim quote, and how many claims back it.
+    Thresholds are deliberately conservative so a thin/ungrounded note reads as a DRAFT, not a finding
+    — this is the substance gate that stops 'unverified reports with no substance' from looking authoritative."""
+    if support_rate is None:
+        return "unverified"
+    if support_rate >= 0.7 and n_claims >= 4:
+        return "verified"
+    if support_rate >= 0.4:
+        return "provisional"
+    return "draft"
+
+
+_TIER_BANNER = {
+    "verified": "> **verified synthesis** · {pct}% of statements trace to a stored quote across {n} claims.",
+    "provisional": "> **provisional** · {pct}% quote-supported across {n} claims — treat as tentative.",
+    "draft": "> **draft** · only {pct}% quote-supported — not yet a reliable synthesis, do not cite as settled.",
+    "unverified": "> **unverified** · quote-support not checked ({n} claims).",
+}
+
+
+def _tier_banner(tier: str, support_rate: float | None, n_claims: int) -> str:
+    return _TIER_BANNER[tier].format(pct=int((support_rate or 0) * 100), n=n_claims)
+
+
+def demo() -> None:  # ponytail: one runnable check on the branchy gate
+    assert substance_tier(0.9, 6) == "verified"
+    assert substance_tier(0.9, 2) == "provisional"   # high support but too few claims
+    assert substance_tier(0.5, 10) == "provisional"
+    assert substance_tier(0.2, 10) == "draft"
+    assert substance_tier(None, 10) == "unverified"
+    print("substance_tier ok")
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -78,7 +113,7 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
 
     from anthropic import Anthropic
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=2048, system=_SYSTEM,
+    resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=4096, system=_SYSTEM,
                                   tools=[_TOOL], tool_choice={"type": "tool", "name": "write_synthesis"},
                                   messages=[{"role": "user", "content": prompt}])
     u = resp.usage
@@ -92,7 +127,14 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
 
     slug = _slug(community["entities"])
     title = out.get("title", slug)
-    body = out.get("synthesis_markdown", "")
+    from ..deliverables.document import sanitize_markdown
+    body = sanitize_markdown(out.get("synthesis_markdown", ""))
+    # substance floor: a note whose body is empty/near-empty (the forced-tool JSON truncated, or the
+    # community was incoherent) is just a citation list with no synthesis — never save that as a note.
+    if len(body.strip()) < 200:
+        log().emit("control", f"skipped an empty synthesis for {slug} (no substance, {len(claims)} claims)",
+                   actor="synthesizer", parent_id=parent_id, slug=slug)
+        return {"ok": False, "reason": "empty-synthesis"}
     oq = out.get("open_questions", []) or []
     contra = out.get("contradictions", []) or []
     # eval-in-the-loop: verify the synthesis is actually supported by the quotes (defensibility)
@@ -101,7 +143,10 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
     chk = checker.check(body, allquotes)
     sr = chk.get("support_rate")
     sr_str = f" · {int(sr*100)}% quote-supported" if sr is not None else ""
+    tier = substance_tier(sr, len(claims))
+    banner = _tier_banner(tier, sr, len(claims))
     md = (f"# {title}\n\n_synthesis · {len(claims)} claims · {len(src_list)} sources{sr_str} · updated {_now()}_\n\n"
+          f"{banner}\n\n"
           f"{body}\n\n" + ("## open questions\n" + "\n".join(f"- {q}" for q in oq) + "\n\n" if oq else "")
           + ("## contradictions\n" + "\n".join(f"- {q}" for q in contra) + "\n\n" if contra else "")
           + "## sources\n" + sources_md + "\n")
@@ -112,7 +157,8 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
         p.vectors.upsert(f"note:{slug}", f"{title}\n{body}", {"title": title, "slug": slug, "kind": "note"})
     except Exception:
         pass
-    log().emit("synthesis", f"synthesized “{title}” ({len(claims)} claims, {len(src_list)} sources"
+    log().emit("synthesis", f"synthesized “{title}” [{tier}] ({len(claims)} claims, {len(src_list)} sources"
                + (f", {int(sr*100)}% quote-supported" if sr is not None else "") + ")",
-               actor="synthesizer", parent_id=parent_id, slug=slug, support_rate=sr)
-    return {"ok": True, "slug": slug, "title": title, "n_claims": len(claims), "support_rate": sr}
+               actor="synthesizer", parent_id=parent_id, slug=slug, support_rate=sr, tier=tier)
+    return {"ok": True, "slug": slug, "title": title, "n_claims": len(claims),
+            "support_rate": sr, "tier": tier}
