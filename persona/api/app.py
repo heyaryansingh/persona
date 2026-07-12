@@ -276,6 +276,14 @@ def verified_ledger(pid: str):
         return {"entries": vled.entries(), "summary": vled.summary()}
 
 
+@app.get("/api/persona/{pid}/knowledge")
+def knowledge_tree(pid: str):
+    """The layered knowledge ladder: L1 topics known → L2 summaries → L3 in-depth → L4 sources."""
+    with context.use(_p(pid)):
+        from ..agents import knowledge
+        return knowledge.tree()
+
+
 @app.get("/api/persona/{pid}/sessions")
 def research_sessions(pid: str, limit: int = 100, offset: int = 0):
     from ..sessions import list_sessions

@@ -474,6 +474,24 @@
   .stbubble.p{background:var(--panel);border:1px solid var(--line)}
   .stdel{font-size:12px;padding:9px 10px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--panel);word-break:break-all}
   .stdel:hover{border-color:var(--anchor)}
+  /* ---- Knowledge ladder (L1-L4) ---- */
+  #surf-knowledge{flex-direction:column}
+  .knowbody{flex:1;overflow-y:auto;padding:16px 22px}
+  .ktopic{border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:11px;background:var(--panel);cursor:pointer}
+  .ktopic .kdeep{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .ktopic.open .kdeep{display:block}
+  .khead{display:flex;align-items:baseline;gap:11px}
+  .klevel{font-size:8.5px;letter-spacing:.1em;color:var(--live);border:1px solid var(--live);border-radius:20px;padding:1px 8px;white-space:nowrap}
+  .ktitle{font-family:var(--serif);font-size:14px;color:var(--ink);flex:1;line-height:1.3}
+  .kmeta{font-size:10.5px;color:var(--dim);white-space:nowrap}
+  .ksum{font-size:12px;color:var(--dim);margin-top:6px;line-height:1.45}
+  .klabel{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:13px 0 6px}
+  .kdossier{font-size:12.5px;line-height:1.6;color:var(--ink)}
+  .kdossier p{margin:.5em 0}
+  .ksrc{font-size:11px;color:var(--dim);padding:4px 0;border-bottom:1px solid var(--line)}
+  .kopen{margin-top:10px;background:none;border:1px solid var(--line2);color:var(--anchor);border-radius:7px;font-size:11px;padding:6px 12px;cursor:pointer}
+  .kl1only{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+  .kl1chip{display:inline-block;font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:4px 11px;margin:0 6px 6px 0}
   @media (prefers-reduced-motion: no-preference){ .swcard.live{animation:rowIn .3s var(--eout)} }
   /* ---- sub-tab bar (Map / Work destinations) ---- */
   .subbar{display:none;align-items:center;gap:2px;padding:5px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
@@ -739,6 +757,12 @@
       <div id="fieldmapbody"><div class="empty">mapping the field…</div></div>
     </div>
 
+    <!-- KNOWLEDGE — the layered depth ladder -->
+    <div class="surface" id="surf-knowledge">
+      <div class="surfhead"><span class="stitle">knowledge · how deep it has learned</span><span class="note" id="knowsummary">L1 topics → L2 summaries → L3 in-depth → L4 sources</span></div>
+      <div id="knowledgebody" class="knowbody"><div class="empty">building the knowledge ladder…</div></div>
+    </div>
+
     <!-- BRAIN -->
     <div class="surface" id="surf-brain">
       <div class="fsgrid">
@@ -883,8 +907,8 @@ function toGenesis(){
 // Four destinations; grouped surfaces expose a sub-tab strip. Internal surface keys
 // (stream/graph/evolution/fieldmap/brain/studios/instruments) are unchanged so every
 // deep link and the research smoke test keep working.
-const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',graph:'map',evolution:'map',fieldmap:'map',studios:'work',brain:'work',instruments:'review'};
-const SUBTABS={map:[['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map']],work:[['studios','Research'],['brain','Brain']]};
+const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',graph:'map',evolution:'map',fieldmap:'map',knowledge:'map',studios:'work',brain:'work',instruments:'review'};
+const SUBTABS={map:[['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map'],['knowledge','Knowledge']],work:[['studios','Research'],['brain','Brain']]};
 function setSurface(name){
   CURSURF=name;
   const dest=SURF_DEST[name]||'focus';
@@ -898,6 +922,7 @@ function setSurface(name){
   if(name==="graph"){ openGraph(); }
   else if(name==="evolution"){ openEvolution(); }
   else if(name==="fieldmap"){ openFieldmap(); }
+  else if(name==="knowledge"){ openKnowledge(); }
   else if(name==="studio"){ openStudio(); }
   else if(name==="brain"){ openBrain(); }
   else if(name==="studios"){ openStudios(); }
@@ -1614,6 +1639,28 @@ function fsTick(msg){ const t=$("#fsTicker"); if(t) t.textContent="last write ·
    RESEARCH surface — evidence-linked sessions first, deliverables second
    ========================================================================= */
 /* ------------------------- FIELD MAP surface (/fieldmap) ------------------------- */
+async function openKnowledge(){
+  if(CURSURF!=="knowledge")return;
+  try{
+    const k=await (await fetch(A("/knowledge"))).json();
+    $("#knowsummary").innerHTML=`<b>${k.n_known||0}</b> topics known · <b>${k.n_deep||0}</b> studied in depth · ${k.n_sources||0} sources`;
+    let h="";
+    (k.topics||[]).forEach(t=>{
+      const depth=t.depth_chars>3500?'L3 · deep':(t.depth_chars>0?'L3':'L2');
+      h+=`<div class="ktopic" onclick="this.classList.toggle('open')">
+        <div class="khead"><span class="klevel">${depth}</span><span class="ktitle">${esc(t.title)}</span><span class="kmeta">${t.n_sources} sources · ${Math.round((t.depth_chars||0)/1000)}k</span></div>
+        <div class="ksum">${esc(t.summary||'')}</div>
+        <div class="kdeep">
+          <div class="klabel">L3 · in-depth synthesis</div><div class="kdossier">${md(t.dossier||'')}</div>
+          <div class="klabel">L4 · the sources it stands on</div>
+          ${(t.sources||[]).map(s=>`<div class="ksrc">${esc(s)}</div>`).join('')||'<div class="empty">—</div>'}
+          <button class="kopen" onclick="event.stopPropagation();openNote('${esc(t.slug)}')">open the full note ›</button>
+        </div></div>`;
+    });
+    if((k.l1_only||[]).length) h+=`<div class="kl1only"><div class="klabel">L1 · topics it knows but hasn't gone deep on yet</div>`+(k.l1_only||[]).map(n=>`<span class="kl1chip">${esc(n)}</span>`).join('')+`</div>`;
+    $("#knowledgebody").innerHTML=h||'<div class="empty">no synthesized topics yet — the mind is still reading & consolidating</div>';
+  }catch(e){}
+}
 async function openFieldmap(){
   $("#fieldmapbody").innerHTML='<div class="empty">mapping the field…</div>';
   try{

@@ -157,3 +157,31 @@ def ask_graph(q: str, kg=None) -> dict:
     out = next((b.input for b in resp.content if b.type == "tool_use"), {})
     return {"ok": True, "question": q, "answer": out.get("answer", ""), "claims": citations,
             "subgraph": kg.subgraph(ents)}
+
+
+def tree(max_topics: int = 16) -> dict:
+    """The LAYERED knowledge ladder (v8): L1 topics known → L2 one-line summaries → L3 the in-depth
+    synthesis → L4 the primary sources. Assembled from the mind's own notes + interests + sources, so
+    a human can drill from 'what it knows' down to 'every source it stands on'."""
+    p = get_persona()
+    nd = p.paths.notes_dir
+    topics = []
+    files = sorted(nd.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True) if nd.exists() else []
+    for f in files[:max_topics]:
+        txt = f.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r"^#\s+(.+)$", txt, re.M)
+        title = (m.group(1).strip() if m else f.stem)
+        meta = re.search(r"^_.*_$", txt, re.M)
+        l2meta = (meta.group(0).strip("_ ") if meta else "")
+        parts = re.split(r"\n##\s*sources", txt, maxsplit=1)
+        body = re.sub(r"^#.*$|^_.*_$", "", parts[0], flags=re.M).strip()
+        first = (re.split(r"(?<=[.!?])\s", body, maxsplit=1)[0] if body else "")[:240]
+        srcs = re.findall(r"^\[(\d+)\]\s*(.+)$", parts[1] if len(parts) > 1 else "", re.M)
+        topics.append({"slug": f.stem, "title": title, "summary": first or l2meta, "meta": l2meta,
+                       "depth_chars": len(body), "dossier": body[:8000],
+                       "sources": [s[1][:90] for s in srcs[:16]], "n_sources": len(srcs)})
+    noted = {t["title"].lower() for t in topics}
+    l1_only = [n for n, _w in selfmind.interests() if n.lower() not in noted][:12]
+    return {"topics": topics, "l1_only": l1_only,
+            "n_known": len(topics) + len(l1_only), "n_deep": len(topics),
+            "n_sources": sum(t["n_sources"] for t in topics)}
