@@ -451,6 +451,29 @@
   .lanebar i{display:block;height:100%;background:var(--live);transition:width .5s var(--eout)}
   .lanenow{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
   .loosewrap{display:flex;flex-direction:column}
+  /* ---- Collaboration Studio ---- */
+  #surf-studio{flex-direction:column}
+  #studiobody{flex:1;display:grid;grid-template-columns:0.9fr 1.5fr 0.8fr;min-height:0}
+  .stcol{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+  .stcol:last-child{border-right:0}
+  .stcolhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:13px 16px 8px}
+  .stscroll{flex:1;overflow-y:auto;padding:4px 15px 16px}
+  .stsig{font-size:12px;padding:8px 0;border-bottom:1px solid var(--line);line-height:1.42}
+  .stsig.ver{color:var(--live);font-family:var(--serif)}
+  .stsym{display:inline-block;width:17px}
+  .stsym.verified{color:var(--live)}.stsym.refuted,.stsym.contra{color:var(--contra)}.stsym.q{color:var(--claim)}
+  .stmuted{color:var(--dim);font-size:10.5px}
+  .stactions{display:flex;gap:6px;flex-wrap:wrap;padding:2px 15px 8px}
+  .stactions button{background:var(--bg);border:1px solid var(--line2);border-radius:7px;color:var(--dim);font-size:11px;padding:6px 10px;cursor:pointer;font-family:var(--mono)}
+  .stactions button.on{border-color:var(--live);color:var(--live)}
+  #stinput{margin:0 15px;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:10px;min-height:64px;resize:vertical}
+  #stinput:focus{outline:none;border-color:var(--live)}
+  .strun{margin:8px 15px;align-self:flex-start;background:var(--live);color:#fff;border:0;border-radius:8px;font-size:12px;padding:8px 16px;cursor:pointer}
+  .stbubble{font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:9px;margin:8px 0}
+  .stbubble.you{background:var(--panel2);color:var(--dim)}
+  .stbubble.p{background:var(--panel);border:1px solid var(--line)}
+  .stdel{font-size:12px;padding:9px 10px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--panel);word-break:break-all}
+  .stdel:hover{border-color:var(--anchor)}
   @media (prefers-reduced-motion: no-preference){ .swcard.live{animation:rowIn .3s var(--eout)} }
   /* ---- sub-tab bar (Map / Work destinations) ---- */
   .subbar{display:none;align-items:center;gap:2px;padding:5px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
@@ -549,8 +572,9 @@
       <span class="rs" id="runpill">running</span>
     </div>
     <div class="spine" id="spine">
+      <button data-dest="studio" onclick="setSurface('studio')" title="work with the persona: ask, verify, get deliverables">Studio</button>
+      <button data-dest="swarm" onclick="setSurface('swarm')" title="the research floor — agent teams working live">Floor</button>
       <button data-dest="focus" class="on" onclick="setSurface('stream')" title="what it is doing and why">Focus</button>
-      <button data-dest="swarm" onclick="setSurface('swarm')" title="the agents working right now, live">Swarm</button>
       <button data-dest="map" onclick="setSurface('graph')" title="what the field rests on and how it moves">Map</button>
       <button data-dest="work" onclick="setSurface('studios')" title="research sessions, files, and outputs">Work</button>
       <button data-dest="review" onclick="setSurface('instruments')" title="what needs judgment or another experiment">Review</button>
@@ -635,6 +659,33 @@
         <div class="swarmcol done">
           <div class="swcolhead">just completed</div>
           <div class="swlist" id="swdone"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDIO — collaborate with the persona -->
+    <div class="surface" id="surf-studio">
+      <div class="surfhead"><span class="stitle">studio · work with the persona</span><span class="note" id="studiosummary">—</span></div>
+      <div id="studiobody">
+        <div class="stcol">
+          <div class="stcolhead">signals — what it wants you to see</div>
+          <div id="stsignals" class="stscroll"><div class="empty">—</div></div>
+        </div>
+        <div class="stcol console">
+          <div class="stcolhead">co-work console</div>
+          <div class="stactions">
+            <button data-k="ask" onclick="stAct('ask')" class="on">ask (cited)</button>
+            <button data-k="verify" onclick="stAct('verify')">verify a claim</button>
+            <button data-k="investigate" onclick="stAct('investigate')">investigate</button>
+            <button data-k="paper" onclick="stAct('paper')">draft a paper</button>
+          </div>
+          <textarea id="stinput" placeholder="Ask a cited question, give a claim to verify, a question to investigate, or a topic to draft…"></textarea>
+          <button class="strun" onclick="stRun()">▶ run</button>
+          <div id="stoutput" class="stscroll"><div class="empty">the persona's answer + what it produced will appear here</div></div>
+        </div>
+        <div class="stcol">
+          <div class="stcolhead">deliverables — documents it made</div>
+          <div id="stdeliverables" class="stscroll"><div class="empty">—</div></div>
         </div>
       </div>
     </div>
@@ -832,7 +883,7 @@ function toGenesis(){
 // Four destinations; grouped surfaces expose a sub-tab strip. Internal surface keys
 // (stream/graph/evolution/fieldmap/brain/studios/instruments) are unchanged so every
 // deep link and the research smoke test keep working.
-const SURF_DEST={stream:'focus',swarm:'swarm',graph:'map',evolution:'map',fieldmap:'map',studios:'work',brain:'work',instruments:'review'};
+const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',graph:'map',evolution:'map',fieldmap:'map',studios:'work',brain:'work',instruments:'review'};
 const SUBTABS={map:[['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map']],work:[['studios','Research'],['brain','Brain']]};
 function setSurface(name){
   CURSURF=name;
@@ -847,6 +898,7 @@ function setSurface(name){
   if(name==="graph"){ openGraph(); }
   else if(name==="evolution"){ openEvolution(); }
   else if(name==="fieldmap"){ openFieldmap(); }
+  else if(name==="studio"){ openStudio(); }
   else if(name==="brain"){ openBrain(); }
   else if(name==="studios"){ openStudios(); }
   else if(name==="instruments"){ openInstruments(); }
@@ -924,6 +976,55 @@ async function launchInvestigation(){
     if(r.ok){ toast(`team launched · ${r.steps} agents investigating: ${q.slice(0,48)}`); if(CURSURF==="swarm")openSwarm(); }
     else toast(r.reason||"could not launch (seed/resume the mind first)"); }
   catch(e){ toast("launch failed"); }
+}
+/* ------------------------- collaboration studio ------------------------- */
+const STUDIO={iv:null,mode:'ask'};
+async function openStudio(){
+  const load=async()=>{ if(CURSURF!=="studio")return;
+    try{
+      const [vr,ib,slf,ws]=await Promise.all([
+        fetch(A("/verified")).then(r=>r.json()).catch(()=>({entries:[],summary:{}})),
+        fetch(A("/inbox")).then(r=>r.json()).catch(()=>({items:[]})),
+        fetch(A("/self")).then(r=>r.json()).catch(()=>({open_questions:[]})),
+        fetch(A("/workspace")).then(r=>r.json()).catch(()=>({deliverables:[]}))]);
+      const vs=vr.summary||{}; let sig="";
+      sig+=`<div class="stsig ver">✓ <b>${vs.verified||0} verified</b>${vs.refuted?` · ✗ ${vs.refuted} refuted`:''}${vs.revisited?` · ${vs.revisited} re-tested`:''} <span class="stmuted">— what it has proven</span></div>`;
+      (vr.entries||[]).slice(0,6).forEach(e=>{ const sym=e.status==='verified'?'✓':(e.status==='refuted'?'✗':'~');
+        sig+=`<div class="stsig"><span class="stsym ${esc(e.status)}">${sym}</span>${esc((e.statement||'').slice(0,88))} <span class="stmuted">· ${esc(e.method||'')}</span></div>`; });
+      (ib.items||[]).slice(0,5).forEach(it=>{ sig+=`<div class="stsig"><span class="stsym contra">⚡</span>contradiction — ${esc((it.subject||'')+' / '+(it.object||''))}</div>`; });
+      (slf.open_questions||[]).slice(0,7).forEach(q=>{ sig+=`<div class="stsig"><span class="stsym q">?</span>${esc((q||'').slice(0,90))}</div>`; });
+      $("#stsignals").innerHTML=sig||'<div class="empty">no signals yet — seed & resume the mind</div>';
+      $("#studiosummary").innerHTML=`✓ ${vs.verified||0} verified · ${(ib.items||[]).length} contradictions · ${(slf.open_questions||[]).length} open questions`;
+      const dv=(ws.deliverables||[]);
+      $("#stdeliverables").innerHTML=dv.length?dv.map(d=>{ const name=(typeof d==='string')?d:(d.name||d.path||'');
+        const isPdf=/\.pdf$/i.test(name);
+        return `<div class="stdel" onclick="${isPdf?`openLatex('${esc(name)}')`:`openDoc('deliverables/${esc(name)}','${esc(name)}')`}">${esc(name)}</div>`;
+      }).join(""):'<div class="empty">none yet</div>';
+    }catch(e){}
+  };
+  load(); if(STUDIO.iv)clearInterval(STUDIO.iv); STUDIO.iv=setInterval(load,4000);
+}
+function stAct(k){ STUDIO.mode=k; $$("#surf-studio .stactions button").forEach(b=>b.classList.toggle("on",b.dataset.k===k)); }
+async function stRun(){
+  const t=($("#stinput").value||"").trim(); if(!t||!PID)return;
+  const out=$("#stoutput");
+  out.innerHTML=`<div class="stbubble you">${esc(t)}</div><div class="stbubble p"><i>working…</i></div>`;
+  const pb=()=>out.querySelector('.stbubble.p');
+  try{
+    if(STUDIO.mode==='ask'){
+      const r=await (await fetch(A("/ask"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:t})})).json();
+      pb().innerHTML=md(r.answer||r.reason||'(no answer)')+((r.claims&&r.claims.length)?`<div class="stmuted">grounded in ${r.claims.length} claim(s)</div>`:'');
+    } else {
+      const ep=STUDIO.mode==='paper'?'/deliver':'/investigate';
+      const body=STUDIO.mode==='paper'?{kind:'paper',topic:t}:{question:t};
+      const r=await (await fetch(A(ep),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+      const msg=STUDIO.mode==='verify'?'a team is verifying this — watch the Floor; a proof + a TESTED belief will land in Signals.'
+               :STUDIO.mode==='paper'?"drafting a paper — it'll appear in Deliverables.":'a team is investigating — watch the Floor.';
+      pb().innerHTML=r.ok?`✓ ${msg}`:`could not start: ${esc(r.reason||'error')}`;
+      openStudio();
+    }
+  }catch(e){ pb().innerHTML='error'; }
+  $("#stinput").value="";
 }
 function toggleRail(){ const r=$("#selfrail"); r.classList.toggle("collapsed"); $("#selfrail .collapse").textContent=r.classList.contains("collapsed")?"›":"‹"; }
 

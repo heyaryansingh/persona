@@ -113,13 +113,30 @@ def prove(question: str, *, parent_id=None) -> dict:
     except Exception:
         pass
 
-    # THE VERIFIED LOOP: a machine-checked derivation becomes a durable TESTED result — the mind now
-    # KNOWS it proved this, not just that it read about it. Only recorded when a check actually passed.
-    if total > 0:
+    # FORMAL PROOF (optional, strongest tier): if a Harmonic Aristotle key is configured, attempt a
+    # kernel-verified Lean 4 proof. A verified Lean proof outranks the sympy checks. Fails safe.
+    method, lean_ok = "sympy", False
+    try:
+        from ..tools import aristotle
+        if aristotle.available():
+            lp = aristotle.prove_formal(question)
+            if lp.get("verified"):
+                method, lean_ok = "lean", True
+                (project / "proof.lean").write_text(lp.get("proof") or "", encoding="utf-8")
+                body += ("\n\n## Formal proof (Lean 4, Aristotle — kernel-verified)\n\n```lean\n"
+                         + (lp.get("proof") or "")[:4000] + "\n```\n")
+                (project / "derivation.md").write_text(body, encoding="utf-8")
+    except Exception:
+        pass
+
+    # THE VERIFIED LOOP: a machine-checked result becomes a durable TESTED belief — the mind now KNOWS
+    # it proved this, not just that it read it. Recorded only when a check actually passed (honest).
+    if lean_ok or total > 0:
         from ..memory import verified as vled
-        status = "verified" if verified == total else ("weakened" if verified > 0 else "refuted")
-        vled.record(question, "sympy", status, evidence=(doc or "derivation.md"), checks=total,
-                    source="prove")
+        status = ("verified" if lean_ok or (total > 0 and verified == total)
+                  else ("weakened" if verified > 0 else "refuted"))
+        vled.record(question, method, status, evidence=(doc or "derivation.md"),
+                    checks=(total or None), source="prove")
 
     log().emit("artifact", f"derived “{question[:56]}” — {verified}/{total} steps machine-verified"
                + (f" → {doc}" if doc else ""), actor="reason", parent_id=parent_id, file=doc)
