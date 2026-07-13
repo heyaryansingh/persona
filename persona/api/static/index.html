@@ -407,6 +407,23 @@
   .steerbar input{flex:1;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px}
   .steerbar input:focus{outline:none;border-color:var(--live)}
   .steerbar button{background:var(--live);color:#fff;border:0;border-radius:8px;font-size:12px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+  .audit{font-size:13px;line-height:1.55}
+  .audhead{display:flex;align-items:center;gap:16px;margin:4px 0 12px}
+  .audscore{font-size:44px;font-weight:600;font-family:var(--serif);line-height:1}.audscore span{font-size:18px;opacity:.6}
+  .audband{font-size:15px;font-weight:600;text-transform:capitalize}.audone{color:var(--dim);font-size:12.5px;margin-top:2px}
+  .audmetrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+  .audmetrics div{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;text-align:center}
+  .audmetrics b{display:block;font-size:16px}.audmetrics span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+  .audsec{margin:14px 0}.audsec h4{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin:0 0 8px;font-weight:600}
+  .audm{text-transform:none;letter-spacing:0;color:var(--faint);font-weight:400}
+  .audvf{padding:6px 10px;border-left:2px solid var(--human);background:var(--panel2);margin-bottom:5px;border-radius:0 6px 6px 0}
+  .audexec{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--ink)}
+  .audclaim{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .audclaimh{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-weight:500}.audclaimh b{font-size:15px;white-space:nowrap}
+  .audreason{color:var(--dim);font-size:12px;margin:6px 0}.audev{color:var(--faint);font-size:11.5px;margin-top:3px}
+  .audflag{border:1px solid var(--line);border-left:3px solid var(--live);border-radius:0 6px 6px 0;padding:8px 10px;margin-bottom:6px;font-size:12.5px}
+  .audspan{font-style:italic;color:var(--dim);font-size:11.5px;margin-top:4px}
+  .audledger{margin-top:12px;padding-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--faint)}
   .codeed{display:flex;flex-direction:column;height:100%;min-height:0}
   .cehead{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line)}
   .cehead button{background:var(--live);color:#fff;border:0;border-radius:6px;font-size:12px;padding:5px 14px;cursor:pointer;font-family:var(--mono)}
@@ -1062,9 +1079,7 @@ async function stRun(){
       else pb().innerHTML='could not build a report ('+esc(r.reason||'error')+') — try a broader topic it has read.';
     } else if(STUDIO.mode==='audit'){
       const r=await (await fetch(A("/audit"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:t})})).json();
-      if(r.ok){ const band={robust:'var(--live)',contested:'var(--human)',fragile:'var(--contra)'}[r.band]||'var(--dim)';
-        pb().innerHTML=`<div style="font-size:15px;margin-bottom:6px">replication likelihood <b style="color:${band}">${Math.round(r.likelihood*100)}%</b> · <b style="color:${band}">${esc(r.band)}</b> · ${r.n_major} major flag(s)</div>`+md(r.report)+`<div class="stmuted">forensics run in code · every flag traces to a source span · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','audit');return false;">open ↗</a></div>`; }
-      else pb().innerHTML='could not audit ('+esc(r.reason||'error')+') — name a paper it has read.';
+      pb().innerHTML=r.ok?renderAudit(r):'could not audit ('+esc(r.reason||'error')+') — name a paper it has read.';
     } else {
       const ep=STUDIO.mode==='paper'?'/deliver':(STUDIO.mode==='verify'?'/verify':'/investigate');
       const body=STUDIO.mode==='paper'?{kind:'paper',topic:t}:(STUDIO.mode==='verify'?{statement:t}:{question:t});
@@ -1868,18 +1883,32 @@ async function openPaper(slug){
     $("#modalbox").innerHTML=h;
   }catch(e){ $("#modalbox").innerHTML='<h1>could not open the paper</h1>'; }
 }
-// Robustness audit inside the dossier: code-run statistical forensics + a grounded replication verdict.
+// The full robustness report: likelihood + interval, per-claim adjudication, exec summary,
+// deterministic checks, literature stance, and the trust ledger — every flag grounded to a span.
+const _BC={robust:'var(--live)',contested:'var(--human)',fragile:'var(--contra)'};
+function renderAudit(r){
+  const bc=_BC[r.band]||'var(--dim)', pct=Math.round(r.likelihood*100);
+  const iv=r.interval||[0,0], lo=Math.round(iv[0]*100), hi=Math.round(iv[1]*100), m=r.ledger||{}, ch=r.checks||{};
+  let h=`<div class="audit"><div class="audhead"><div class="audscore" style="color:${bc}">${pct}<span>%</span></div>`
+    +`<div class="audhx"><div class="audband" style="color:${bc}">${esc(r.band)}</div><div class="audone">${esc(r.one_line||'')}</div></div></div>`;
+  h+=`<div class="audmetrics"><div><b>${lo}–${hi}%</b><span>95% interval</span></div><div><b>${Math.round((m.grounding_rate||0)*100)}%</b><span>grounding</span></div>`
+    +`<div><b style="color:${(ch.fail||0)?'var(--contra)':'var(--live)'}">${ch.fail||0}</b><span>checks failed</span></div><div><b>${(r.claims||[]).length}</b><span>claims scored</span></div></div>`;
+  if((r.verify_first||[]).length) h+=`<div class="audsec"><h4>Verify these first</h4>`+r.verify_first.map(v=>`<div class="audvf">${esc(v)}</div>`).join("")+`</div>`;
+  if(r.executive_summary) h+=`<div class="audsec"><h4>Executive summary <span class="audm">· written from the results</span></h4><div class="audexec">${esc(r.executive_summary)}</div></div>`;
+  if((r.claims||[]).length){ h+=`<div class="audsec"><h4>Central claims (${r.claims.length})</h4>`+r.claims.map(c=>{const cc=_BC[c.band]||'var(--dim)';
+    return `<div class="audclaim"><div class="audclaimh"><span>${esc(c.claim)}</span><b style="color:${cc}">${Math.round(c.likelihood*100)}%</b></div><div class="audreason">${esc((c.reasoning||'').replace(/\\n/g,' '))}</div>`+(c.evidence||[]).map(e=>`<div class="audev">— ${esc(e)}</div>`).join("")+`</div>`;}).join("")+`</div>`; }
+  h+=`<div class="audsec"><h4>Deterministic checks — ${ch.fail||0} fail · ${ch.warn||0} warn · ${ch.pass||0} pass <span class="audm">· run in code, never a model</span></h4>`;
+  (r.flags||[]).forEach(f=>{const fc={3:'var(--contra)',2:'var(--human)'}[f.severity]||'var(--live)'; h+=`<div class="audflag" style="border-left-color:${fc}"><b>${esc(f.check)}</b> — ${esc(f.detail)}${f.span?`<div class="audspan">↳ “${esc((f.span||'').slice(0,200))}”</div>`:''}</div>`;});
+  h+=`</div><div class="audsec"><h4>What the literature says</h4><div>${(r.external||{}).support||0} independent result(s) support · ${(r.external||{}).contradict||0} contradict the central claims</div></div>`;
+  h+=`<div class="audledger">grounding ${Math.round((m.grounding_rate||0)*100)}% · claims ${m.claims_assessed} · sources queried ${m.sources_queried} · adjudicator ${esc(m.adjudicator||'')} · engine ${esc(m.engine_version||'')} [${esc(m.engine_fingerprint||'')}] · content hash ${esc(m.content_hash||'')}`
+    +` · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','audit');return false;">full report ↗</a></div></div>`;
+  return h;
+}
 async function auditPaper(slug){
-  const out=$("#auditout"); if(!out)return; out.innerHTML=' <i>running forensics in code…</i>';
+  const out=$("#auditout"); if(!out)return; out.innerHTML=' <i>running forensics in code + adjudicating…</i>';
   try{
     const r=await (await fetch(A("/audit"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({slug:decodeURIComponent(slug)})})).json();
-    if(!r.ok){ out.innerHTML=' <span style="color:var(--dim)">'+esc(r.reason||'could not audit')+'</span>'; return; }
-    const band={robust:'var(--live)',contested:'var(--human)',fragile:'var(--contra)'}[r.band]||'var(--dim)';
-    let h=`<div style="margin-top:10px;padding:12px;border:1px solid ${band};border-radius:8px">`;
-    h+=`<div style="font-size:15px">replication likelihood <b style="color:${band}">${Math.round(r.likelihood*100)}%</b> · <b style="color:${band}">${esc(r.band)}</b> · ${r.n_major} major flag(s)</div>`;
-    (r.flags||[]).forEach(f=>{ const c={3:'var(--contra)',2:'var(--human)'}[f.severity]||'var(--dim)'; h+=`<div style="margin-top:6px;color:${c}">• <b>${esc(f.check)}</b>: ${esc(f.detail)}${f.span?`<div style="font-style:italic;color:var(--dim);font-size:12px">↳ “${esc((f.span||'').slice(0,180))}”</div>`:''}</div>`; });
-    h+=`<div style="margin-top:8px;font-size:12px;color:var(--dim)">forensics run in code · every flag traces to a source span · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','audit');return false;">full report ↗</a></div></div>`;
-    out.innerHTML=h;
+    out.innerHTML=r.ok?renderAudit(r):' <span style="color:var(--dim)">'+esc(r.reason||'could not audit')+'</span>';
   }catch(e){ out.innerHTML=' <span style="color:var(--dim)">audit failed</span>'; }
 }
 
