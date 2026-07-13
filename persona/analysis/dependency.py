@@ -19,6 +19,15 @@ from ..memory.membrane import get_kg
 FRAGILE_MIN_LABS = 2
 THIN_SUPPORT_RATIO = 0.5
 
+# citation-vs-support divergence (F3.3) — all PLACEHOLDER heuristics pending RQ validation:
+#   - CITED_MIN: a claim needs at least this many citations on its (subject,object) pair to count as
+#     "highly-cited" enough to flag (a 1-citation claim isn't a load-bearing field myth).
+#   - UNTESTED_GAP: an experimentally-never-tested claim can't count as fully supported no matter how
+#     one-sided its citation intent is — its support gap is floored here. This surfaces the classic
+#     "everyone cites it, nobody re-ran it" failure mode divergence is meant to catch.
+CITED_MIN = 3
+UNTESTED_GAP = 0.5
+
 
 def dependency_graph(topic: str = None, kg=None) -> dict:
     """{nodes:[{claim_id, statement, load_bearing, independent_labs, support_ratio, provenance,
@@ -64,6 +73,62 @@ def dependency_graph(topic: str = None, kg=None) -> dict:
                       "provenance": p.get("provenance"), "fragile": fragile})
 
     return {"nodes": nodes, "edges": edges}
+
+
+def citation_vs_support_divergence(topic: str = None, kg=None) -> list:
+    """F3.3: flag the field's highly-cited-but-thinly-supported (or never-tested) claims.
+
+    Over the topic's claims (same universe as `dependency_graph` — those in DEPENDS_ON edges), a
+    claim diverges when it is well-cited on its (subject,object) pair yet its citations don't
+    actually *support* it — either the citation intent is contested (FC-3 `citation_support_ratio`
+    ratio below THIN_SUPPORT_RATIO) or it was never experimentally TESTED (provenance). The whole
+    point: citation volume is a popularity signal, not an evidence signal, and the two can diverge.
+
+    Returns [{claim_id, citations, support_ratio, divergence}] for flagged claims only, sorted by
+    divergence desc (claim_id tiebreak). divergence in [0,1]: citation prominence x support gap.
+    Read-only: no mutation, no model, no network. Deterministic. `kg` injectable for tests."""
+    kg = kg if kg is not None else get_kg()
+    if kg is None:
+        return []
+
+    # topic-scoped claim universe: the claims touching a DEPENDS_ON edge for this topic (the only
+    # read-only, topic-filtered claim source in the KG — reused verbatim, no new KG method).
+    edges = kg.dependency_edges(topic)
+    cids = set()
+    for e in edges:
+        cids.add(e["src"])
+        cids.add(e["dst"])
+
+    # pass 1: gather citations + support_ratio per claim; max citations normalizes prominence.
+    rows, max_cit = {}, 0
+    for cid in cids:
+        csr = kg.citation_support_ratio(cid)  # {support, contrast, mention, ratio}
+        citations = int(csr.get("support", 0)) + int(csr.get("contrast", 0)) + int(csr.get("mention", 0))
+        p = kg.provenance(cid) or {}
+        # never-tested = not experimentally re-run (provenance != TESTED); a human sign-off
+        # (HUMAN_CONFIRMED/anchored) is judgment, not a re-analysis, so it still reads as untested.
+        never_tested = p.get("provenance") != "TESTED"
+        rows[cid] = {"citations": citations, "ratio": float(csr.get("ratio", 0.0)),
+                     "never_tested": never_tested}
+        max_cit = max(max_cit, citations)
+
+    out = []
+    for cid in sorted(cids):  # deterministic
+        r = rows[cid]
+        thin = r["ratio"] < THIN_SUPPORT_RATIO
+        # flag: cited enough AND (support is thin OR it was never tested).
+        if r["citations"] < CITED_MIN or not (thin or r["never_tested"]):
+            continue
+        support_gap = 1.0 - r["ratio"]
+        if r["never_tested"]:
+            support_gap = max(support_gap, UNTESTED_GAP)  # floor: untested != fully supported
+        prominence = r["citations"] / max_cit if max_cit else 0.0
+        divergence = round(prominence * support_gap, 4)
+        out.append({"claim_id": cid, "citations": r["citations"],
+                    "support_ratio": round(r["ratio"], 4), "divergence": divergence})
+
+    out.sort(key=lambda d: (-d["divergence"], d["claim_id"]))
+    return out
 
 
 if __name__ == "__main__":  # ponytail: runnable self-check, no DB needed (fake KG)
