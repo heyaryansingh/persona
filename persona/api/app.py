@@ -319,6 +319,39 @@ def run_code(pid: str, payload: dict):
             "timeout": r.get("timeout"), "figures": figs[:6]}
 
 
+@app.post("/api/persona/{pid}/audit")
+def audit_paper(pid: str, payload: dict):
+    """Robustness audit of a PAST paper: deterministic statistical forensics (statcheck/GRIM/GRIMMER/
+    power/p-curve, run in code) + literature stance + a grounded, calibrated replication-likelihood.
+    Target by source `slug`, by a `query` (best-matching read paper), or by raw `text`."""
+    p = _p(pid)
+    slug = (payload.get("slug") or "").strip() or None
+    text = payload.get("text") or ""
+    title = payload.get("title") or ""
+    q = (payload.get("query") or payload.get("q") or "").strip()
+    if not slug and not text.strip() and q:
+        # resolve a query to the best-matching read paper by its stored title
+        import json as _json
+        ql = q.lower()
+        best = None
+        for mf in p.paths.sources_dir.glob("*/meta.json"):
+            try:
+                m = _json.loads(mf.read_text(encoding="utf-8", errors="replace"))
+            except Exception:
+                continue
+            t = (m.get("title") or "").lower()
+            score = sum(1 for w in ql.split() if len(w) > 3 and w in t)
+            if score and (best is None or score > best[0]):
+                best = (score, mf.parent.name, m.get("title"))
+        if best:
+            slug, title = best[1], best[2]
+    if not slug and not text.strip():
+        return {"ok": False, "reason": "empty"}
+    with context.use(p):
+        from ..agents import audit
+        return audit.audit(slug=slug, text=text, title=title)
+
+
 @app.post("/api/persona/{pid}/report")
 def region_report(pid: str, payload: dict):
     """Idea-genealogy: a grounded, CITED report for a selected region (a query or an explicit entity
