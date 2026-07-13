@@ -8,11 +8,11 @@ You are the **ideation / PRD + coordination agent** for Persona. A 5-minute cron
 - `.agent-orchestration/HANDOFF.md` — dispatch bus (`## 2026-07-12 Feature-expansion program`): lane table, communication protocol, dispatch rows, master resolutions 1–82, Milestone-0 checklist.
 - `docs/prd/IMPLEMENTER_START_HERE.md`, `docs/prd/PROGRAM_SUMMARY.md`.
 
-## Current state (2026-07-13, iter 168 — batch-14 in flight)
-- **41 PRDs READY-TO-CLAIM (`PRD-01..41`)** + PRD-42/43 authoring (batch-14). No implementer has posted CLAIMED yet — **implementation is the binding constraint**, not specs. → PRD authoring is PACED: light cycles (ideas + curation) unless the user steers or a lane engages.
-- Backlog at ~551 ideas (next number ~#552). Waves 2–9a. Idea generation far outpaces consumption.
-- **FC-1..31 · RQ to E55 · 89 master resolutions. Next free: FC-32, RQ-E56. Next batch label: batch 14.**
-- **Loop cadence = 5-min cron `64340d74`** (was 1-min `485ff31c` — it flooded ~130 queued fires into one turn; slowed it. 8-min authoring batches make sub-5-min pointless.)
+## Current state (2026-07-13, iter 171 — LOOP PAUSED by user, CLEAN, no batch in flight)
+- **43 PRDs READY-TO-CLAIM (`PRD-01..43`).** No implementer has posted CLAIMED yet — **implementation is the binding constraint**, not specs.
+- Backlog at ~560 ideas (next number ~#561). Waves 2–9d. Idea generation far outpaces consumption.
+- **FC-1..33 · RQ to E57 · 96 master resolutions. Next free: FC-34, RQ-E58. Next batch label: batch 15.**
+- **LOOP PAUSED (user "pause the loop"):** cron `64340d74` cancelled — no cron fires. **Resume:** user runs `/loop 5m keep ideating and writing prds` (5-min; NEVER sub-5-min — a bare number reads as seconds and floods). State fully posted + clean; a resume starts a normal fresh iteration.
 - **The dispatch bus is `.agent-orchestration/HANDOFF.md` — the `## 2026-07-12 Feature-expansion program` section is the live table; append rows, never rewrite history.**
 - Lanes: 1=heterogeneous teams (`agents/`,`daemon/`,`reading/`,`research/investigation.py`); 2=membrane/belief (`memory/`,`conflict_reviews.py`,`inbox.py`); 3=engine/forensics/data (`analysis/`,`agents/audit.py`,`synthesis/`,`ingest/`,`tools/`); 4=legibility/UI/eval (`api/`,`eval/`,`sessions.py` RO-Crate,`tests/`,`experiments/`).
 
@@ -28,7 +28,8 @@ Exact-span grounding; provenance typing READ/INFERRED/HUMAN_CONFIRMED/TESTED; no
 ## Lessons
 - Pre-assign FC+RQ in the authoring-workflow prompt → zero collisions (held every batch 8–12). **Next free: FC-30, RQ-E54.** Batch labels: PRD-00 §9 "batch 11"=PRD-36/37, "batch 12"=PRD-38/39 → **next is batch 13**. (PRD-00 §9's batch numbering governs; keep HANDOFF's "Master resolutions batch N" in sync with it.)
 - **A pre-assigned FC can come back:** PRD-39 was given FC-30 but was Lane-3-internal (YAGNI) → left it unused; FC-30 returned to the pool. If an author reports an unused reserved FC, reclaim it (don't skip the number).
-- **IN FLIGHT (iter 168):** batch-14 authoring workflow `wzyovh1lx` (`wf_cde910e5-809`) — PRD-42 = #520 prospective forecasting (**FC-32/RQ-E56**, L1+4); PRD-43 = #526 whole-graph self-consistency sweep (**FC-33/RQ-E57**, L2). **Do NOT relaunch.** On completion: verify both files → post **batch-14** (PRD-00 §9 FC-32/FC-33 + §6 RQ-E56/E57; HANDOFF rows AUTHORING→READY-TO-CLAIM + "Master resolutions batch 14"; flip traceability #520/#526; clear this note). Read journal receipts (`subagents/workflows/wf_cde910e5-809/journal.jsonl`) for OQs first. **Next free after batch-14: FC-34, RQ-E58.**
+- **NO batch in flight (iter 171).** Batch-14 (PRD-42/43) fully posted: PRD-00 §9 FC-32/FC-33 + §6 RQ-E56/E57; HANDOFF res. 90–96; traceability flipped. Then the user paused the loop. Clean slate.
+- **Next authoring batch (when resumed / on user steer; pre-assign FC-34/RQ-E58+):** ripe = #537 lab-private evidence ingestion (L2+3) · #543 evidence-type-weighted aggregation (L2) · #128 interest-graph visualization (L4) · #552 end-to-end uncertainty propagation (L2+3) · #558 cross-scale consistency check (L3). See backlog "Next up".
 - **Next authoring batch after that:** ripe = #537 lab-private evidence ingestion (L2+3) · #543 evidence-type-weighted aggregation (L2) · #128 interest-graph visualization (L4) · #552 end-to-end uncertainty propagation (L2+3). See backlog "Next up".
 - **Cadence caution:** a bare number in `/loop N ...` reads as SECONDS here (300→5min precedent). A sub-5-min cadence FLOODS — 1-min queued ~130 fires into one turn (iter 167). Batches take ~8 min; keep the loop ≥5-min.
 - **Honest standing finding (surface to user periodically):** 41 PRDs written, 0 CLAIMED — implementation is the constraint, not specs. Don't manufacture unclaimed inventory faster than needed; a light cycle (3 ideas + curation) is a complete iteration. Launch a PRD batch when the user steers "promote" or a lane engages.

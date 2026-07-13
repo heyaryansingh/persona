@@ -164,7 +164,9 @@ Turn existing-but-unwired primitives into closed loops and upgrade the swarm fro
 | 2026-07-13 | master | PRD-38..39 OQs | RESOLVED | batch-12 below (res. 75–82): FC-29 confirmed (§9); RQ-E52/E53 (§6); PRD-39 additive (no new FC, FC-30 returned); `_MIN_TREND_N`=10 default, import `calibrate._P_COMMIT`, **component_value stays observational v1 (no causal contract minted)**, RQ-E53 offline-gate, defer audit-rationale faithfulness |
 | 2026-07-13 | ideation | PRD-40..41 | READY-TO-CLAIM | dead-end/rabbit-hole-detector(L1, **FC-30/RQ-E54**), mechanistic-model→novel-prediction-generator(L3, **FC-31/RQ-E55**) — workflow `whrt707rc` done (2/2, 0 err); FC-30 reclaimed; pre-assign held, zero collision |
 | 2026-07-13 | master | PRD-40..41 OQs | RESOLVED | batch-13 below (res. 83–89): FC-30/FC-31 confirmed (§9); RQ-E54/E55 (§6); CCP-40a (FC-30 render→L4) + CCP-41a (mechanism `discover.py` hook→L1); PRD-40 OQs→defaults (yield-attribution deferred, round=cost-step, reprioritize=slot-yield); FC-31 differentiated from FC-22 |
-| 2026-07-13 | ideation | PRD-42..43 | AUTHORING | prospective-forecasting(L1+4, **FC-32/RQ-E56**), whole-graph-self-consistency-sweep(L2, **FC-33/RQ-E57**) — workflow `wzyovh1lx` in flight; pre-assign held; resolve batch-14 on completion (next free after: FC-34, RQ-E58) |
+| 2026-07-13 | ideation | PRD-42..43 | READY-TO-CLAIM | prospective-forecasting(L1+4, **FC-32/RQ-E56**), whole-graph-self-consistency-sweep(L2, **FC-33/RQ-E57**) — workflow `wzyovh1lx` done (2/2, 0 err); pre-assign held, zero collision |
+| 2026-07-13 | master | PRD-42..43 OQs | RESOLVED | batch-14 below (res. 90–96): FC-32/FC-33 confirmed (§9); RQ-E56/E57 (§6); CCP-43a (`coherence_sweep` tick→L1); memory/coherence.py kept (distinct from top-level `persona/coherence.py`); PRD-42/43 OQs→defaults; worker += forecast_grade/coherence_sweep |
+| 2026-07-13 | user | LOOP | PAUSED | user "pause the loop" → cron `64340d74` cancelled. No batch in flight, state fully posted. Resume: `/loop 5m keep ideating and writing prds` (or re-run the loop prompt). LOOP_STATE.md current. |
 
 ### Master resolutions — 2026-07-12 (ratified; consumers may build on these)
 Cross-lane questions the four PRD authors surfaced, decided by the master. FC amendments are reflected in `docs/prd/PRD-00-overview.md` §4.
@@ -289,6 +291,17 @@ Cross-lane questions the four PRD authors surfaced, decided by the master. FC am
 89. **PRD-41 OQ → non-blocking:** RQ-E55 full graph slice + expert plausibility overlay = domain input; a held-out-edge proxy runs in CI meanwhile (RQ-E46 precedent).
 
 **Program state after batch 13: 41 PRDs · FC-1..31 · RQ to E55 · 89 master resolutions.** Next free: **FC-32, RQ-E56**. Binding constraint remains implementation (no lane has posted CLAIMED). Loop cadence now 5-min (`64340d74`).
+
+### Master resolutions — batch 14, 2026-07-13 (PRD-42..43 — pre-assign held, zero collision)
+90. **FC-32 confirmed — prospective forecasting** (PRD-42, Lane 1 `persona/forecast.py`, Lane 4 renders). Sealed immutable dated prior (`DuplicateForecastError`); grades on REAL arriving KG claims (pure arithmetic, never self-grades); fires only when `trajectory.state=="moving"`. **Never mutates a belief.** Consumes trajectory(LIVE — export is `trajectory`, not `topic_trajectory`)/FC-17/FC-27 import-guarded. Spec §9.
+91. **FC-33 confirmed — whole-graph self-consistency sweep** (PRD-43, Lane 2 `memory/coherence.py`). READ-ONLY detection of transitivity/sign/orphaned-inference violations → typed repair CANDIDATES via FC-2; **never mutates/retires/demotes** (structural invariant); files only behind `ops_dir/rq_e57.passed`; `applicable=False` below `min_claims`. Spec §9.
+92. **RQ-E56/E57 confirmed** (pre-assign held). E56 = out-of-sample forecast Brier beats chance+persistence on a frozen corpus. E57 = injected-incoherence detection precision ≥0.90 + coherent-graph false-flag ≤0.05.
+93. **PRD-43 O-1 naming RESOLVED:** keep `memory/coherence.py` — a DISTINCT namespace from the existing top-level `persona/coherence.py` (import `from persona.memory import coherence`); §3 already lists it. Not renamed (Python namespaces cleanly).
+94. **CCP-43a ratified → Lane 1:** additive `coherence_sweep` scheduler tick (offline/$0, no budget gate, mirrors CCP-27a); behaviour-neutral until landed. `GET /forecasts` + `GET /coherence` render routes → Lane 4.
+95. **PRD-42 OQs → defaults:** `confidence` kept on the sealed prior; `expired_no_evidence` excluded from Brier; v1 explicit-seal-only (no unattended auto-seal); foresight scoreboard co-locates beside FC-17's calibration panel.
+96. **PRD-43 OQs → defaults:** `min_claims`=25; narrow (`{supports}`, `max_hops`=2); `sign_contradiction` conflict-type = `insufficient`. **worker.py registry += `forecast_grade`, `coherence_sweep`** (append-only).
+
+**Program state after batch 14: 43 PRDs · FC-1..33 · RQ to E57 · 96 master resolutions.** Next free: **FC-34, RQ-E58**. Binding constraint remains implementation (no lane has posted CLAIMED). **Loop PAUSED (user) — cron cancelled.**
 
 ### Acceptance gate (per feature)
 A feature is `VERIFIED` only with a measurable acceptance criterion met **and** one runnable check (a `pytest` name or CLI assertion) passing; Lane-4 surfaces additionally pass a `PERSONA_WORKERS=0` browser smoke. No feature is done on prose.
