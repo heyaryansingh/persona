@@ -69,6 +69,15 @@ def ingest(path_rel: str, kind: str = "draft", kg=None) -> dict:
             n_con += 1
         results.append({"your_claim": f"{subj} [{sign}] {obj}", "quote": c.get("quote", ""),
                         "status": status, "support": cc["support"], "contradict": cc["contradict"]})
+    # RAG: embed the uploaded work so it INFORMS the mind's generation (reports/answers), not just the
+    # one-shot cross-check — your paper becomes retrievable context alongside the literature notes.
+    try:
+        vecs = get_persona().vectors
+        for j, i in enumerate(range(0, min(len(text), 18000), 1500)):
+            vecs.upsert(f"upload:{doc_id}:{j}", text[i:i + 1500],
+                        {"title": f.name, "kind": "upload", "doc_id": doc_id})
+    except Exception:
+        pass
     log().emit("artifact", f"cross-checked your work “{f.name}”: {len(results)} claims — "
                f"{n_sup} with literature support, {n_con} contradicted", actor="co-researcher",
                file=path_rel)
