@@ -186,6 +186,87 @@ def correct_extraction_sign(claim_id: str, new_effect_sign: str, reason: str,
             "source_corrections": written}
 
 
+# ---------------------------------------------------------------- dual-signal admission (F2.1)
+# The "discipline of believing" gate: a candidate claim is committed to belief ONLY when TWO
+# independent signals agree — an exact-span entailment AND independent KG support. Anything less
+# abstains to a human. This never anchors (anchoring stays a human/tested act — kg.anchor); it
+# only ROUTES. Deterministic + offline: reads candidate fields + the KG, no model, no network.
+# PLACEHOLDER: min-labs threshold not yet calibrated against a labelled admit/reject set.
+_KG_SUPPORT_MIN_LABS = 2
+
+
+def _nli_span_signal(candidate: dict) -> bool:
+    """Exact-span entailment signal — PLUGGABLE SEAM, offline stub for now.
+
+    Deterministic proxy (no model): the candidate must carry a verbatim source span
+    (`span`/`quote`/`evidence_span`) that literally contains BOTH the subject and object
+    surface forms — a cheap stand-in for "the source text entails this claim at a locatable
+    span". An ungrounded assertion (no span) can never satisfy it.
+    TODO(nli-model): replace the body with a real span-grounded NLI entailment call behind
+    THIS signature. PLACEHOLDER: the contains-both heuristic is unvalidated vs a labelled set.
+    """
+    span = (candidate.get("span") or candidate.get("quote")
+            or candidate.get("evidence_span") or "").lower()
+    subj = " ".join((candidate.get("subject") or "").lower().split())
+    obj = " ".join((candidate.get("object") or "").lower().split())
+    if not span or not subj or not obj:
+        return False
+    return subj in span and obj in span
+
+
+def _kg_support_signal(candidate: dict, kg) -> bool:
+    """KG-support signal: independent literature already agrees on this directional claim.
+
+    Same-sign claims on the (subject, object) pair must be backed by >= _KG_SUPPORT_MIN_LABS
+    DISTINCT labs. Uses independence-by-lab (kg.crosscheck's `labs` = independent_source_count),
+    so raw copy count — citation echo / correlated poisoning — can't satisfy the gate.
+    """
+    if kg is None:
+        return False
+    try:
+        cc = kg.crosscheck(candidate.get("subject", ""), candidate.get("object", ""),
+                           candidate.get("effect_sign", "na"))
+    except Exception:
+        return False
+    labs = max((int(s.get("labs") or 0) for s in cc.get("support", [])), default=0)
+    return labs >= _KG_SUPPORT_MIN_LABS
+
+
+def admit_candidate(candidate: dict, kg=None) -> dict:
+    """Dual-signal atomic admission gate (PRD F2.1) — the 'discipline of believing'.
+
+    Commit a candidate to belief ONLY when BOTH signals agree:
+      1. nli_span   — an exact, locatable source span entails the claim (offline stub; NLI seam).
+      2. kg_support — independent literature in the KG already agrees (>= N distinct labs).
+    Exactly one signal -> abstain to a human. Neither -> reject (nothing to believe). Cheap
+    evidence alone (volume without independence, or an assertion with no span) can never reach
+    'commit' — that is the poisoning defence. NEVER auto-anchors; this only routes.
+
+    Returns {admit, route:'commit'|'human'|'reject', reasons[], signals:{nli_span, kg_support}}.
+    """
+    kg = kg if kg is not None else get_kg()
+    nli = _nli_span_signal(candidate)
+    kgs = _kg_support_signal(candidate, kg)
+    reasons = []
+    if nli and kgs:
+        route, admit = "commit", True
+        reasons.append("exact-span entailment AND independent KG support agree")
+    elif nli or kgs:
+        route, admit = "human", False
+        reasons.append("only one signal present (%s) — abstain to human"
+                       % ("nli_span" if nli else "kg_support"))
+    else:
+        route, admit = "reject", False
+        reasons.append("neither exact-span entailment nor independent KG support")
+    if not nli:
+        reasons.append("no exact source span entailing the claim (nli_span=false)")
+    if not kgs:
+        reasons.append("no independent KG support (>=%d distinct labs) (kg_support=false)"
+                       % _KG_SUPPORT_MIN_LABS)
+    return {"admit": admit, "route": route, "reasons": reasons,
+            "signals": {"nli_span": nli, "kg_support": kgs}}
+
+
 def project_beliefs(kg=None, min_independent: int = 2) -> None:
     """Render the KG's high-confidence beliefs into legible self/beliefs.md (git-diffable mind)."""
     kg = kg or get_kg()
