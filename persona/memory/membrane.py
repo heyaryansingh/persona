@@ -292,7 +292,7 @@ def _magnitude_flag(candidate: dict):
     """
     import re
     mag = str(candidate.get("magnitude") or "").strip().lower()
-    if not mag or "%" in mag or not any(w in mag for w in _RATIO_WORDS):
+    if not mag or "%" in mag or not re.search(r"\b(?:" + "|".join(_RATIO_WORDS) + r")\b", mag):
         return None
     m = re.search(r"-?\d+(?:\.\d+)?", mag)
     if not m:

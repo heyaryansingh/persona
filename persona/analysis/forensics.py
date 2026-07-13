@@ -103,11 +103,12 @@ def grim(mean: float, n: int, decimals: int = 2, items: int = 1) -> dict:
         total = round(float(mean) * n * items)
         recon = round(total / (n * items), decimals)
         consistent = abs(recon - round(float(mean), decimals)) < 10 ** (-decimals - 1)
+        items_txt = f" × {items} items" if items > 1 else ""
         return {"check": "grim", "status": "ok" if consistent else "inconsistent",
                 "severity": 0 if consistent else 2,
-                "detail": (f"Mean {mean} is unreachable for n = {n}" + (f" × {items} items" if items > 1 else "")
-                           + f" integer responses (nearest reachable: {recon})." if not consistent
-                           else f"Mean {mean} is reachable for n = {n}.")}
+                "detail": (f"Mean {mean} is unreachable for n = {n}{items_txt} integer responses "
+                           f"(nearest reachable: {recon})." if not consistent
+                           else f"Mean {mean} is reachable for n = {n}{items_txt}.")}
     except Exception:
         return {"check": "grim", "status": "skipped"}
 
@@ -125,15 +126,15 @@ def grimmer(mean: float, sd: float, n: int, decimals: int = 2, items: int = 1) -
             return {"check": "grimmer", "status": "skipped"}
         total = round(float(mean) * n * items)          # integer sum of responses (GRIM)
         # sample variance uses (n-1); sum of squares SS = sd^2*(n-1) + total^2/(n)  (for the raw values)
-        ss = float(sd) ** 2 * (n - 1) + (total ** 2) / n
+        ss = float(sd) ** 2 * (n * items - 1) + (total ** 2) / (n * items)
         # Σx² must be a NON-NEGATIVE INTEGER (a sum of squares of integer responses). sd is reported
         # to `decimals` places, so the true sd ∈ [sd−½·10⁻ᵈ, sd+½·10⁻ᵈ); GRIMMER-consistent iff an
         # integer Σx² lies in the band that maps to (Anaya 2016). The old `frac = |ss−round(ss)| < 0.5`
         # was a tautology — that distance is always ≤ 0.5 — so GRIMMER passed EVERY input, fabricating
         # 'ok' for arithmetically impossible SDs (the one thing this module exists to catch). S2 review HIGH.
         prec = 0.5 * 10 ** (-int(decimals))
-        ss_lo = max(0.0, float(sd) - prec) ** 2 * (n - 1) + (total ** 2) / n
-        ss_hi = (float(sd) + prec) ** 2 * (n - 1) + (total ** 2) / n
+        ss_lo = max(0.0, float(sd) - prec) ** 2 * (n * items - 1) + (total ** 2) / (n * items)
+        ss_hi = (float(sd) + prec) ** 2 * (n * items - 1) + (total ** 2) / (n * items)
         consistent = math.floor(ss_hi + 1e-9) >= math.ceil(ss_lo - 1e-9)
         return {"check": "grimmer", "status": "ok" if consistent else "inconsistent",
                 "severity": 0 if consistent else 2,

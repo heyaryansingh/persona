@@ -125,7 +125,7 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
         cites = sorted({src_num[s["slug"]] for s in (c.get("sources") or []) if s.get("slug") in src_num})
         q = next((s.get("quote") for s in (c.get("sources") or []) if s.get("quote")), "")
         claim_lines.append(f"- {c['subject']} {arrow.get(c['effect_sign'],'~')} {c['object']} "
-                           f"({c['independent_sources']} labs) {['['+str(n)+']' for n in cites]}"
+                           f"({c['independent_sources']} labs) {' '.join('[' + str(n) + ']' for n in cites)}"
                            + (f'  quote: "{q[:180]}"' if q else ""))
     _st = lambda x: re.sub(r"<[^>]+>", "", str(x or "")).strip()   # strip leaked <i>/<b>… from titles
     sources_md = "\n".join(f"[{src_num[s['slug']]}] {_st(s.get('title')) or s['slug']} — "
