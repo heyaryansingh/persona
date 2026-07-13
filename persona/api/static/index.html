@@ -282,8 +282,10 @@
   .ticker .pd{width:6px;height:6px;border-radius:50%;background:var(--live);box-shadow:0 0 8px var(--live);animation:pulse 1.8s infinite;flex-shrink:0}
   .ticker .tk{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dirlist{flex:1;overflow-y:auto;min-height:0}
-  .frow{display:grid;grid-template-columns:22px minmax(120px,1fr) 66px;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #ebebea;cursor:pointer;min-width:0;transition:background .12s}
-  .frow:hover{background:#eeeeed}.frow.sel{background:#e3e2e1;box-shadow:inset 2px 0 0 var(--anchor)}
+  /* scoped to .dirlist: the file browser's .frow must beat focus.css's global .frow (56px 16px 1fr auto),
+     which otherwise forces the filename (.fmain, 2nd child) into a 16px column -> only the first letter shows */
+  .dirlist .frow{display:grid;grid-template-columns:22px minmax(120px,1fr) 66px;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #ebebea;cursor:pointer;min-width:0;transition:background .12s}
+  .dirlist .frow:hover{background:#eeeeed}.dirlist .frow.sel{background:#e3e2e1;box-shadow:inset 2px 0 0 var(--anchor)}
   .frow .fi{text-align:center;opacity:.85}
   .frow .fmain{min-width:0}
   .frow .fn{font-size:12.5px;color:#1e1d1c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2044,8 +2046,17 @@ async function auditPaper(slug){
 async function openInstruments(){
   $("#instbody").innerHTML='<div class="inst"><div class="iplace">reading the graph…</div></div>';
   try{
-    const k=window.__kg||await (await fetch(A("/kg"))).json();
+    // never trust a stale/partial __kg cache for this surface — always fetch fresh (cheap, and the
+    // engine is computed from the WHOLE belief-graph). A cached {} or a prior persona's graph is the
+    // classic cause of a blank Review surface.
+    const k=await (await fetch(A("/kg"))).json();
+    if(!k.available){ $("#instbody").innerHTML='<div class="inst"><h3>Intellectual engine</h3>'
+      +'<div class="iplace">The knowledge graph is offline, so the engine cannot be computed. '
+      +'Resume the persona (or start its graph backend) and reopen this view.</div></div>'; return; }
     const graph=k.graph||{nodes:[],edges:[]}; const beliefs=k.beliefs||[]; const contras=k.candidate_conflicts||k.contradictions||[];
+    if(!beliefs.length){ $("#instbody").innerHTML='<div class="inst"><h3>Intellectual engine</h3>'
+      +'<div class="iplace">No beliefs in the graph yet — this mind is still reading. The engine '
+      +'(load-bearing claims, review order, sparse evidence, conflicts) populates as claims accumulate.</div></div>'; return; }
     const gd=await fetch(A("/gate_decisions?limit=20")).then(r=>r.json()).catch(()=>({decisions:[],available:false}));  // C1 action feed
     // degree map over entity graph → load-bearing proxy
     const deg={}; (graph.edges||[]).forEach(e=>{deg[e.source]=(deg[e.source]||0)+1;deg[e.target]=(deg[e.target]||0)+1;});
@@ -2079,13 +2090,13 @@ async function openInstruments(){
     h+=`<div class="inst"><h3>Sparse-evidence candidates</h3><div class="isub">One-source observations that may merit replication. Their absence of conflict does not imply publication bias or a buried null.</div><div class="irows">`+
       (silent.length?silent.map(b=>`<div class="irow" onclick="prov('${b.claim_id}')"><span class="ilab"><b>${esc(b.subject)}</b> ${b.effect_sign==='+'?'↑':b.effect_sign==='-'?'↓':'·'} ${esc(b.object)}<div class="m">${b.independent_sources} lab · score=${(b.confidence||0).toFixed(2)}</div></span><span class="ibadge">one source</span></div>`).join(""):'<div class="iplace">no one-source observations</div>')+`</div></div>`;
     // handoff inbox
-    const inbox=await (await fetch(A("/inbox"))).json();
+    const inbox=await fetch(A("/inbox")).then(r=>r.json()).catch(()=>({items:[]}));   // never let a failing inbox blank the surface
     const items=inbox.items||[];
     h+=`<div class="inst"><h3>Candidate-conflict inbox</h3><div class="isub">Opposite stored signs awaiting evidence and qualifier review. Direct anchoring is paused until the contradiction-typing experiment passes.</div><div class="irows">`+
       (items.length?items.map(c=>{const rs=c.review_summary||{}, latest=rs.latest;
         return `<div class="instcontra"><div class="ct">⚡ ${esc(c.subject)} → ${esc(c.object)}</div><div class="cm">candidate conflict · unverified · ${rs.review_count||0} review${rs.review_count===1?'':'s'}${latest?' · latest '+esc(latest.verdict):''}</div><button onclick="contraEvidence('${c.pos_claim}','${c.neg_claim}')">open evidence dossier</button></div>`;}).join(""):'<div class="iplace">no candidate conflicts</div>')+`</div></div>`;
     $("#instbody").innerHTML=h;
-  }catch(e){ $("#instbody").innerHTML='<div class="inst"><div class="iplace">could not compute instruments</div></div>'; }
+  }catch(e){ $("#instbody").innerHTML='<div class="inst"><h3>Intellectual engine</h3><div class="iplace">Could not compute the engine: '+esc(String(e&&e.message||e))+'. The graph may still be loading — reopen this view.</div></div>'; }
 }
 function confBar(c,v){const pct=Math.round(clamp(c||0,0,1)*100);const col=v==="settling"?"#21b576":v==="contested"?"#b8271e":v==="thin"?"#b8951e":"#1e38b8";
   return `<span class="spark" style="display:inline-block;width:56px"><span style="display:block;height:4px;border-radius:2px;background:#dedddb"><span style="display:block;height:100%;width:${pct}%;border-radius:2px;background:${col}"></span></span></span>`;}
