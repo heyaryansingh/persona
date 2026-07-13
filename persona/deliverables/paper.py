@@ -251,6 +251,147 @@ def _process_appendix(p, n_sources: int) -> str:
     ])
 
 
+def _provenance_section(rundata: dict) -> str:
+    """A8 (I1.7) — the 'Provenance & Process' section, a PROJECTION of this run's own logged data:
+    reading-funnel counts, the agent pipeline, sources admitted/quarantined, sandbox computations with
+    their content hash, and (when run) the robustness verdict. NOT model prose — every rendered number
+    carries a grounding key (the file / jsonl / sha256 it was derived from), so the section is auditable
+    and re-render is byte-identical (no wall-clock, no model call here — RQ-E01a exact-source discipline
+    applied to the report itself). A datum with no backing record renders 'not recorded for this run',
+    never a fabricated 0 or an estimate (I1.7 §0-3)."""
+    rd = rundata or {}
+
+    def g(key):                                        # grounding suffix for a rendered number
+        return f" — `{key}`"
+
+    out = ["## Provenance & Process", "",
+           "*Generated from this run's own logs. Each count and hash below is traceable to the record it "
+           "came from; a step that left no log is marked \"not recorded\" rather than guessed.*", ""]
+
+    # 1. Reading funnel — counts derived from the read sources and the admitted/rejected claim logs.
+    f = rd.get("funnel") or {}
+    fl = [f"- {lbl}: **{f[k]}**{g(key)}"
+          for lbl, k, key in (("Sources read", "read", "sources/*/meta.json"),
+                              ("Claims extracted", "claims_extracted", "sources/*/claims*.jsonl"),
+                              ("Claims admitted", "admitted", "sources/*/claims.jsonl"),
+                              ("Claims quarantined", "rejected", "sources/*/claims_rejected.jsonl"))
+          if isinstance(f.get(k), int)]
+    reasons = f.get("reject_reasons") or {}
+    if reasons:
+        fl.append("- Quarantine reasons: " + ", ".join(f"{r} ({c})" for r, c in sorted(reasons.items()))
+                  + g("sources/*/claims_rejected.jsonl"))
+    out += ["### Reading funnel", ""] + (fl or ["*not recorded for this run.*"]) + [""]
+
+    # 2. Agent pipeline — the stages that actually ran, each with items processed.
+    pl = [f"- **{s['stage']}** — {s['count']} item(s){g(s.get('source', 'run log'))}"
+          for s in (rd.get("pipeline") or []) if isinstance(s.get("count"), int)]
+    out += ["### Agent pipeline", ""] + (pl or ["*not recorded for this run.*"]) + [""]
+
+    # 3. Sources — admitted (the numbered references) vs quarantined (had rejected claims).
+    s = rd.get("sources") or {}
+    sl = []
+    if isinstance(s.get("admitted"), int):
+        sl.append(f"- Admitted: **{s['admitted']}** source(s){g('## References')}")
+    if isinstance(s.get("quarantined"), int):
+        sl.append(f"- Quarantined: **{s['quarantined']}** source(s){g('sources/*/claims_rejected.jsonl')}")
+    out += ["### Sources", ""] + (sl or ["*not recorded for this run.*"]) + [""]
+
+    # 4. Computations — each sandbox artifact with its content hash (auditable, deterministic).
+    cl = []
+    for c in (rd.get("computations") or []):
+        h = (c.get("source_sha256") or "")[:12]
+        if not h:
+            continue
+        status = "ok" if c.get("ok") else "failed"
+        cl.append(f"- {c.get('what') or 'sandbox run'}: {status}; `sha256:{h}`")
+    out += ["### Computations", ""] + (cl or ["*not recorded for this run.*"]) + [""]
+
+    # 5. Robustness verdict — the auditor band/likelihood/interval, when an audit ran.
+    rb = rd.get("robustness") or {}
+    rl = []
+    if rb.get("band"):
+        parts = [f"**{rb['band']}**"]
+        if rb.get("likelihood"):
+            parts.append(f"replication likelihood {rb['likelihood']}")
+        if rb.get("interval"):
+            parts.append(f"interval {rb['interval']}")
+        rl.append("- " + " · ".join(parts) + g(rb.get("source", "robustness audit")))
+        if rb.get("failing"):
+            rl.append("- Failing checks: " + ", ".join(rb["failing"]) + g(rb.get("source", "robustness audit")))
+    out += ["### Robustness verdict", ""] + (rl or ["*not recorded for this run.*"]) + [""]
+
+    return "\n".join(out).rstrip() + "\n"
+
+
+def _collect_rundata(p, project, sources, fignums) -> dict:
+    """Assemble the A8 provenance data from THIS mind's REAL on-disk logs (I1.7 §1). Every value is a
+    count or content-hash read off a real file; anything absent is simply omitted so the section degrades
+    to 'not recorded' rather than fabricating a 0. Runs before compile, so computation hashes are the
+    already-built figure PNGs (not the paper's own hash — that would be self-referential)."""
+    import collections
+    read = admitted = rejected = quarantined_sources = 0
+    reasons = collections.Counter()
+    try:
+        read = sum(1 for _ in p.paths.sources_dir.glob("*/meta.json"))
+        for cf in p.paths.sources_dir.glob("*/claims.jsonl"):
+            admitted += sum(1 for l in cf.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip())
+        for rf in p.paths.sources_dir.glob("*/claims_rejected.jsonl"):
+            n = 0
+            for l in rf.read_text(encoding="utf-8", errors="replace").splitlines():
+                if not l.strip():
+                    continue
+                n += 1
+                try:
+                    reasons[str(json.loads(l).get("reason") or "unspecified")] += 1
+                except Exception:
+                    reasons["unspecified"] += 1
+            rejected += n
+            quarantined_sources += 1 if n else 0
+    except Exception:
+        pass
+    try:
+        n_notes = sum(1 for _ in p.paths.notes_dir.glob("*.md"))
+    except Exception:
+        n_notes = 0
+    rd: dict = {}
+    funnel: dict = {}
+    if read:
+        funnel["read"] = read
+    if admitted or rejected:
+        funnel["claims_extracted"] = admitted + rejected
+        funnel["admitted"] = admitted
+    if rejected:
+        funnel["rejected"] = rejected
+    if reasons:
+        funnel["reject_reasons"] = dict(reasons)
+    if funnel:
+        rd["funnel"] = funnel
+    pipeline = []
+    if read:
+        pipeline.append({"stage": "Reader swarm", "count": read, "source": "sources/*/meta.json"})
+    if n_notes:
+        pipeline.append({"stage": "Consolidation", "count": n_notes, "source": "notes/*.md"})
+    if fignums:
+        pipeline.append({"stage": "Figure builder", "count": len(fignums), "source": "sandbox figures"})
+    pipeline.append({"stage": "Writer", "count": 1, "source": "this manuscript"})
+    rd["pipeline"] = pipeline
+    rd["sources"] = {"admitted": len(sources), "quarantined": quarantined_sources}
+    comps = []
+    for i in sorted(fignums):
+        fp = project / f"figure{i}.png"
+        if fp.is_file():
+            comps.append({"what": f"Figure {i} (sandbox matplotlib)",
+                          "source_sha256": hashlib.sha256(fp.read_bytes()).hexdigest(), "ok": True})
+    if comps:
+        rd["computations"] = comps
+    return rd
+
+
+def _ship_blocked(lint: dict) -> bool:
+    """D — the pre-ship gate predicate: a paper that fails the deterministic lint MUST NOT ship."""
+    return not (lint or {}).get("ok", False)
+
+
 def _fix_captions(md: str, capmap: dict) -> str:
     """Replace shipped PLACEHOLDER figure captions ('structure and objects of the problem') with the
     figure's real title, so a paper never ships a generic/framing caption."""
@@ -395,6 +536,11 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     md = _fix_captions(md, dict(figinfo))
     md = _style_status(md)                                # A5: raw **[OPEN]** -> styled badge + legend
     md = md.rstrip() + "\n\n" + _process_appendix(p, len(sources))   # bottom: the agents/steps that made it
+    # A8 (I1.7): grounded 'Provenance & Process' section — real funnel/pipeline/source/computation counts
+    # from this run's own logs, each number carrying its grounding key. Built before compile so figure
+    # hashes are available; NOT model prose. A datum with no backing record renders 'not recorded'.
+    rundata = _collect_rundata(p, project, sources, fignums)
+    md = md.rstrip() + "\n\n" + _provenance_section(rundata)
     hm = re.search(r"^#\s+(.+)$", md, re.M)
     title = (hm.group(1).strip() if hm else "") or topic
     # SUBSTANCE FLOOR: never ship a bodyless / references-only stub as a paper.
@@ -451,15 +597,20 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     # literals, citation integrity, and epoch-date '1970' forensics over the compiled .tex + sources.
     from .paper_lint import lint_paper
     lint = lint_paper({"tex": (project / "main.tex").read_text(encoding="utf-8", errors="replace"),
-                       "markdown": md, "filename": _deliverable_name(topic), "sources": sources})
+                       "markdown": md, "filename": _deliverable_name(topic), "sources": sources,
+                       "provenance_present": bool(rundata)})
     receipt["lint"] = lint
-    if lint["ok"]:
-        log().emit("control", "paper passed the pre-ship audit (formatting · citations · dates)",
-                   actor="paper", parent_id=parent_id)
-    else:
-        log().emit("control", f"pre-ship audit flagged {len(lint['violations'])} issue(s): "
+    # D — HARD GATE: a paper that fails the deterministic audit is NOT shipped. It stays as a compiled
+    # project artifact (auditable), but never reaches deliverables/ — a broken PDF must not go out.
+    if _ship_blocked(lint):
+        log().emit("error", f"pre-ship audit BLOCKED release ({len(lint['violations'])} issue(s)): "
                    + "; ".join(f"{x['code']} {x['msg']}" for x in lint["violations"][:6]),
                    actor="paper", parent_id=parent_id)
+        (project / "compile.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+        return {"ok": False, "reason": "failed-pre-ship-audit", "lint": lint,
+                "project": str(project.relative_to(p.paths.projects_dir)).replace("\\", "/")}
+    log().emit("control", "paper passed the pre-ship audit (formatting · citations · dates · provenance)",
+               actor="paper", parent_id=parent_id)
     p.paths.deliverables_dir.mkdir(parents=True, exist_ok=True)
     source_hash = attempts[-1]["source_sha256"]
     dst = p.paths.deliverables_dir / _deliverable_name(topic)   # B1: readable title + ISO date, no hash
