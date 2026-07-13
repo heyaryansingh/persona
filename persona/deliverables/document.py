@@ -14,17 +14,40 @@ from pathlib import Path
 
 from ..tools import sandbox
 
+# %(classopts)s parameterizes the class options so a caller can request twocolumn (A4). url[hyphens]
+# MUST load before hyperref (which pulls in url itself) or pdflatex throws an option-clash. listings +
+# xcolor style code blocks with wrapping (A1); microtype + \sloppy + \emergencystretch break long
+# unbreakable tokens/URLs so headings and \texttt don't run off the margin (A2). All in texlive-base,
+# so the offline compile is preserved.
 _TEMPLATE = (
-    "\\documentclass[11pt]{article}\n"
+    "\\documentclass[%(classopts)s]{article}\n"
     "\\usepackage[utf8]{inputenc}\n"
     "\\usepackage[T1]{fontenc}\n"
     "\\usepackage[margin=1in]{geometry}\n"
+    "\\usepackage[hyphens]{url}\n"
     "\\usepackage{amsmath,amssymb,graphicx,hyperref,enumitem,xcolor}\n"
+    "\\usepackage{listings}\n"
+    # expansion=false: default font expansion needs scalable (Type1) fonts, but the offline
+    # sandbox renders Computer Modern as bitmaps -> fatal pdfTeX error / no PDF. Protrusion
+    # (still on) keeps the A2 margin-breaking benefit. See S2 PQ-REG-1 (2026-07-13).
+    "\\usepackage[expansion=false]{microtype}\n"
     "\\usepackage{parskip}\n"
-    "\\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}\n"
+    "\\lstset{basicstyle=\\small\\ttfamily,breaklines=true,breakatwhitespace=false,"
+    "columns=fullflexible,frame=single,backgroundcolor=\\color{gray!8},keepspaces=true,"
+    "showstringspaces=false}\n"
+    "\\sloppy\\emergencystretch=3em\n"
+    "\\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,breaklinks=true}\n"
     "\\title{%(title)s}\n\\author{Persona}\n\\date{\\today}\n"
     "\\begin{document}\n\\maketitle\n%(body)s\n\\end{document}\n"
 )
+
+# fence language -> listings language name. Only languages listings ships a dictionary for (an unknown
+# `language=` aborts the build); everything else renders as a plain lstlisting. Keys are lowercased.
+_LST_LANG = {
+    "python": "Python", "py": "Python", "c": "C", "cpp": "C++", "c++": "C++", "java": "Java",
+    "sql": "SQL", "r": "R", "matlab": "Matlab", "fortran": "Fortran", "html": "HTML", "xml": "XML",
+    "php": "PHP", "perl": "Perl", "ruby": "Ruby", "tex": "[LaTeX]TeX", "latex": "[LaTeX]TeX",
+}
 
 # LLM markdown is full of Unicode math/Greek that pdflatex rejects — map the common ones to
 # math macros (stashed as math so they survive escaping), scrub the exotic rest.
@@ -71,7 +94,46 @@ def _esc(text: str) -> str:
     return text
 
 
-def _inline(text: str) -> str:
+def _img_size(p: Path):
+    """(width, height) in px from a PNG/JPEG header, using stdlib only (no Pillow) so figure-sizing
+    stays offline + deterministic. None if the file is missing or not a format we parse."""
+    try:
+        data = p.read_bytes()
+    except OSError:
+        return None
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) >= 24:
+        import struct
+        w, h = struct.unpack(">II", data[16:24])
+        return (w, h)
+    if data[:2] == b"\xff\xd8":  # JPEG: walk segment markers to the SOFn frame header
+        i, n = 2, len(data)
+        while i + 9 < n:
+            if data[i] != 0xFF:
+                i += 1; continue
+            marker = data[i + 1]
+            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+                return ((data[i + 7] << 8) | data[i + 8], (data[i + 5] << 8) | data[i + 6])
+            i += 2 + ((data[i + 2] << 8) | data[i + 3])
+    return None
+
+
+def _img_include(path: str, assets: Path | None) -> str:
+    """Embed a figure legibly (A3): full text-width by default with the aspect capped so a tall figure
+    can't force a tiny width; very-wide figures rotate to landscape so their on-figure text stays big.
+    Was a fixed width=0.85\\linewidth, which shrank large flowcharts' text below legibility."""
+    size = _img_size(assets / path) if assets is not None else None
+    if size and size[1]:
+        aspect = size[0] / size[1]
+        if aspect >= 2.2:  # very wide -> rotate 90deg, size to the page height (landscape) so text is readable
+            return ("\\makebox[\\linewidth]{\\rotatebox{90}{"
+                    "\\includegraphics[width=0.82\\textheight,keepaspectratio]{%s}}}" % path)
+        if aspect <= 0.5:  # very tall -> cap the height so it doesn't blow past the page / go micro-width
+            return "\\includegraphics[height=0.82\\textheight,keepaspectratio]{%s}" % path
+    # default (incl. unknown size): full text-width, but cap total height so tall figures stay on-page
+    return "\\includegraphics[width=\\linewidth,totalheight=0.82\\textheight,keepaspectratio]{%s}" % path
+
+
+def _inline(text: str, assets: Path | None = None) -> str:
     """Escape a prose span, then re-apply inline markdown (bold/italic/code/link/img). Math and code
     are extracted first so their contents are never escaped."""
     slots = []
@@ -102,7 +164,7 @@ def _inline(text: str) -> str:
         return raw   # math kept verbatim
     text = re.sub(r"\x00(\d+)\x00", unstash, text)
     text = re.sub(r"\x01(\d+)\x01",
-                  lambda m: "\\includegraphics[width=0.85\\linewidth]{%s}" % imgs[int(m.group(1))], text)
+                  lambda m: _img_include(imgs[int(m.group(1))], assets), text)
     text = re.sub(r"\x02(\d+)\x02",
                   lambda m: "\\href{%s}{%s}" % (links[int(m.group(1))][1], _esc(links[int(m.group(1))][0])), text)
     return text
@@ -122,8 +184,9 @@ def sanitize_markdown(md: str) -> str:
     return md.strip()
 
 
-def md_to_latex(md: str, title: str = "") -> str:
-    """Pragmatic markdown -> LaTeX body (headings, lists, code fences, blockquotes, images, math)."""
+def md_to_latex(md: str, title: str = "", assets: Path | None = None) -> str:
+    """Pragmatic markdown -> LaTeX body (headings, lists, code fences, blockquotes, images, math).
+    `assets` (dir next to the source) is used to size embedded figures; None -> default full-width."""
     lines = (md or "").replace("\r\n", "\n").split("\n")
     out, i, in_list, in_code = [], 0, None, False
     def close_list():
@@ -135,9 +198,12 @@ def md_to_latex(md: str, title: str = "") -> str:
         ln = lines[i]
         if ln.strip().startswith("```"):
             if not in_code:
-                close_list(); out.append("\\begin{verbatim}"); in_code = True
+                # code block via listings (wraps long lines, A1); tag language when listings knows it
+                lang = _LST_LANG.get(re.sub(r"^`+", "", ln.strip()).strip().lower(), "")
+                opt = "[language=%s]" % lang if lang else ""
+                close_list(); out.append("\\begin{lstlisting}%s" % opt); in_code = True
             else:
-                out.append("\\end{verbatim}"); in_code = False
+                out.append("\\end{lstlisting}"); in_code = False
             i += 1; continue
         if in_code:
             out.append(ln); i += 1; continue
@@ -147,29 +213,29 @@ def md_to_latex(md: str, title: str = "") -> str:
         if h:
             close_list()
             lvl = len(h.group(1)); cmd = ["section", "subsection", "subsubsection", "paragraph"][min(lvl - 1, 3)]
-            out.append("\\%s*{%s}" % (cmd, _inline(h.group(2)))); i += 1; continue
+            out.append("\\%s*{%s}" % (cmd, _inline(h.group(2), assets))); i += 1; continue
         m = re.match(r"^\s*[-*+]\s+(.*)$", ln)
         if m:
             if in_list != "ul":
                 close_list(); out.append("\\begin{itemize}[leftmargin=1.4em]"); in_list = "ul"
-            out.append("\\item " + _inline(m.group(1))); i += 1; continue
+            out.append("\\item " + _inline(m.group(1), assets)); i += 1; continue
         m = re.match(r"^\s*\d+\.\s+(.*)$", ln)
         if m:
             if in_list != "ol":
                 close_list(); out.append("\\begin{enumerate}[leftmargin=1.6em]"); in_list = "ol"
-            out.append("\\item " + _inline(m.group(1))); i += 1; continue
+            out.append("\\item " + _inline(m.group(1), assets)); i += 1; continue
         if ln.strip().startswith(">"):
-            close_list(); out.append("\\begin{quote}" + _inline(ln.strip()[1:].strip()) + "\\end{quote}"); i += 1; continue
+            close_list(); out.append("\\begin{quote}" + _inline(ln.strip()[1:].strip(), assets) + "\\end{quote}"); i += 1; continue
         if re.match(r"^\s*\$\$\s*$", ln):   # display-math fence
             close_list(); block = []
             i += 1
             while i < len(lines) and not re.match(r"^\s*\$\$\s*$", lines[i]):
                 block.append(lines[i]); i += 1
             out.append("\\[" + "\n".join(block) + "\\]"); i += 1; continue
-        close_list(); out.append(_inline(ln)); i += 1
+        close_list(); out.append(_inline(ln, assets)); i += 1
     close_list()
     if in_code:
-        out.append("\\end{verbatim}")
+        out.append("\\end{lstlisting}")
     return "\n".join(out)
 
 
@@ -198,20 +264,47 @@ def harden_latex(tex: str) -> str:
     return (tex[:m.end()] + inject + tex[m.end():]) if m else ("\\documentclass{article}" + inject + tex)
 
 
-def compile_source(source: str, fmt: str, project: Path, *, title: str = "") -> dict:
-    """Write `source` (md|tex) as main.tex in `project` and compile to PDF. Deterministic, offline."""
-    project.mkdir(parents=True, exist_ok=True)
+def choose_layout(md: str) -> str:
+    """Pick 'one' vs 'two' columns from content (A4): math-heavy derivations (wide display equations,
+    dense inline math) read better single-column; long, structured empirical prose goes two-column.
+    Deterministic pure function of the text. Conservative -> defaults to 'one' when unsure."""
+    md = md or ""
+    words = max(len(md.split()), 1)
+    math = (len(re.findall(r"(?<!\$)\$(?!\$)[^$\n]+\$", md))
+            + 2 * len(re.findall(r"\$\$", md)) + 2 * len(re.findall(r"\\\[", md)))
+    if math / words > 0.03:            # math-dense -> single column (wide equations)
+        return "one"
+    structural = (len(re.findall(r"(?m)^#{1,4}\s", md)) + len(re.findall(r"(?m)^\s*[-*+]\s", md))
+                  + md.count("|"))
+    if words > 400 and structural >= 6:  # long + structured empirical paper -> two columns
+        return "two"
+    return "one"
+
+
+def render_latex(source: str, fmt: str = "md", *, title: str = "", layout: str = "auto",
+                 assets: Path | None = None) -> str:
+    """Build the full compilable .tex for `source` (md|tex). Pure/offline so the emitted LaTeX can be
+    inspected without a sandbox. `layout`: 'one'|'two'|'auto' (auto -> choose_layout)."""
     if fmt == "tex":
         tex = source
     else:
-        body = md_to_latex(sanitize_markdown(source), title)
-        tex = _TEMPLATE % {"title": _scrub(_esc(title or "Document")), "body": body}
-    # FINAL GUARANTEE (no dead PDFs): any non-ASCII math glyph that survived into a verbatim code block
+        md = sanitize_markdown(source)
+        lay = choose_layout(md) if layout == "auto" else layout
+        classopts = "11pt,twocolumn" if lay == "two" else "11pt"
+        body = md_to_latex(md, title, assets=assets)
+        tex = _TEMPLATE % {"classopts": classopts, "title": _scrub(_esc(title or "Document")), "body": body}
+    # FINAL GUARANTEE (no dead PDFs): any non-ASCII math glyph that survived into a code block
     # or a raw .tex source — ≡ ≈ Ω ⊕ ✓ … — is undeclared under utf8 inputenc and aborts pdflatex
     # ("not set up for use with LaTeX → no output PDF"). Prose is already mapped to ASCII macros
     # upstream; here we strip anything ≥ U+0300 across the WHOLE document. Precomposed Latin accents
     # (é ő ü, < U+0300) are preserved and rendered by inputenc+fontenc.
-    tex = "".join(c if ord(c) < 0x0300 else " " for c in tex)
+    return "".join(c if ord(c) < 0x0300 else " " for c in tex)
+
+
+def compile_source(source: str, fmt: str, project: Path, *, title: str = "", layout: str = "auto") -> dict:
+    """Write `source` (md|tex) as main.tex in `project` and compile to PDF. Deterministic, offline."""
+    project.mkdir(parents=True, exist_ok=True)
+    tex = render_latex(source, fmt, title=title, layout=layout, assets=project)
     (project / "main.tex").write_text(tex, encoding="utf-8")
     r = sandbox.compile_latex(project, "main.tex")
     return r

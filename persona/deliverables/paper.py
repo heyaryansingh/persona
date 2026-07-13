@@ -60,8 +60,54 @@ _SYSTEM = (
     "you do not have — an honest 'not settled by the present evidence' beats a bluff.")
 
 
-def _slug(t): return (re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")[:50] or "paper")
+def _slug(t, limit=48):
+    """Readable slug: hyphenate, then truncate on a WORD boundary (never mid-word), <=~limit chars."""
+    s = re.sub(r"[^a-z0-9]+", "-", (t or "").lower()).strip("-")
+    if len(s) > limit:
+        s = s[:limit].rsplit("-", 1)[0] or s[:limit]   # drop the partial trailing word
+    return s or "paper"
+
+
+def _today(): return datetime.now(timezone.utc).date().isoformat()   # YYYY-MM-DD
+
+
+def _deliverable_name(topic: str) -> str:
+    """B1: human-readable PDF name — word-boundary title slug + a short ISO date (not a raw hash/uuid),
+    no generic 'latex-document-' prefix. e.g. paper-erdos-straus-conjecture-2026-07-13.pdf"""
+    return f"paper-{_slug(topic)}-{_today()}.pdf"
+
+
 def _now(): return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+# A5: the claim-status vocabulary rendered ONCE as styled small-caps badges (see _SYSTEM), never raw
+# **[OPEN]** literals. Colored via xcolor (loaded by the document template); each badge is wrapped in
+# inline math + \text so it survives the markdown->LaTeX escaper verbatim and compiles to a real
+# \colorbox in text mode (see document._inline / md_to_latex).
+_STATUS_COLOR = {"PROVED HERE": "green!25", "VERIFIED NUMERICALLY": "blue!18", "OPEN": "red!20"}
+
+
+def _badge(label: str) -> str:
+    color = _STATUS_COLOR.get(label.upper(), "gray!25")
+    return r"$\text{\colorbox{%s}{\textsc{%s}}}$" % (color, label.lower())
+
+
+_STATUS_LEGEND = ("*Status key:* " + _badge("PROVED HERE") + " proved in this paper; "
+                  + _badge("VERIFIED NUMERICALLY") + " machine-checked by computation; "
+                  + _badge("OPEN") + " open, not settled by present evidence.")
+
+
+def _style_status(md: str) -> str:
+    """A5: replace every raw **[OPEN]** / **[PROVED HERE]** / **[VERIFIED NUMERICALLY]** (and any
+    **[UPPER]** token the model invents) with a styled badge, and drop the one-line legend under Main
+    result. No bare **[A-Z]+** literal survives into prose."""
+    if not re.search(r"\*\*\[[A-Z][A-Z /]*\]\*\*", md):
+        return md
+    md = re.sub(r"\*\*\[([A-Z][A-Z /]*)\]\*\*", lambda m: _badge(m.group(1).strip()), md)
+    anchor = re.search(r"^##\s*main result.*$", md, re.I | re.M)
+    if anchor:
+        return md[:anchor.end()] + "\n\n" + _STATUS_LEGEND + md[anchor.end():]
+    return _STATUS_LEGEND + "\n\n" + md
 
 
 def _prune_refs(md: str) -> str:
@@ -94,12 +140,16 @@ def _fix_references(md: str, sources: list) -> str:
     list, drop any inline [n] that has no source, and append the canonical DOI-carrying list of ONLY the
     cited sources — so every reference is cited and every citation resolves to a real paper + DOI."""
     md = re.sub(r"\n##\s*references\b.*\Z", "\n", md, flags=re.I | re.S)   # remove model's ref section
-    cited = {int(n) for n in re.findall(r"\[(\d+)\]", md)}
-    valid = {n for n in cited if 1 <= n <= len(sources)}
-    if not valid or not sources:
+    order = []                                             # cited source numbers, FIRST-appearance order
+    for n in (int(x) for x in re.findall(r"\[(\d+)\]", md)):
+        if 1 <= n <= len(sources) and n not in order:
+            order.append(n)
+    if not order:
         return re.sub(r"\[(\d+)\]", "", md).rstrip() + "\n"                 # no resolvable cites → drop them
-    md = re.sub(r"\[(\d+)\]", lambda m: m.group(0) if int(m.group(1)) in valid else "", md)  # kill danglers
-    lines = "\n".join(f"{i}. {t}" for i, t in enumerate(sources, 1) if i in valid)
+    remap = {old: new for new, old in enumerate(order, 1)}                  # old index -> contiguous 1..k
+    md = re.sub(r"\[(\d+)\]", lambda m: f"[{remap[int(m.group(1))]}]" if int(m.group(1)) in remap else "", md)
+    lines = "\n".join(f"{new}. {sources[old - 1]}" for old, new in
+                      sorted(remap.items(), key=lambda kv: kv[1]))          # emit 1..k, no gaps
     return md.rstrip() + "\n\n## References\n\n" + lines + "\n"
 
 
@@ -243,6 +293,7 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     md = _fix_references(md, sources)
     md = re.sub(r"</?(?:i|b|em|strong|sup|sub|mml:[a-z]+)\b[^>]*>", "", md)   # leaked <i>…</i> from titles
     md = _fix_captions(md, dict(figinfo))
+    md = _style_status(md)                                # A5: raw **[OPEN]** -> styled badge + legend
     hm = re.search(r"^#\s+(.+)$", md, re.M)
     title = (hm.group(1).strip() if hm else "") or topic
     # SUBSTANCE FLOOR: never ship a bodyless / references-only stub as a paper.
@@ -297,7 +348,7 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
                 "project": str(project.relative_to(p.paths.projects_dir)).replace("\\", "/")}
     p.paths.deliverables_dir.mkdir(parents=True, exist_ok=True)
     source_hash = attempts[-1]["source_sha256"]
-    dst = p.paths.deliverables_dir / f"paper-{_slug(topic)}-{source_hash[:10]}.pdf"
+    dst = p.paths.deliverables_dir / _deliverable_name(topic)   # B1: readable title + ISO date, no hash
     shutil.copy2(project / "main.pdf", dst)
     receipt["deliverable"] = {"path": dst.name,
                               "pdf_sha256": hashlib.sha256(dst.read_bytes()).hexdigest(),
