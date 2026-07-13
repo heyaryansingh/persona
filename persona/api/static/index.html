@@ -2119,7 +2119,9 @@ async function recordConflictReview(){
   if(!verdict){toast('choose a classification');return} if(rationale.length<20){toast('rationale must be at least 20 characters');return}
   const payload={pos_claim:ACTIVE_CONFLICT.pos,neg_claim:ACTIVE_CONFLICT.neg,verdict,rationale,confidence:Number($("#review-confidence").value),qualifier:$("#review-qualifier").value.trim(),next_check:$("#review-next").value.trim()};
   const response=await fetch(A("/inbox/review"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); const data=await response.json();
-  if(!response.ok||!data.ok){toast(data.detail||'review was rejected');return} toast('review recorded · belief unchanged'); await contraEvidence(ACTIVE_CONFLICT.pos,ACTIVE_CONFLICT.neg); if(CURSURF==="instruments")openInstruments();
+  if(!response.ok||!data.ok){toast(data.detail||'review was rejected');return}
+  toast(data.opened_investigation?`review recorded · belief unchanged · → opened investigation ${data.opened_investigation}`:'review recorded · belief unchanged');
+  await contraEvidence(ACTIVE_CONFLICT.pos,ACTIVE_CONFLICT.neg); if(CURSURF==="instruments")openInstruments();
 }
 async function investigateConflict(){
   if(!ACTIVE_CONFLICT)return; const response=await fetch(A("/inbox/investigate"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pos_claim:ACTIVE_CONFLICT.pos,neg_claim:ACTIVE_CONFLICT.neg})}); const data=await response.json(); toast(data.ok?'pinned investigation queued':`investigation not started · ${data.reason||'unknown reason'}`);

@@ -715,7 +715,17 @@ def conflict_review(pid: str, payload: dict):
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         log().emit("control", f"human review recorded for {match['subject']} → {match['object']}: "
                    f"{record['verdict']} (belief unchanged)", actor="human")
-        return {"ok": True, "review": record, "belief_mutated": False}
+        # imp2 F2.12 seam: a `true_refutation` verdict re-opens the question as a fresh investigation
+        # (opens WORK, never anchors a belief). Surface the slug so the Review tab can link it.
+        opened = None
+        try:
+            from ..conflict_reviews import route_true_refutation
+            opened = route_true_refutation(record)
+        except Exception:
+            opened = None
+        if opened:
+            log().emit("control", f"true_refutation → opened investigation {opened}", actor="human")
+        return {"ok": True, "review": record, "belief_mutated": False, "opened_investigation": opened}
 
 
 @app.post("/api/persona/{pid}/inbox/resolve")
