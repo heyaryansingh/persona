@@ -45,6 +45,16 @@ def _clean_confidence(value) -> float:
     return max(0.0, min(1.0, c))
 
 
+def _confidence_cap(independent_source_count: int) -> float:
+    """F2.6 evidence-monotonic no-inflation ceiling. A belief's confidence may never exceed a
+    function of the number of INDEPENDENT labs backing it — so repetition / citation-echo /
+    reasoning (which raise support_count but NOT independent_source_count) cannot inflate it.
+    Monotone non-decreasing in k: one lab tops out at 0.5, the ceiling rises only as new
+    independent labs corroborate. PLACEHOLDER heuristic (k/(k+1)); not yet calibrated on data."""
+    k = max(0, int(independent_source_count or 0))
+    return k / (k + 1.0)
+
+
 def _clean_year(value):
     """Write boundary: a missing/invalid year is None (omitted), never 0 — a stored 0 renders
     as 1970 downstream (A7). Returns an int year only for a plausible value, else None."""
@@ -166,13 +176,23 @@ class KG:
         # recompute support + independence (distinct labs) + confidence = AVG per-source confidence
         # (bounded [0,1]; one source can't inflate it). ANCHOR WRITE-POLICY: an anchored belief's
         # confidence is PINNED — cheap READ evidence updates counts but cannot move verified belief.
-        self._q(
+        # F2.6 NO-INFLATION GUARD: the averaged confidence is additionally CAPPED by
+        # _confidence_cap(independent labs), so a re-observation can only raise confidence by bringing
+        # NEW independent evidence — repetition / citation-echo (more sources, same labs) cannot.
+        agg = self._q(
             """
             MATCH (c:Claim {claim_id:$cid})-[r:SUPPORTED_BY]->(s:Source)
-            WITH c, count(s) AS n, count(DISTINCT s.lab) AS labs, avg(r.conf) AS mconf
-            SET c.support_count = n, c.independent_source_count = labs,
-                c.confidence = CASE WHEN c.anchored THEN c.confidence ELSE mconf END
-            """, {"cid": cid})
+            RETURN count(s) AS n, count(DISTINCT s.lab) AS labs, avg(r.conf) AS mconf
+            """, {"cid": cid}).result_set
+        if agg and agg[0][2] is not None:  # no source row -> nothing to recompute (as before)
+            n, labs, mconf = agg[0]
+            capped = min(float(mconf), _confidence_cap(labs))
+            self._q(
+                """
+                MATCH (c:Claim {claim_id:$cid})
+                SET c.support_count = $n, c.independent_source_count = $labs,
+                    c.confidence = CASE WHEN c.anchored THEN c.confidence ELSE $capped END
+                """, {"cid": cid, "n": n, "labs": labs, "capped": capped})
         return cid
 
     def link_contradictions(self, pair_key_val: str) -> int:
@@ -236,6 +256,23 @@ class KG:
     def is_anchored(self, claim_id: str) -> bool:
         r = self._q("MATCH (c:Claim {claim_id:$cid}) RETURN c.anchored", {"cid": claim_id})
         return bool(r.result_set and r.result_set[0][0])
+
+    def set_validity_window(self, claim_id: str, valid_from=None, valid_to=None) -> bool:
+        """F2.7: bound a claim's temporal validity (the bi-temporal valid_from/valid_to fields —
+        WHEN the claim is true, distinct from ingest_time = when observed). Only the bounds you pass
+        are written; a None bound is left unchanged (so you can set one end without clobbering the
+        other). Does NOT touch anchoring, provenance, or confidence. Returns True if the claim exists.
+        Note: setting valid_to retires the claim from live views (they filter valid_to IS NULL)."""
+        sets, params = [], {"cid": claim_id}
+        if valid_from is not None:
+            sets.append("c.valid_from=$vf"); params["vf"] = valid_from
+        if valid_to is not None:
+            sets.append("c.valid_to=$vt"); params["vt"] = valid_to
+        if not sets:
+            return False
+        r = self._q("MATCH (c:Claim {claim_id:$cid}) SET " + ", ".join(sets) +
+                    " RETURN c.claim_id", params)
+        return bool(r.result_set)
 
     # ---------------------------------------------------------------- reads
     def stats(self) -> dict:
