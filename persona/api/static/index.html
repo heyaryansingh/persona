@@ -584,6 +584,9 @@
     .row.belief_update,.row.claim{animation:rowIn .26s var(--eout)}
     .row.contradiction,.row.escalate,.row.artifact{animation:rowIn .26s var(--eout)}
   }
+  .auditsrc{display:none;gap:6px;margin:6px 0 0}
+  .auditsrc button{font-family:var(--mono);font-size:11px;padding:4px 10px;border:1px solid var(--line2);border-radius:7px;background:var(--panel2);color:var(--dim);cursor:pointer}
+  .auditsrc button.on{background:#e5e4e2;color:var(--ink)}
 </style>
 <link rel="stylesheet" href="/static/css/focus.css">
 </head>
@@ -740,6 +743,7 @@
             <button data-k="paper" onclick="stAct('paper')">draft a paper</button>
           </div>
           <textarea id="stinput" placeholder="Ask a cited question · verify a claim · investigate · draft a paper · audit robustness (name a read paper, or paste an external paper's text)…"></textarea>
+          <div id="auditsrc" class="auditsrc"></div>
           <button class="strun" onclick="stRun()">▶ run</button>
           <div id="stoutput" class="stscroll"><div class="empty">the persona's answer + what it produced will appear here</div></div>
         </div>
@@ -1104,7 +1108,10 @@ async function launchInvestigation(){
   catch(e){ toast("launch failed"); }
 }
 /* ------------------------- collaboration studio ------------------------- */
-const STUDIO={iv:null,mode:'ask'};
+const STUDIO={iv:null,mode:'ask',auditSource:'named'};   // L2: explicit audit-source choice, not a length guess
+function renderAuditSrc(){ const as=$("#auditsrc"); if(!as)return;
+  as.innerHTML=[['named','name a read paper'],['pasted','audit pasted text']].map(([v,l])=>
+    `<button type="button" class="${STUDIO.auditSource===v?'on':''}" onclick="STUDIO.auditSource='${v}';renderAuditSrc()">${l}</button>`).join(""); }
 async function openStudio(){
   const load=async()=>{ if(CURSURF!=="studio")return;
     try{
@@ -1130,7 +1137,8 @@ async function openStudio(){
   };
   load(); if(STUDIO.iv)clearInterval(STUDIO.iv); STUDIO.iv=setInterval(load,4000);
 }
-function stAct(k){ STUDIO.mode=k; $$("#surf-studio .stactions button").forEach(b=>b.classList.toggle("on",b.dataset.k===k)); }
+function stAct(k){ STUDIO.mode=k; $$("#surf-studio .stactions button").forEach(b=>b.classList.toggle("on",b.dataset.k===k));
+  const as=$("#auditsrc"); if(as){ if(k==='audit'){ as.style.display='flex'; renderAuditSrc(); } else as.style.display='none'; } }
 async function stRun(){
   const t=($("#stinput").value||"").trim(); if(!t||!PID)return;
   const out=$("#stoutput");
@@ -1145,8 +1153,8 @@ async function stRun(){
       if(r.ok){ pb().innerHTML=md(r.markdown)+`<div class="stmuted">${r.n_claims} claims · ${r.n_sources} sources — every statement traces to a paper · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','report');return false;">open &amp; export ↗</a></div>`; }
       else pb().innerHTML='could not build a report ('+esc(r.reason||'error')+') — try a broader topic it has read.';
     } else if(STUDIO.mode==='audit'){
-      // short input = name a read paper; a long/multiline paste = audit that EXTERNAL text verbatim
-      const external=(t.length>200||t.includes("\n"));
+      // L2: the user explicitly chose the source via the audit toggle — no length/newline guessing.
+      const external=(STUDIO.auditSource==='pasted');
       const body=external?{text:t}:{query:t};
       const r=await (await fetch(A("/audit"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
       pb().innerHTML=r.ok?renderAudit(r):'could not audit ('+esc(r.reason||'error')+') — name a paper it has read, or paste the paper text.';
