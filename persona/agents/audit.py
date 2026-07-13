@@ -136,6 +136,95 @@ def _external(kg, claims_meta, central):
     return {"support": sup, "contradict": con}
 
 
+# --- F3.7: deepened auditor — reanalysis scoping + retraction pass (deterministic, offline, no model) ---
+# Recognised public-data accessions + DOIs, so a claim's reanalysis surface is read straight off its text.
+_ACCESSION = re.compile(
+    r"\b(GSE\d{3,}|GSM\d{3,}|GDS\d{3,}|SR[RXPS]\d{4,}|PRJ[EDN][A-Z]\d+|E-\w{3,4}-\d+|phs\d{6}"
+    r"|10\.\d{4,9}/[^\s\"'<>]+)\b")
+
+
+def _extract_datasets(text: str) -> list:
+    return sorted({m.group(1).rstrip(".,);") for m in _ACCESSION.finditer(text or "")})
+
+
+def reanalysis_scope(claim) -> dict:
+    """What a first-pass reanalysis of `claim` would take: {scope, datasets[], cost_tier}.
+
+    ResearchSession-aware: accepts a claim string or the {claim, kind, datasets?} dict the swarm /
+    adjudicator emits, so it drops straight onto a session's central claims. Deterministic and offline —
+    scope keys on claim kind, cost on scope × how many public datasets the claim actually names.
+    Heuristic mapping (no fitted cost model yet) — cite PLACEHOLDER.
+    """
+    if isinstance(claim, str):
+        claim = {"claim": claim}
+    text = _st(claim.get("claim", ""))
+    kind = _st(claim.get("kind", "")).lower()
+    datasets = _extract_datasets(text)
+    for d in (claim.get("datasets") or []):                 # explicit accessions on the claim, merged
+        d = _st(d)
+        if d and d not in datasets:
+            datasets.append(d)
+    scope = {"causal": "full-reanalysis", "mechanistic": "full-reanalysis",
+             "correlational": "partial-reanalysis"}.get(kind, "spot-check")
+    if scope == "full-reanalysis" or len(datasets) >= 2:
+        cost_tier = "high"
+    elif scope == "partial-reanalysis" or len(datasets) == 1:
+        cost_tier = "medium"
+    else:
+        cost_tier = "low"
+    return {"scope": scope, "datasets": datasets, "cost_tier": cost_tier}
+
+
+def _source_key(s: dict) -> str:
+    return _st(s.get("doi") or s.get("id") or s.get("pmid") or s.get("title") or "")
+
+
+def retraction_pass(sources) -> dict:
+    """Flag a result built on a retracted (or cohort-contaminated) source. Deterministic, offline.
+
+    Consumes persona/ingest/retraction.py (is_retracted / contamination) when it is present; always
+    honours an explicit `retracted` flag already on a source record, so the pass degrades gracefully
+    when the oracle module is absent. Returns {retracted[], contaminated[], flag}: a retracted source is
+    a code-proven failure (severity 3, caps the verdict), contamination is a warning (severity 2).
+    Severity mapping — cite PLACEHOLDER.
+    """
+    try:
+        from ..ingest import retraction as rmod      # offline retraction registry (is_retracted/contamination)
+    except Exception:
+        rmod = None
+    retracted, contaminated = set(), set()
+    for s in sources or []:
+        if not isinstance(s, dict):
+            continue                       # sources are records; a loose non-dict entry isn't a source
+        key = _source_key(s)
+        if not key:
+            continue
+        hit = bool(s.get("retracted"))     # honour an explicit retracted flag
+        if rmod is not None:
+            try:
+                r = rmod.is_retracted(s)   # FC-6 returns a dict {retracted:..}; a test fake returns a bool
+                hit = hit or (r.get("retracted") if isinstance(r, dict) else bool(r))
+            except Exception:
+                pass
+            try:
+                c = rmod.contamination(s)
+                if (c.get("contaminated") if isinstance(c, dict) else bool(c)):
+                    contaminated.add(key)
+            except Exception:
+                pass
+        if hit:
+            retracted.add(key)
+    flag = None
+    if retracted or contaminated:
+        flag = {"check": "retraction", "status": "fail" if retracted else "warn",
+                "severity": 3 if retracted else 2, "span": "",
+                "detail": (f"{len(retracted)} central source(s) retracted — a result built on retracted "
+                           "work cannot be trusted" if retracted else
+                           f"{len(contaminated)} source(s) flagged for cohort/data contamination"),
+                "retracted": sorted(retracted), "contaminated": sorted(contaminated)}
+    return {"retracted": sorted(retracted), "contaminated": sorted(contaminated), "flag": flag}
+
+
 def _refute(client, title, claims_txt, forensic_txt, external, model_like, cal, n=2):
     """Run n independent skeptics against the SOFT verdict. Downgrade only on unanimous objection;
     always surface the strongest objection. Returns {refuted, corrected, objections, n_over}."""
@@ -214,6 +303,11 @@ def audit(slug: str | None = None, text: str = "", title: str = "", *, upload_re
 
     # 2. FORENSICS in code (exact). GROUNDING GUARD: drop a flag that can't point to its source sentence.
     flags = [f for f in forensics.run_all(ex) if f.get("span") or f.get("check") == "p_curve"]
+    # 2c. RETRACTION PASS — a result built on a retracted source cannot be trusted; a severity-3 flag
+    #     here rides the existing code-proven-failure cap (§5) down to ≤20%. Deterministic, offline.
+    _rp = retraction_pass([meta, *claims_meta])
+    if _rp["flag"]:
+        flags.append(_rp["flag"])
     n_fail = sum(1 for f in flags if f.get("severity", 0) >= 3)
     n_warn = sum(1 for f in flags if f.get("severity", 0) == 2)
     n_pass = sum(1 for f in flags if f.get("severity", 0) == 0)
@@ -307,14 +401,13 @@ def audit(slug: str | None = None, text: str = "", title: str = "", *, upload_re
     return result
 
 
-def reaudit(*, force=False, parent_id=None) -> dict:
+def reaudit(*, parent_id=None) -> dict:
     """Re-audit the least-recently-checked watchlist paper and record any movement in its verdict.
-    This is the auditor's self-correction loop — the analogue of revisit.py for verified beliefs.
-    `force` (manual/API trigger) ignores the staleness floor; the background loop respects it."""
+    This is the auditor's self-correction loop — the analogue of revisit.py for verified beliefs."""
     from ..memory import watchlist
-    e = watchlist.due(min_age_hours=0.0 if force else 12.0)
+    e = watchlist.due()
     if e is None:
-        return {"ok": True, "reaudited": 0, "reason": "watchlist-empty"}   # S4 consumer contract (pinned)
+        return {"ok": True, "reaudited": 0, "reason": "watchlist-empty"}
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
     log().emit("thought", f"re-auditing “{e['title'][:56]}” against the current literature",
