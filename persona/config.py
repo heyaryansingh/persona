@@ -17,7 +17,13 @@ except Exception:
 ROOT = Path(__file__).resolve().parent.parent
 WORKSPACE = Path(os.environ.get("PERSONA_WORKSPACE", ROOT / "persona-workspace"))
 KG_NAME = os.environ.get("PERSONA_KG_NAME", "persona")     # default persona's FalkorDB graph
+FALKOR_HOST = os.environ.get("PERSONA_FALKOR_HOST", "127.0.0.1")
+FALKOR_PORT = int(os.environ.get("PERSONA_FALKOR_PORT", "6379"))
 PERSONAS_ROOT = Path(os.environ.get("PERSONA_PERSONAS_ROOT", ROOT / "personas"))  # multi-persona home
+
+
+def _enabled(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 # workspace subdirs (the on-disk mind — see the v4 plan §"Memory / folder system")
 SELF_DIR = WORKSPACE / "self"
@@ -55,11 +61,20 @@ INGEST_INTERVAL_MULT = float(os.environ.get("PERSONA_INGEST_GENTLE", "1.0"))
 # no budget spend). Long is good for dev — bump it while iterating so restarts never refetch.
 HTTP_CACHE_TTL_DAYS = float(os.environ.get("PERSONA_HTTP_CACHE_TTL_DAYS", "7"))
 
+# Web deployment controls.  Production Compose supplies an explicit public origin and
+# keeps autonomous scheduling off; local development retains the existing loop.
+ALLOWED_ORIGINS = tuple(x.strip() for x in os.environ.get(
+    "PERSONA_ALLOWED_ORIGINS", "http://127.0.0.1:8137,http://localhost:8137").split(",") if x.strip())
+START_SCHEDULER = _enabled("PERSONA_START_SCHEDULER") if "PERSONA_START_SCHEDULER" in os.environ else True
+PUBLIC_DAILY_CAP_USD = float(os.environ.get("PERSONA_PUBLIC_DAILY_CAP_USD", "5"))
+PUBLIC_MAX_PERSONAS = int(os.environ.get("PERSONA_PUBLIC_MAX_PERSONAS", "1"))
+PUBLIC_RATE_LIMIT_PER_MINUTE = int(os.environ.get("PERSONA_PUBLIC_RATE_LIMIT_PER_MINUTE", "120"))
+
 # daemon knobs
-# Live workers: budget/rate-limits are the real governor (E07a: effective reading-team saturates
-# ~14-15), so 8 approaches that ceiling with headroom without pretending to be "hundreds". The real
-# thousands/day scale lever is the Batch API (reading/batch.py, 0.5x cost, non-blocking).
-N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "8"))
+# Explicitly opting out of a spend cap raises the default throughput.  A finite cap
+# always wins, so an accidental unlimited-worker setting cannot bypass an explicit budget.
+UNLIMITED_SPEND = _enabled("PERSONA_UNLIMITED_SPEND") and "PERSONA_DAILY_BUDGET_USD" not in os.environ
+N_WORKERS = int(os.environ.get("PERSONA_WORKERS", "8" if UNLIMITED_SPEND else "3"))
 # Relevance gate: drop scouted papers whose title is off the persona's objective (max cosine to its
 # top interests, bge-small). tau=0.70 validated on 646 real Erdos titles = 0.939 balanced accuracy,
 # keeps 94% on-topic / drops 94% off-topic — see experiments/exp_rq_e14_relevance_gate.py.
@@ -78,12 +93,19 @@ QUEUE_MIN_DEPTH = int(os.environ.get("PERSONA_QUEUE_MIN_DEPTH", "4"))   # schedu
 SCHEDULER_INTERVAL_S = float(os.environ.get("PERSONA_SCHEDULER_INTERVAL", "5"))
 SCOUT_INTERVAL_S = float(os.environ.get("PERSONA_SCOUT_INTERVAL", "900"))  # minimum between broad pulses
 SELF_INTERVAL_S = float(os.environ.get("PERSONA_SELF_INTERVAL", "1800"))   # reflecting-self cadence
-DAILY_BUDGET_USD = float(os.environ.get("PERSONA_DAILY_BUDGET_USD", "15"))
+DAILY_BUDGET_USD = float(os.environ.get("PERSONA_DAILY_BUDGET_USD", "inf" if UNLIMITED_SPEND else "15"))
 READING_BUDGET_FRACTION = float(os.environ.get("PERSONA_READING_FRACTION", "0.65"))  # reserve rest for outputs
 LEASE_SECONDS = int(os.environ.get("PERSONA_LEASE_SECONDS", "300"))
 
 
 def have_key() -> bool:
+    if os.environ.get("PERSONA_PUBLIC_MODE", "").lower() in {"1", "true", "yes", "on"}:
+        try:
+            from .context import get_persona
+            from .provider_settings import key_for
+            return bool(get_persona().owner_id and key_for(get_persona().owner_id, "anthropic"))
+        except Exception:
+            return False
     return bool(ANTHROPIC_API_KEY)
 
 

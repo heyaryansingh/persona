@@ -1,0 +1,92 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    env_file: ${PERSONA_ENV_FILE:-.env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:2019/config/ >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    image: persona:0.3.0
+    build: .
+    restart: unless-stopped
+    env_file: ${PERSONA_ENV_FILE:-.env.production}
+    environment:
+      # Explicit entries override env_file so deployment-time secrets cannot be
+      # shadowed by an empty template value.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      PERSONA_SESSION_SECRET: ${PERSONA_SESSION_SECRET}
+      PERSONA_ENCRYPTION_KEY: ${PERSONA_ENCRYPTION_KEY}
+      PERSONA_WORKERS: "0"
+      PERSONA_START_SCHEDULER: "0"
+      PERSONA_PROVIDER_DB: /data/workspace/.persona/providers.db
+      PERSONA_WORKSPACE: /data/workspace
+      PERSONA_FALKOR_HOST: falkordb
+      PERSONA_FALKOR_PORT: "6379"
+      DATABASE_URL: postgresql://persona:${POSTGRES_PASSWORD}@postgres:5432/persona
+    command: ["persona", "--host", "0.0.0.0", "--port", "8137"]
+    volumes:
+      - persona_workspace:/data/workspace
+    depends_on:
+      falkordb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8137/readyz', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    restart: unless-stopped
+    volumes:
+      - falkordb_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: persona
+      POSTGRES_USER: persona
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U persona -d persona"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  persona_workspace:
+    name: persona_workspace
+  falkordb_data:
+    name: persona_falkordb_data
+  postgres_data:
+    name: persona_postgres_data
+  caddy_data:
+    name: persona_caddy_data
+  caddy_config:
+    name: persona_caddy_config

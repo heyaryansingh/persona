@@ -12,18 +12,21 @@ import asyncio
 import json
 import mimetypes
 import re
+import threading
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .. import config, context, selfmind
+from .. import config, context, selfmind, public_auth
 from ..manager import manager
 
-app = FastAPI(title="Persona v5", version="5.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="Persona", version="0.3.0")
+app.add_middleware(CORSMiddleware, allow_origins=list(config.ALLOWED_ORIGINS), allow_methods=["GET", "POST", "DELETE"], allow_headers=["Content-Type", "X-CSRF-Token"], allow_credentials=True)
 _STATIC = Path(__file__).resolve().parent / "static"
 # Lane 4 (S3): serve /static JS+CSS assets (ui.js/focus.js/field.js/focus.css). Distinct
 # prefix — never shadows the /api routes or the `/` gallery. (Former Wave-0 P0.1 mount.)
@@ -37,6 +40,8 @@ _SHELL_SCRATCH = {"repos", "uploads", "code", "runs", "datasets"}
 # clone_repo previously allowed a `[\w.-]+` host catch-all → SSRF (169.254.169.254
 # cloud metadata, localhost, internal hosts). Explicit host allowlist only.
 _GIT_URL_RE = re.compile(r"^https://(github\.com|gitlab\.com|bitbucket\.org)/[\w.-]+/[\w.-]+")
+_RATE_WINDOWS: dict[str, deque[float]] = defaultdict(deque)
+_RATE_LOCK = threading.Lock()
 
 
 def _jail_shell_cwd(paths, cwd: str) -> Path:
@@ -53,7 +58,10 @@ def _jail_shell_cwd(paths, cwd: str) -> Path:
 
 @app.on_event("startup")
 async def _startup():
-    asyncio.create_task(_supervisor())    # start/resume seeded personas' daemons in the loop
+    if public_auth.public_mode() and not public_auth.configured():
+        raise RuntimeError("public mode requires Google OAuth and PERSONA_SESSION_SECRET")
+    if config.START_SCHEDULER:
+        asyncio.create_task(_supervisor())    # start/resume seeded personas' daemons in the loop
 
 
 async def _supervisor():
@@ -80,19 +88,205 @@ def _p(pid: str):
     return p
 
 
+def _allow_rate(key: str, now: float | None = None) -> bool:
+    now = time.monotonic() if now is None else now
+    with _RATE_LOCK:
+        window = _RATE_WINDOWS[key]
+        while window and now - window[0] >= 60:
+            window.popleft()
+        if len(window) >= config.PUBLIC_RATE_LIMIT_PER_MINUTE:
+            return False
+        window.append(now)
+        return True
+
+
+@app.middleware("http")
+async def public_tenant_boundary(request: Request, call_next):
+    """One boundary protects every existing persona route, including future ones."""
+    if not public_auth.public_mode():
+        return await call_next(request)
+    path, method = request.url.path, request.method
+    if path in {"/healthz", "/readyz"} or path.startswith("/auth/") or path.startswith("/static/"):
+        return await call_next(request)
+    user = public_auth.session_from(request)
+    if user is None:
+        if path.startswith("/api/"):
+            return JSONResponse({"detail": "authentication required"}, status_code=401)
+        return RedirectResponse("/auth/login", status_code=303)
+    request.state.user = user
+    if path.startswith("/api/") and not _allow_rate(user["sub"]):
+        return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+    if method not in {"GET", "HEAD", "OPTIONS"} and request.headers.get("X-CSRF-Token") != user["csrf"]:
+        return JSONResponse({"detail": "CSRF validation failed"}, status_code=403)
+    match = re.match(r"^/api/persona/([^/]+)(?:/|$)", path)
+    if match:
+        persona = manager().get(match.group(1))
+        if persona is None or persona.owner_id != user["sub"]:
+            return JSONResponse({"detail": "persona not found"}, status_code=404)
+    return await call_next(request)
+
+
+@app.get("/auth/login")
+def oauth_login(request: Request):
+    if not public_auth.public_mode():
+        raise HTTPException(status_code=404, detail="public authentication is disabled")
+    try:
+        url, state = public_auth.login_url(request)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="authentication unavailable") from exc
+    response = RedirectResponse(url, status_code=303)
+    public_auth.set_state(response, state)
+    return response
+
+
+@app.get("/auth/callback", name="oauth_callback")
+def oauth_callback(request: Request, code: str = "", state: str = ""):
+    try:
+        session = public_auth.exchange_code(request, code, state)
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Google sign-in failed") from exc
+    response = RedirectResponse("/", status_code=303)
+    public_auth.set_session(response, session)
+    return response
+
+
+@app.post("/auth/logout")
+def oauth_logout(request: Request):
+    user = public_auth.session_from(request)
+    if public_auth.public_mode() and user is None:
+        raise HTTPException(status_code=401, detail="authentication required")
+    if public_auth.public_mode() and request.headers.get("X-CSRF-Token") != user["csrf"]:
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    response = JSONResponse({"ok": True})
+    public_auth.clear_session(response)
+    return response
+
+
+@app.get("/api/auth/session")
+def auth_session(request: Request):
+    if not public_auth.public_mode():
+        return {"public": False}
+    user = public_auth.session_from(request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="authentication required")
+    return {"public": True, "email": user.get("email", ""), "csrf": user["csrf"]}
+
+
+def _settings_owner(request: Request) -> str:
+    if not public_auth.public_mode():
+        raise HTTPException(status_code=404, detail="public settings are disabled")
+    return request.state.user["sub"]
+
+
+@app.get("/api/settings/providers")
+def list_provider_settings(request: Request):
+    from .. import provider_settings
+    try:
+        return {"providers": provider_settings.configured(_settings_owner(request))}
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="provider settings unavailable") from exc
+
+
+@app.post("/api/settings/providers")
+def set_provider_setting(payload: dict, request: Request):
+    from .. import provider_settings
+    try:
+        owner = _settings_owner(request)
+        provider_settings.preflight(payload.get("provider", ""), payload.get("key", ""))
+        provider_settings.save(owner, payload["provider"], payload["key"])
+        return {"ok": True, "provider": payload["provider"], "configured": True}
+    except (RuntimeError, ValueError, KeyError) as exc:
+        raise HTTPException(status_code=400, detail="provider key was not accepted") from exc
+
+
+@app.delete("/api/settings/providers/{provider}")
+def revoke_provider_setting(provider: str, request: Request):
+    from .. import provider_settings
+    try:
+        return {"ok": provider_settings.revoke(_settings_owner(request), provider)}
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="provider revocation failed") from exc
+
+
+@app.post("/api/persona/{pid}/reviews/enroll")
+def enrol_blinded_reviewer(pid: str):
+    """Mint an opaque reviewer token; it never changes a belief or exposes sealed signs."""
+    from ..conflict_reviews import enrol_reviewer
+    return {"reviewer_id": enrol_reviewer(_p(pid).paths.ops_dir)}
+
+
+@app.get("/api/persona/{pid}/reviews/assignment")
+def blinded_assignment(pid: str, batch_id: str, conflict_id: str, reviewer_id: str):
+    from ..conflict_reviews import build_assignment
+    try:
+        return build_assignment(_p(pid).paths.ops_dir, batch_id=batch_id,
+                                conflict_id=conflict_id, reviewer_id=reviewer_id)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=404, detail="blinded assignment unavailable") from exc
+
+
+@app.post("/api/persona/{pid}/reviews/label")
+def label_blinded_assignment(pid: str, payload: dict):
+    from ..conflict_reviews import DuplicateLabelError, LedgerIntegrityError, append_review_label
+    try:
+        record = append_review_label(_p(pid).paths.ops_dir, batch_id=payload["batch_id"],
+                                     conflict_id=payload["conflict_id"], reviewer_id=payload["reviewer_id"],
+                                     label=payload["label"], rationale=payload["rationale"])
+        return {"ok": True, "record_id": record["record_id"], "belief_mutated": False}
+    except DuplicateLabelError as exc:
+        raise HTTPException(status_code=409, detail="duplicate review") from exc
+    except (ValueError, LedgerIntegrityError, OSError, KeyError) as exc:
+        raise HTTPException(status_code=400, detail="review rejected") from exc
+
+
+@app.get("/api/persona/{pid}/reviews/verify")
+def verify_blinded_reviews(pid: str):
+    from ..conflict_reviews import verify_review_labels
+    return verify_review_labels(_p(pid).paths.ops_dir)
+
+
+@app.get("/healthz")
+def healthz():
+    """Process liveness: intentionally does not disclose tenant or provider state."""
+    return {"ok": True, "version": app.version}
+
+
+@app.get("/readyz")
+def readyz():
+    """Readiness requires the graph store; workers/providers are deliberately optional."""
+    try:
+        from falkordb import FalkorDB
+        FalkorDB(host=config.FALKOR_HOST, port=config.FALKOR_PORT).select_graph(config.KG_NAME).query("RETURN 1")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="graph store unavailable") from exc
+    return {"ok": True}
+
+
 # --------------------------------------------------------------- gallery
 @app.get("/api/personas")
-def personas():
-    return {"personas": [p.to_card() for p in manager().list()]}
+def personas(request: Request):
+    minds = manager().list()
+    if public_auth.public_mode():
+        minds = [p for p in minds if p.owner_id == request.state.user["sub"]]
+    return {"personas": [p.to_card() for p in minds]}
 
 
 @app.post("/api/personas")
-def create_persona(payload: dict):
+def create_persona(payload: dict, request: Request):
     interests = payload.get("interests") or []
     if isinstance(interests, str):
         interests = [s.strip() for s in interests.split(",") if s.strip()]
+    owner = request.state.user["sub"] if public_auth.public_mode() else None
+    requested_cap = payload.get("budget_usd")
+    if public_auth.public_mode():
+        if sum(p.owner_id == owner for p in manager().list()) >= config.PUBLIC_MAX_PERSONAS:
+            raise HTTPException(status_code=429, detail="workspace quota reached")
+        try:
+            requested_cap = min(float(requested_cap), config.PUBLIC_DAILY_CAP_USD) if requested_cap is not None else config.PUBLIC_DAILY_CAP_USD
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="invalid budget")
     p = manager().create(payload["name"], interests=interests,
-                         budget_usd=payload.get("budget_usd"))
+                         budget_usd=requested_cap, owner_id=owner)
     # create() already seeds when interests are given; the startup _supervisor() loop starts the
     # daemon from WITHIN the event loop. Don't call manager().start() here — this is a sync request
     # thread with no running loop, so asyncio.create_task() would raise (a 500 with no UI feedback).
@@ -1522,6 +1716,11 @@ def epistemic(pid: str):
 def root():
     idx = _STATIC / "index.html"
     return FileResponse(str(idx)) if idx.exists() else {"service": "Persona v5", "hint": "UI missing"}
+
+
+@app.get("/settings")
+def settings():
+    return FileResponse(str(_STATIC / "settings.html"))
 
 
 if __name__ == "__main__":

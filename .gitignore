@@ -25,3 +25,7 @@ persona-workspace/
 
 # v5 multi-persona homes (each persona has its own workspace + graph)
 personas/
+
+# transient test/demo scratch (not review targets)
+persona-workspace*/
+.persona-demo-smoke.*
