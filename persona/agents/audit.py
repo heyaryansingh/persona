@@ -307,13 +307,14 @@ def audit(slug: str | None = None, text: str = "", title: str = "", *, upload_re
     return result
 
 
-def reaudit(*, parent_id=None) -> dict:
+def reaudit(*, force=False, parent_id=None) -> dict:
     """Re-audit the least-recently-checked watchlist paper and record any movement in its verdict.
-    This is the auditor's self-correction loop — the analogue of revisit.py for verified beliefs."""
+    This is the auditor's self-correction loop — the analogue of revisit.py for verified beliefs.
+    `force` (manual/API trigger) ignores the staleness floor; the background loop respects it."""
     from ..memory import watchlist
-    e = watchlist.due()
+    e = watchlist.due(min_age_hours=0.0 if force else 12.0)
     if e is None:
-        return {"ok": True, "reaudited": 0, "reason": "watchlist-empty"}
+        return {"ok": True, "reaudited": 0, "reason": "watchlist-empty"}   # S4 consumer contract (pinned)
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
     log().emit("thought", f"re-auditing “{e['title'][:56]}” against the current literature",

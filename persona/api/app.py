@@ -444,11 +444,11 @@ def watchlist_view(pid: str):
 
 @app.post("/api/persona/{pid}/reaudit")
 def reaudit_now(pid: str):
-    """Re-audit the least-recently-checked watchlist paper now (on-demand self-correction)."""
+    """Re-audit the least-recently-checked watchlist paper now (on-demand — ignores the staleness floor)."""
     p = _p(pid)
     with context.use(p):
         from ..agents import audit
-        return audit.reaudit()
+        return audit.reaudit(force=True)
 
 
 @app.post("/api/persona/{pid}/report")
