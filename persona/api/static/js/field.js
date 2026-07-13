@@ -66,18 +66,29 @@
     const cost = COST_LABEL[item.cost_tier] || orDash(item.cost_tier);
     const ds = item.dataset_available === true ? "✓ dataset" :
                item.dataset_available === false ? "no dataset" : "—";
+    const cid = item.resolves_claim_id;
+    const hasClaim = typeof cid === "string" && cid && cid !== "—";
+    // C1: "open dossier" opens the resolving claim's provenance via the existing read-only
+    // global prov() (same wiring every other row uses) — no KG mutation, degrades if absent.
+    const dossier = hasClaim
+      ? `<button type="button" class="dossier" data-resolves="${esc(cid)}">open dossier</button>`
+      : `<button type="button" class="dossier" disabled title="no resolving claim recorded">open dossier</button>`;
+    // run_action is a SERVER disposition (Investigate = self-runnable / Handoff = needs a human),
+    // not a live action — launching a paid investigation from a passive click is budget-gated and
+    // cross-lane. Render it as an honest label, never a button that fakes acting.
+    const disp = item.run_action
+      ? `<span class="vq-disp disp-${esc(String(item.run_action).toLowerCase())}" ` +
+        `title="recommended next step (advisory) — act from the handoff inbox">${esc(item.run_action)}</span>`
+      : "";
     return (
-      `<div class="vq" data-resolves="${esc(orDash(item.resolves_claim_id))}">` +
+      `<div class="vq" data-resolves="${esc(orDash(cid))}">` +
       `<div class="vq-q">${esc(orDash(item.question))}</div>` +
       `<div class="vq-m"><span class="vq-voi mono" title="value of information (server)">VoI ${esc(orDash(item.voi))}</span>` +
       `<span class="cost cost-${esc(item.cost_tier || "unknown")}">${esc(cost)}</span>` +
       `<span class="ds">${esc(ds)}</span>` +
       // R-1: hide "de-risks 0" (uniform when the dep-graph is empty) — reads as a broken metric.
       (item.de_risks_n ? `<span class="mono">de-risks ${esc(item.de_risks_n)}</span>` : "") + `</div>` +
-      `<div class="vq-act">` +
-      `<button type="button" class="run" data-action="${esc(orDash(item.run_action))}">${esc(orDash(item.run_action))}</button>` +
-      `<button type="button" class="dossier" data-resolves="${esc(orDash(item.resolves_claim_id))}">open dossier</button>` +
-      `</div></div>`
+      `<div class="vq-act">${disp}${dossier}</div></div>`
     );
   }
 
@@ -107,6 +118,15 @@
       `<section class="vq-col"><div class="col-h">Highest-value experiments</div>` +
       `<p class="col-sub">${vqSub}</p>` +
       renderValueQueue(data.value_queue) + `</section>`;
+    // Keep untrusted claim IDs out of executable inline attributes.  The existing
+    // provenance viewer remains read-only and the data attribute is HTML-escaped.
+    if (rootEl.querySelectorAll && rootEl.addEventListener && !rootEl.dataset.fieldDossiers) {
+      rootEl.dataset.fieldDossiers = "1";
+      rootEl.addEventListener("click", (event) => {
+        const button = event.target.closest && event.target.closest("button.dossier[data-resolves]");
+        if (button && typeof root.prov === "function") root.prov(button.dataset.resolves);
+      });
+    }
     return rootEl;
   }
 

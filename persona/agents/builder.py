@@ -101,8 +101,8 @@ def build_visual(kind: str, topic: str, *, parent_id=None, kg=None, max_attempts
         return {"ok": False, "reason": "no-key-or-budget"}
     if not sandbox.image_ready():
         return {"ok": False, "reason": "sandbox-image-missing"}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     ctx, ents = _grounding(topic, kg)
     intent = ("an explanatory scientific diagram (boxes/arrows/mechanism or a clean data plot) that "
               "makes the relationships legible" if kind == "diagram" else
@@ -163,8 +163,8 @@ _PAGE_SYS = ("You write ONE complete, self-contained HTML page (inline CSS + van
 def build_page(topic: str, *, parent_id=None, kg=None) -> dict:
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     ctx, ents = _grounding(topic, kg)
     tool = {"name": "write_page", "description": "Write the self-contained HTML page.",
             "input_schema": {"type": "object", "properties": {
@@ -201,8 +201,8 @@ _CODE_SYS = ("You write ONE small, correct, self-contained Python script/tool re
 def build_code(topic: str, *, parent_id=None, kg=None) -> dict:
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     ctx, ents = _grounding(topic, kg)
     tool = {"name": "write_code", "description": "Write the script.",
             "input_schema": {"type": "object", "properties": {

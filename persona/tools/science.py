@@ -254,7 +254,13 @@ def call(api: str, params: dict) -> dict:
         if api == "ncbi_search":
             return fn(params.get("term") or params.get("query", ""), params.get("db", "pubmed"))
         if api == "geo_lookup":
-            return {"ok": True, **fn(params.get("gse_id") or params.get("id") or params.get("accession", ""))}
+            r = fn(params.get("gse_id") or params.get("id") or params.get("accession", ""))
+            # PRD-03 fail-loud: an unresolvable GEO id is NOT a success — derive ok from `found`,
+            # never hardcode True. The `source` (invalid_id / not_cached) says why it failed.
+            out = {"ok": bool(r.get("found")), **r}
+            if not out["ok"]:
+                out["error"] = f"GEO id {r.get('gse_id') or '?'} unresolved ({r.get('source') or 'not_found'})"
+            return out
         if api == "geo_search":
             return {"ok": True, "hits": fn(params.get("query") or params.get("term", ""), params.get("field"))}
     except Exception as e:

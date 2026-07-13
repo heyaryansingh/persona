@@ -90,8 +90,8 @@ def generate(query: str, *, entities: list | None = None, message: str = "", par
               + (f"The reader specifically wants: {message}\n\n" if message else "")
               + "Write the cited briefing.")
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=4000, system=_SYSTEM,
                                   messages=[{"role": "user", "content": prompt}])
     u = resp.usage

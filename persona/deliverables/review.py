@@ -66,8 +66,8 @@ def write_review(topic: str, *, parent_id=None, max_notes: int = 8) -> dict:
     src_list = "\n".join(f"[{snum[k]}] {k}" for k in sources)
     corpus = "\n\n=== NOTE ===\n".join(n[:3000] for n in notes)
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=4096, system=_SYSTEM,
         tools=[_TOOL], tool_choice={"type": "tool", "name": "write_review"},
         messages=[{"role": "user", "content": f"Topic: {topic}\n\nMY SYNTHESIS NOTES:\n{corpus}\n\n"

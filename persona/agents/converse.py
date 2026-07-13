@@ -46,9 +46,9 @@ def converse(user_text: str, kg=None, *, parent_id=None) -> dict:
         log().emit("reply", "(I've hit my daily budget cap — raise it to keep chatting.)",
                    actor="self", parent_id=parent_id)
         return {"ok": False, "reason": "budget"}
-    from anthropic import Anthropic
+    from ..providers import anthropic_client
     from .deliberate import _kg_summary
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = anthropic_client()
     s = selfmind.read_self()
     prompt = (f"## my identity\n{s.get('identity.md', '')[:800]}\n\n"
               f"## my interests\n{s.get('interests.md', '')}\n\n"

@@ -135,11 +135,18 @@
   padding:1px 7px;border-radius:9px;border:1px solid var(--line2);color:var(--dim)}
 .cost-public_data{color:var(--live);border-color:color-mix(in srgb,var(--live) 40%,var(--line2))}
 .cost-expensive{color:var(--human);border-color:color-mix(in srgb,var(--human) 40%,var(--line2))}
-.vq-act{display:flex;gap:6px;margin-top:4px}
+.vq-act{display:flex;gap:6px;margin-top:4px;align-items:center}
 .vq-act button{font-family:var(--mono);font-size:11px;padding:4px 9px;border:1px solid var(--line2);
   border-radius:7px;background:var(--panel2);color:var(--ink);cursor:pointer}
 .vq-act button:hover{border-color:var(--dim)}
 .vq-act button:focus-visible{outline:2px solid var(--anchor);outline-offset:1px}
+.vq-act button[disabled]{opacity:.45;cursor:default}
+.vq-act button[disabled]:hover{border-color:var(--line2)}
+/* run_action disposition — an advisory label (Investigate/Handoff), not a clickable action */
+.vq-disp{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 8px;border-radius:9px;border:1px solid var(--line2);color:var(--dim)}
+.disp-handoff{color:var(--human);border-color:color-mix(in srgb,var(--human) 40%,var(--line2))}
+.disp-investigate{color:var(--anchor);border-color:color-mix(in srgb,var(--anchor) 40%,var(--line2))}
 @media (max-width:760px){.dep-m{grid-template-columns:1fr}}
 
 /* ---- Oracle-verdict card (verdict.js / FC-8, one renderer for all oracles) --- */

@@ -101,8 +101,8 @@ def deliberate(kg=None, *, parent_id=None) -> dict:
         return {"ok": False, "reason": "no-key"}
     if not budget().can_spend():
         return {"ok": False, "reason": "budget"}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     s = selfmind.read_self()
     directives = (s.get('directives.md', '') or '').strip()
     dir_block = (f"## STANDING DIRECTIVES FROM THE HUMAN (weigh these heavily)\n{directives}\n\n"

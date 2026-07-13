@@ -5,6 +5,7 @@ Optional: `python -m persona --seed "topic a, topic b"` seeds the blank slate be
 from __future__ import annotations
 
 import argparse
+from importlib.metadata import PackageNotFoundError, version
 import sys
 
 import uvicorn
@@ -46,7 +47,11 @@ def main() -> None:
         else:
             print("already seeded; leaving the existing self intact")
 
-    print(f"Persona v4 -> http://{args.host}:{args.port}  (workspace: {config.WORKSPACE})")
+    try:
+        release = version("persona")
+    except PackageNotFoundError:
+        release = "dev"
+    print(f"Persona {release} -> http://{args.host}:{args.port}  (workspace: {config.WORKSPACE})")
     uvicorn.run("persona.api.app:app", host=args.host, port=args.port)
 
 

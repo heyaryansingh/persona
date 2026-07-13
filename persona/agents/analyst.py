@@ -196,8 +196,8 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         return {"ok": False, "reason": "budget"}
     if not sandbox.image_ready():
         return {"ok": False, "reason": "sandbox-image-missing"}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
 
     session = ResearchSession(get_persona().paths.runs_dir, question, model=config.MODEL_WORKER,
                               metadata={"parent_event_id": parent_id,

@@ -77,3 +77,18 @@ def test_grimmer_passes_an_achievable_sd():
     assert _passed(r["status"])
     # sd = 0 with integer mean (responses 1, 1) is also consistent.
     assert _passed(F.grimmer(mean=1.00, sd=0.00, n=2, decimals=2)["status"])
+
+
+def test_mde_gate_reachable_via_runner_group_count():
+    # S2 review MED: the `groups != 2` applicability gate was dead because the runner never passed a
+    # group count. The runner must now thread n_groups so a k-group design is gated (not_applicable),
+    # not silently scored with the two-sample formula.
+    raw3 = F._run_all_raw({"designs": [{"n_per_group": 30, "n_groups": 3, "span": "s"}]})
+    power3 = [r for r in raw3 if r["check"] == "power"][0]
+    assert power3["status"] == "not_applicable" and not _passed(power3["status"])
+    # a genuine two-group design still computes a real MDE (the gate isn't over-firing)
+    raw2 = F._run_all_raw({"designs": [{"n_per_group": 30, "n_groups": 2, "span": "s"}]})
+    assert [r for r in raw2 if r["check"] == "power"][0]["status"] in ("ok", "weak")
+    # omitted n_groups falls back to two-sample — backward-compatible with old extractions
+    rawd = F._run_all_raw({"designs": [{"n_per_group": 30, "span": "s"}]})
+    assert [r for r in rawd if r["check"] == "power"][0]["status"] in ("ok", "weak")

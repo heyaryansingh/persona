@@ -152,8 +152,8 @@ def extract_claims(text: str, title: str = "", *, model: str = None, client=None
     """Return (claims, usage). Empty list if no API key."""
     if not config.have_key() and client is None:
         return [], {"cost": 0.0, "note": "no api key"}
-    from anthropic import Anthropic
-    client = client or Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = client or anthropic_client()
     model = model or config.MODEL_READER
     body = (f"Title: {title}\n\nText:\n{text[:40000]}\n\nExtract the claims.").strip()
     resp = client.messages.create(

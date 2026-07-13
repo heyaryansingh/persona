@@ -16,13 +16,14 @@ from .paths import Paths
 
 class Persona:
     def __init__(self, id: str, name: str, workspace, graph_name: str,
-                 budget_usd: float = None):
+                 budget_usd: float = None, owner_id: str | None = None):
         self.id = id
         self.name = name
         self.graph_name = graph_name
         self.paths = Paths(workspace)
         self.paths.ensure()
         self.budget_usd = budget_usd if budget_usd is not None else config.DAILY_BUDGET_USD
+        self.owner_id = owner_id
         self.harvest_lock = threading.Lock()
         self.daemon = None
         self._events = None

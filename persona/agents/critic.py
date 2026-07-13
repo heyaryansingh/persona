@@ -60,8 +60,8 @@ def critique(question: str, *, investigation_id: str = "", parent_id=None) -> di
     report_path = cands[0]
     report_md = report_path.read_text(encoding="utf-8")
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=2000, system=_CRIT_SYS,
         messages=[{"role": "user", "content": f"QUESTION:\n{question}\n\nREPORT:\n{report_md[:12000]}"}])
     budget().add(_cost(resp.usage))

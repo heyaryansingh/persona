@@ -91,6 +91,26 @@ def test_set_validity_window_noop_when_no_bounds():
     assert captured == []  # nothing written when neither bound is given
 
 
+def test_add_claim_stamps_last_observed_on_create_and_match():
+    # S2 review MED (darklit F3.5): dormancy is time-since-last-seen, so add_claim must stamp
+    # c.last_observed on BOTH create and re-observe — ingest_time (frozen on create) can't be used.
+    kg = KG.__new__(KG)
+    kg._canon = SimpleNamespace(canon=lambda x: x)
+    seen = []
+
+    def q(cypher, params=None):
+        seen.append(cypher)
+        if "avg(r.conf)" in cypher:
+            return SimpleNamespace(result_set=[[1, 1, 0.6]])
+        return SimpleNamespace(result_set=[])
+
+    kg._q = q
+    kg.add_claim({"subject": "a", "object": "b", "effect_sign": "+"}, "src")
+    merge = next(c for c in seen if "MERGE (c:Claim" in c)
+    assert "c.last_observed=$now" in merge                                  # written on create
+    assert "last_observed" in merge.split("ON MATCH SET", 1)[1]             # AND refreshed on re-observe
+
+
 @pytest.mark.skipif(not _falkor_up(), reason="FalkorDB not reachable on :6379")
 def test_validity_window_set_and_read_live():
     kg = KG()

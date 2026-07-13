@@ -84,3 +84,12 @@ def test_dispatch_via_call(science):
     assert hit["ok"] is True and hit["found"] is True and hit["n_samples"] == 2
     srch = science.call("geo_search", {"query": "hypoxia"})
     assert srch["ok"] is True and srch["hits"][0]["gse_id"] == "GSE12345"
+
+
+def test_dispatch_unresolved_id_fails_loud(science):
+    # S2 review MED / PRD-03: the dispatch used to hardcode ok:True, so an unresolvable GEO id looked
+    # like a success. It must now report ok:False with an error naming why (not_cached / invalid_id).
+    miss = science.call("geo_lookup", {"gse_id": "GSE99999"})
+    assert miss["ok"] is False and miss["found"] is False and miss.get("error")
+    bad = science.call("geo_lookup", {"gse_id": "not-an-accession"})
+    assert bad["ok"] is False and bad["source"] == "invalid_id"

@@ -42,16 +42,17 @@ class PersonaManager:
             return
         for e in data.get("personas", []):
             self._personas[e["id"]] = Persona(e["id"], e["name"], e["workspace"], e["graph_name"],
-                                              budget_usd=e.get("budget_usd"))
+                                              budget_usd=e.get("budget_usd"), owner_id=e.get("owner_id"))
 
     def _save(self):
         self.registry_path.write_text(json.dumps({"personas": [
             {"id": p.id, "name": p.name, "workspace": str(p.paths.workspace),
-             "graph_name": p.graph_name, "budget_usd": p.budget_usd}
+             "graph_name": p.graph_name, "budget_usd": p.budget_usd, "owner_id": p.owner_id}
             for p in self._personas.values()]}, indent=2), encoding="utf-8")
 
     # ------------------------------------------------------------- lifecycle
-    def create(self, name: str, interests=None, budget_usd: float = None) -> Persona:
+    def create(self, name: str, interests=None, budget_usd: float = None,
+               owner_id: str | None = None) -> Persona:
         base = _slug(name)
         pid = base
         i = 0
@@ -59,7 +60,7 @@ class PersonaManager:
             i += 1
             pid = f"{base}-{hashlib.sha1((name + str(i)).encode()).hexdigest()[:4]}"
         p = Persona(pid, name, workspace=self.root / pid, graph_name=f"persona_{pid}",
-                    budget_usd=budget_usd)
+                    budget_usd=budget_usd, owner_id=owner_id)
         self._personas[pid] = p
         self._save()
         if interests:

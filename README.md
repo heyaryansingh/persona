@@ -34,8 +34,18 @@ $env:PERSONA_WORKERS='0'
 python -m persona --port 8137
 ```
 
+The normal capped default is three workers. For an explicitly uncapped BYOK run, set
+`PERSONA_UNLIMITED_SPEND=1`; it uses eight workers unless `PERSONA_WORKERS` is set.
+An explicit `PERSONA_DAILY_BUDGET_USD` always keeps the run capped.
+
 For the browser smoke, use the bundled runtime as documented in [the handoff](docs/CONTINUATION_HANDOFF.md#8-verification-commands-and-runtime-recipe). The smoke launches no autonomous workers and makes no paid model calls.
 
 ## Safety boundary
 
 Candidate sign collisions are not verified contradictions. A result can be computationally replayable and still be scientifically contested. Persona keeps those states separate, preserves rejected/invalidated work for audit, and routes biological or methodological judgment to humans.
+
+## Hackathon handoff
+
+The three-minute cached demo is in [docs/HACKATHON_DEMO.md](docs/HACKATHON_DEMO.md).
+Use [docs/HACKATHON_SUBMISSION.md](docs/HACKATHON_SUBMISSION.md) for the written pitch and
+[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) for the local and public-launch gates.

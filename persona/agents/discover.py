@@ -78,8 +78,8 @@ def discover(*, parent_id=None, max_investigations: int = 1) -> dict:
           f"+{c['pos_sources']} vs −{c['neg_sources']} labs" for c in contra) +
           "\n\nOPEN QUESTIONS:\n" + "\n".join(f"- {q}" for q in qs))
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     resp = client.messages.create(model=config.MODEL_SELF, max_tokens=2048, system=_SYSTEM,
                                   tools=[_TOOL], tool_choice={"type": "tool", "name": "propose"},
                                   messages=[{"role": "user", "content": kb + "\n\nPropose."}])

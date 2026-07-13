@@ -452,8 +452,8 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     prior_md = ("\n\nRELATED PRIOR PAPERS BY THIS MIND (reference where relevant):\n"
                 + "\n".join(f"- {t}" for t in prior[-6:])) if prior else ""
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     msgs = [{"role": "user", "content": f"Topic / question:\n{topic}\n\nSYNTHESIS NOTES:\n"
              + "\n\n=== NOTE ===\n".join(notes) + f"\n\nNUMBERED SOURCES (cite inline as [n]; list ALL "
              f"under ## References):\n{src_list}{beliefs}{prior_md}\n\nWrite the complete paper in Markdown."}]

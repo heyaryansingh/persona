@@ -44,6 +44,18 @@ ok(vq.includes("public data") && vq.includes("cheap assay"), "cost tiers labelle
 ok(vq.includes("✓ dataset") && vq.includes("no dataset"), "dataset availability shown as text");
 ok(vq.includes("open dossier"), "each row can open a handoff dossier (FC-2)");
 ok(vq.indexOf("0.72") < vq.indexOf("0.44"), "value queue ordered by VoI desc");
+// C1: value-queue item is actionable — "open dossier" is wired to the read-only prov() viewer
+// with the resolving claim id (not a dead button); run_action is an advisory label, not a fake action.
+ok(vq.includes('data-resolves="clm_d4"') && !vq.includes("onclick="),
+   "open-dossier keeps the resolving claim ID in data, not executable HTML");
+ok(vq.includes('class="vq-disp') && vq.includes("Investigate") && vq.includes("Handoff"),
+   "run_action shown as an advisory disposition label, not a clickable action");
+const noClaim = F.renderValueQueue([{ question: "q", voi: 0.3 }]);
+ok(noClaim.includes("disabled") && !noClaim.includes("prov("),
+   "open dossier disabled (no prov call) when no resolving claim id is recorded");
+const hostile = F.renderValueQueue([{ question: "q", voi: 0.3, resolves_claim_id: `x');globalThis.pwned=true;//` }]);
+ok(!hostile.includes("onclick=") && hostile.includes("data-resolves="),
+   "hostile claim IDs remain data, never executable handler source");
 
 // 7. normalizeField adapts the two live route shapes; degrades to empty (honest, not mock).
 const norm = F.normalizeField({ nodes: [{ claim_id: "z" }], edges: [{ src: "z", dst: "y" }] }, { queue: [{ question: "q", voi: 0.5 }] });

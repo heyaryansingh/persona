@@ -164,8 +164,9 @@ class KG:
             MERGE (c:Claim {claim_id:$cid})
               ON CREATE SET c.subject=$subj, c.object=$obj, c.relation=$rel, c.effect_sign=$sign,
                             c.pair_key=$pk, c.provenance=$prov, c.anchored=false,
-                            c.ingest_time=$now, c.valid_from=$now, c.valid_to=null,
+                            c.ingest_time=$now, c.last_observed=$now, c.valid_from=$now, c.valid_to=null,
                             c.support_count=0, c.independent_source_count=0, c.confidence=$conf
+              ON MATCH SET c.last_observed=$now
             MERGE (c)-[:ABOUT_SUBJECT]->(subj)
             MERGE (c)-[:ABOUT_OBJECT]->(obj)
             WITH c

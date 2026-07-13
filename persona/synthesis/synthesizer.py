@@ -136,8 +136,8 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
               + "\n".join(claim_lines) + f"\n\nNUMBERED SOURCES:\n{sources_md}\n\n"
               f"Write the cited synthesis.")
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     resp = client.messages.create(model=config.MODEL_WORKER, max_tokens=4096, system=_SYSTEM,
                                   tools=[_TOOL], tool_choice={"type": "tool", "name": "write_synthesis"},
                                   messages=[{"role": "user", "content": prompt}])

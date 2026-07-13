@@ -5,4 +5,8 @@ disk (persona-workspace/self/*.md), a never-idle daemon that continuously spawns
 sub-agents to read at scale and do real work, a membrane that admits only convergent independent
 evidence into a bi-temporal knowledge graph, and a live-thought UI you can watch it think in.
 """
-__version__ = "4.0.0"
+try:
+    from importlib.metadata import version
+    __version__ = version("persona")
+except Exception:  # editable/source checkout before installation
+    __version__ = "0.3.0"

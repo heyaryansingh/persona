@@ -649,6 +649,7 @@
       </span>
       <button class="cbtn" id="pausebtn" onclick="togglePause()">⏸ pause</button>
       <button class="cbtn halt" onclick="haltPersona()">■ halt</button>
+      <a class="cbtn" href="/settings" title="provider keys and account settings">settings</a>
     </div>
   </div>
   <div class="subbar" id="subbar" style="display:none"></div>
@@ -907,6 +908,24 @@ const fdate=iso=>{if(!iso)return"n.d.";const d=new Date(iso);return (isNaN(d)||d
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let PID=null, es=null, timers=[], CURSURF='stream', SOUND=false;
 const A=p=>`/api/persona/${PID}${p}`;
+// Public mode uses a synchronizer token returned only after the HTTP-only session cookie is valid.
+// Keep the existing local/demo mode frictionless: it returns {public:false} and adds nothing.
+let CSRF_TOKEN=null, CSRF_LOADING=null;
+const _nativeFetch=window.fetch.bind(window);
+async function ensureCsrf(){
+  if(CSRF_TOKEN!==null)return CSRF_TOKEN;
+  if(!CSRF_LOADING)CSRF_LOADING=_nativeFetch('/api/auth/session').then(async r=>{
+    if(!r.ok)return null; const s=await r.json(); return s.public?s.csrf:null;
+  }).catch(()=>null).then(v=>(CSRF_TOKEN=v,v));
+  return CSRF_LOADING;
+}
+window.fetch=async (input, init={})=>{
+  const method=(init.method||'GET').toUpperCase(), url=typeof input==='string'?input:input.url||'';
+  if(!['GET','HEAD','OPTIONS'].includes(method)&&url.startsWith('/api/')){
+    const token=await ensureCsrf(); if(token){const h=new Headers(init.headers||{});h.set('X-CSRF-Token',token);init={...init,headers:h};}
+  }
+  return _nativeFetch(input,init);
+};
 function toast(msg,ms=3200){const t=$("#toast");t.innerHTML=msg;t.classList.add("show");clearTimeout(t._to);t._to=setTimeout(()=>t.classList.remove("show"),ms);}
 
 /* ------------------------- GENESIS / gallery ------------------------- */
@@ -2061,6 +2080,7 @@ async function openInstruments(){
     // degree map over entity graph → load-bearing proxy
     const deg={}; (graph.edges||[]).forEach(e=>{deg[e.source]=(deg[e.source]||0)+1;deg[e.target]=(deg[e.target]||0)+1;});
     const contested=new Set(); contras.forEach(c=>{contested.add(c.pos_claim);contested.add(c.neg_claim);});
+    const contestedEnt=new Set(); contras.forEach(c=>{contestedEnt.add(c.subject);contestedEnt.add(c.object);});  // entity names, for the entity-level silence filter
     // --- 1. server-owned epistemic state; sign collisions remain unverified candidates ---
     const conv=beliefs.map(b=>{ let v; if(contested.has(b.claim_id))v="candidate";
       else v=b.epistemic_state||"observed";
@@ -2071,7 +2091,7 @@ async function openInstruments(){
     // --- 3. VoI (contradictions ranked by downstream mass) ---
     const voi=contras.map(c=>{const d=(deg[c.subject]||0)+(deg[c.object]||0); return {c,voi:d};}).sort((a,b)=>b.voi-a.voi).slice(0,8);
     // --- 4. silence (thinly held, uncontested — candidate buried nulls) ---
-    const silent=beliefs.filter(b=>b.independent_sources<=1&&!contested.has(b.subject)&&!contested.has(b.object)).slice(0,8);
+    const silent=beliefs.filter(b=>b.independent_sources<=1&&!contestedEnt.has(b.subject)&&!contestedEnt.has(b.object)).slice(0,8);
     let h='';
     // C1: live action feed — real membrane admit/skip decisions + flagged candidates (read-only, degrades empty).
     h+=`<div class="inst"><h3>Live action feed</h3><div class="isub">recent gate decisions + flagged candidates · read-only, grounded in real events</div>`;

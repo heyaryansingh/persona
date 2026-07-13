@@ -27,8 +27,8 @@ def check(body: str, quotes: list[str]) -> dict:
     """Return {support_rate, total, unsupported}. support_rate None if unavailable."""
     if not config.have_key() or not budget().can_spend() or not quotes:
         return {"support_rate": None, "total": 0, "unsupported": []}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     qs = "\n".join(f"- {q}" for q in quotes if q)[:6000]
     resp = client.messages.create(
         model=config.MODEL_READER, max_tokens=1024, system=_SYSTEM, tools=[_TOOL],

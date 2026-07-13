@@ -1,6 +1,6 @@
 [project]
 name = "persona"
-version = "0.2.0"
+version = "0.3.0"
 description = "A persistent synthetic researcher for the biomedical literature."
 requires-python = ">=3.11"
 dependencies = [
@@ -10,7 +10,20 @@ dependencies = [
     "uvicorn>=0.29",
     "anthropic>=0.105",
     "python-dotenv>=1.0",
+    "httpx>=0.27",
+    "PyMuPDF>=1.24",
+    "falkordb>=1.0",
+    "fastembed>=0.3",
+    "trafilatura>=1.9",
+    "itsdangerous>=2.2",
+    "google-auth>=2.0",
+    "python-multipart>=0.0.9",
+    "cryptography>=42.0",
+    "psycopg[binary]>=3.2",
 ]
+
+[project.scripts]
+persona = "persona.__main__:main"
 
 [project.optional-dependencies]
 # v2 retrieval/RAG (P4) — installed on demand
@@ -21,6 +34,10 @@ dev = ["pytest>=8.0"]
 
 [tool.setuptools.packages.find]
 include = ["persona*"]
+
+[tool.setuptools.package-data]
+# The FastAPI shell is served from the installed package in the production image.
+persona = ["api/static/**/*"]
 
 [build-system]
 requires = ["setuptools>=68"]

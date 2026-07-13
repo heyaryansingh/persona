@@ -36,9 +36,9 @@ _SYSTEM = ("You are a persistent researcher with a FREE mind and real tools. Cho
 def free_move(kg=None, *, parent_id=None) -> dict:
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
-    from anthropic import Anthropic
+    from ..providers import anthropic_client
     from .deliberate import _kg_summary
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = anthropic_client()
     s = selfmind.read_self()
     prompt = (f"## my interests\n{s.get('interests.md', '')}\n\n"
               f"## open questions\n{s.get('open_questions.md', '')[:800]}\n\n"

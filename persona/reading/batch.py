@@ -32,8 +32,8 @@ def _now() -> str:
 
 
 def _client():
-    from anthropic import Anthropic
-    return Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    return anthropic_client()
 
 
 def submit(works: list[dict], interest: str = "") -> dict:

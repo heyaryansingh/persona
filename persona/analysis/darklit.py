@@ -58,16 +58,19 @@ def dead_science(topic: str = None, kg=None, now: datetime = None) -> list:
     rows = kg._q(
         "MATCH (c:Claim) "
         "WHERE c.support_count >= $k AND c.valid_to IS NULL " + where +
-        "RETURN c.claim_id, c.ingest_time, c.provenance, c.anchored, c.support_count",
+        # dormancy = time since the claim was LAST observed, not since first ingest — coalesce falls
+        # back to ingest_time for claims created before last_observed was tracked.
+        "RETURN c.claim_id, coalesce(c.last_observed, c.ingest_time), c.provenance, c.anchored, "
+        "c.support_count",
         params).result_set
 
     out = []
-    for cid, ingest, prov, anchored, _support in rows:
-        dormant_days = _age_days(ingest, now)
+    for cid, last_seen, prov, anchored, _support in rows:
+        dormant_days = _age_days(last_seen, now)
         if dormant_days is None or dormant_days < DORMANT_DAYS:
             continue  # missing timestamp or still active -> not dark
         revived = bool(anchored) or str(prov or "").upper() in {"TESTED", "HUMAN_CONFIRMED"}
-        out.append({"claim_id": cid, "last_activity": ingest,
+        out.append({"claim_id": cid, "last_activity": last_seen,
                     "dormant_days": dormant_days, "revived": revived})
 
     # deterministic: most-dormant first, claim_id breaks ties.

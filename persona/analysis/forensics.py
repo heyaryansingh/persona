@@ -218,7 +218,9 @@ def _run_all_raw(stats_extracted: dict) -> list[dict]:
                 flags.append(gm)
     for de in stats_extracted.get("designs", []):
         if de.get("n_per_group"):
-            p = min_detectable_effect(de["n_per_group"])
+            # thread the extracted group count so the two-sample applicability gate is reachable
+            # (a k!=2 design gets not_applicable, not a bogus two-sample d). Defaults to 2.
+            p = min_detectable_effect(de["n_per_group"], groups=de.get("n_groups") or 2)
             p["span"] = de.get("span", "")
             flags.append(p)
     pv = stats_extracted.get("p_values") or []

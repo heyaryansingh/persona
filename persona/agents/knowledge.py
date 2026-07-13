@@ -96,8 +96,8 @@ def topic_digest(q: str, kg=None, history=None, max_claims: int = 45, *, generat
         return base
     if not config.have_key() or not budget().can_spend():
         return {**base, "reason": "no-key-or-budget"}
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     tool = {"name": "brief", "description": "Produce the layered topic briefing.",
             "input_schema": {"type": "object", "properties": {
                 "tldr": {"type": "string", "description": "2-3 sentence plain summary of what's known"},
@@ -138,8 +138,8 @@ def ask_graph(q: str, kg=None) -> dict:
     ents = _entities_for(kg, q)
     claims = kg.claims_about(ents, 40) if ents else []
     citations = [{**_claim_cite(c), "n": i + 1} for i, c in enumerate(claims)]
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     tool = {"name": "answer", "description": "Answer the question from the claims.",
             "input_schema": {"type": "object", "properties": {
                 "answer": {"type": "string", "description": "a direct answer citing claims as [n]; if "

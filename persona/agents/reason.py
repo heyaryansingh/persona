@@ -55,8 +55,8 @@ def prove(question: str, *, parent_id=None) -> dict:
         return {"ok": False, "reason": "sandbox-image-missing"}
     p = get_persona()
 
-    from anthropic import Anthropic
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    from ..providers import anthropic_client
+    client = anthropic_client()
     # This model emits a server-side thinking block, so a tight max_tokens can truncate the derivation
     # text away entirely (esp. on a broad question); 10000 leaves headroom without the latency of a
     # huge cap. Retry once, MORE FOCUSED, if the first reply still comes back empty.
