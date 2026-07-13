@@ -738,7 +738,7 @@
             <button data-k="investigate" onclick="stAct('investigate')">investigate</button>
             <button data-k="paper" onclick="stAct('paper')">draft a paper</button>
           </div>
-          <textarea id="stinput" placeholder="Ask a cited question, give a claim to verify, a question to investigate, or a topic to draft…"></textarea>
+          <textarea id="stinput" placeholder="Ask a cited question · verify a claim · investigate · draft a paper · audit robustness (name a read paper, or paste an external paper's text)…"></textarea>
           <button class="strun" onclick="stRun()">▶ run</button>
           <div id="stoutput" class="stscroll"><div class="empty">the persona's answer + what it produced will appear here</div></div>
         </div>
@@ -1098,8 +1098,11 @@ async function stRun(){
       if(r.ok){ pb().innerHTML=md(r.markdown)+`<div class="stmuted">${r.n_claims} claims · ${r.n_sources} sources — every statement traces to a paper · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','report');return false;">open &amp; export ↗</a></div>`; }
       else pb().innerHTML='could not build a report ('+esc(r.reason||'error')+') — try a broader topic it has read.';
     } else if(STUDIO.mode==='audit'){
-      const r=await (await fetch(A("/audit"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:t})})).json();
-      pb().innerHTML=r.ok?renderAudit(r):'could not audit ('+esc(r.reason||'error')+') — name a paper it has read.';
+      // short input = name a read paper; a long/multiline paste = audit that EXTERNAL text verbatim
+      const external=(t.length>200||t.includes("\n"));
+      const body=external?{text:t}:{query:t};
+      const r=await (await fetch(A("/audit"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+      pb().innerHTML=r.ok?renderAudit(r):'could not audit ('+esc(r.reason||'error')+') — name a paper it has read, or paste the paper text.';
     } else {
       const ep=STUDIO.mode==='paper'?'/deliver':(STUDIO.mode==='verify'?'/verify':'/investigate');
       const body=STUDIO.mode==='paper'?{kind:'paper',topic:t}:(STUDIO.mode==='verify'?{statement:t}:{question:t});
