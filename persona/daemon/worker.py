@@ -379,3 +379,22 @@ async def _observe(task, queue) -> str:
     if res.get("read"):
         return f"observe: read {res.get('slug')} ({res.get('n_claims',0)} claims)"
     return f"observe: {res.get('reason','no-read')}"
+
+
+# ── Lane 1 (S4) handlers — FC-1. Appended per PRD-01 §1 boundary protocol (append-only; never
+#    re-order the registry). Both are Milestone-0 no-op stubs: they call typed $0 stubs and make no
+#    model/sandbox call. Full impls: verifier = F1.2, debate = F1.4. S0 serializes the worker.py merge.
+@handler("verify")
+async def _verify(task, queue) -> str:
+    from ..agents import verifier
+    r = verifier.verify(task.params.get("claim_id", ""), parent_id=task.parent_id,
+                        evidence_claim_ids=task.params.get("evidence_claim_ids"))
+    return f"verify: {r.get('verdict', '?')} (claim {str(r.get('claim_id',''))[:16]})"
+
+
+@handler("debate")
+async def _debate(task, queue) -> str:
+    from ..agents import debate as debate_agent
+    r = debate_agent.debate(task.params.get("claim", ""), task.params.get("positions") or [],
+                            parent_id=task.parent_id)
+    return f"debate: resolved={r.get('resolved')} agreement={r.get('agreement')}"

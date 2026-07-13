@@ -1,0 +1,213 @@
+{
+  "experiment": "RQ-E07c equal-token team-physics LIVE trial",
+  "status": "FROZEN HARNESS + PREREGISTRATION \u2014 dry-run, no deployment claim, no verdict",
+  "mode": "dry-run",
+  "gate": "live model reads require PERSONA_E07_LIVE=1 + human budget greenlight + live probe",
+  "paid_calls": 0,
+  "cost_usd": 0.0,
+  "preregistration": {
+    "hypothesis": "Under fixed total token budget B, topology changes validated-novelty/token; parallel-breadth beats sequential up to an effective team size, then marginal validated evidence/token < cost; dense all-to-all is net-negative live.",
+    "independent_variable": "allocation topology (equal total tokens B across arms, same questions/seeds)",
+    "arms": [
+      "sequential",
+      "parallel_breadth(k in 2..20)",
+      "hierarchical_cells",
+      "dag_handoff",
+      "reducer_bottleneck",
+      "marginal_stopping"
+    ],
+    "dependent_metrics": [
+      "validated_novelty (post-membrane, exact-span + independent sources)",
+      "validated_novelty_per_token (PRIMARY)",
+      "effective_team_size (knee)",
+      "correlated_error_rate (guard)",
+      "false_admitted (must be ~0)",
+      "abstention_correctness",
+      "cost",
+      "wall_latency"
+    ],
+    "seeds": ">=20 (seeded question-order + partition shuffles); mean +- 95% CI (percentile bootstrap)",
+    "go_no_go": "a topology wins ONLY if its novelty/token 95% CI clears sequential by >= 0.1 AND correlated_error_rate does not rise. Else: 'sequential + N=3 partition stands'.",
+    "guards": [
+      "membrane is the arbiter \u2014 novelty counted AFTER admission, never raw",
+      "small-B pilot prices one arm before the full sweep (circuit breaker)",
+      "distinguish live vs replay evidence in any writeup; agent count is NOT a metric"
+    ]
+  },
+  "seeds": 30,
+  "base_seed": 0,
+  "total_budget_tokens": 4000,
+  "universe_source": "synthetic wiring fixture (deterministic per seed)",
+  "universe_hash_first": "513175d3",
+  "novelty_per_token": {
+    "sequential": {
+      "mean": 0.04429999999999999,
+      "ci95_lo": 0.03979375,
+      "ci95_hi": 0.0476625,
+      "n": 30
+    },
+    "parallel_k2": {
+      "mean": 0.041425,
+      "ci95_lo": 0.037587499999999996,
+      "ci95_hi": 0.045,
+      "n": 30
+    },
+    "parallel_k3": {
+      "mean": 0.04136666666666667,
+      "ci95_lo": 0.03713125,
+      "ci95_hi": 0.045024999999999996,
+      "n": 30
+    },
+    "parallel_k5": {
+      "mean": 0.04173504273504274,
+      "ci95_lo": 0.038224358974358975,
+      "ci95_hi": 0.045384615384615384,
+      "n": 30
+    },
+    "parallel_k8": {
+      "mean": 0.04249999999999999,
+      "ci95_lo": 0.03782638888888889,
+      "ci95_hi": 0.04717361111111111,
+      "n": 30
+    },
+    "parallel_k14": {
+      "mean": 0.04410416666666666,
+      "ci95_lo": 0.0395625,
+      "ci95_hi": 0.0486953125,
+      "n": 30
+    },
+    "parallel_k20": {
+      "mean": 0.04461111111111111,
+      "ci95_lo": 0.03775,
+      "ci95_hi": 0.05258333333333333,
+      "n": 30
+    },
+    "hierarchical_cells": {
+      "mean": 0.038249534450651775,
+      "ci95_lo": 0.03361731843575419,
+      "ci95_hi": 0.04121508379888268,
+      "n": 30
+    },
+    "dag_handoff": {
+      "mean": 0.03501801801801801,
+      "ci95_lo": 0.030195945945945945,
+      "ci95_hi": 0.03894594594594594,
+      "n": 30
+    },
+    "reducer_bottleneck": {
+      "mean": 0.048935185185185186,
+      "ci95_lo": 0.04450520833333333,
+      "ci95_hi": 0.05448784722222222,
+      "n": 30
+    },
+    "marginal_stopping": {
+      "mean": 0.05869068593302874,
+      "ci95_lo": 0.04751875,
+      "ci95_hi": 0.06758482142857143,
+      "n": 30
+    }
+  },
+  "correlated_error_rate": {
+    "sequential": {
+      "mean": 0.15916666666666665,
+      "ci95_lo": 0.075,
+      "ci95_hi": 0.23874999999999993,
+      "n": 30
+    },
+    "parallel_k2": {
+      "mean": 0.16018518518518518,
+      "ci95_lo": 0.07569444444444444,
+      "ci95_hi": 0.28541666666666665,
+      "n": 30
+    },
+    "parallel_k3": {
+      "mean": 0.15,
+      "ci95_lo": 0.04027777777777778,
+      "ci95_hi": 0.25763888888888886,
+      "n": 30
+    },
+    "parallel_k5": {
+      "mean": 0.1514285714285714,
+      "ci95_lo": 0.07785714285714286,
+      "ci95_hi": 0.2571428571428571,
+      "n": 30
+    },
+    "parallel_k8": {
+      "mean": 0.16041666666666668,
+      "ci95_lo": 0.05390625,
+      "ci95_hi": 0.3125,
+      "n": 30
+    },
+    "parallel_k14": {
+      "mean": 0.14880952380952378,
+      "ci95_lo": 0.03571428571428571,
+      "ci95_hi": 0.25357142857142834,
+      "n": 30
+    },
+    "parallel_k20": {
+      "mean": 0.16833333333333333,
+      "ci95_lo": 0.0,
+      "ci95_hi": 0.32749999999999985,
+      "n": 30
+    },
+    "hierarchical_cells": {
+      "mean": 0.1481481481481481,
+      "ci95_lo": 0.06388888888888888,
+      "ci95_hi": 0.3064814814814814,
+      "n": 30
+    },
+    "dag_handoff": {
+      "mean": 0.1426666666666667,
+      "ci95_lo": 0.0,
+      "ci95_hi": 0.291,
+      "n": 30
+    },
+    "reducer_bottleneck": {
+      "mean": 0.14166666666666666,
+      "ci95_lo": 0.05178571428571429,
+      "ci95_hi": 0.23392857142857132,
+      "n": 30
+    },
+    "marginal_stopping": {
+      "mean": 0.16218515689103924,
+      "ci95_lo": 0.018125000000000002,
+      "ci95_hi": 0.3447916666666666,
+      "n": 30
+    }
+  },
+  "parallel_k_curve_npt": [
+    [
+      2,
+      0.041425
+    ],
+    [
+      3,
+      0.04136666666666667
+    ],
+    [
+      5,
+      0.04173504273504274
+    ],
+    [
+      8,
+      0.04249999999999999
+    ],
+    [
+      14,
+      0.04410416666666666
+    ],
+    [
+      20,
+      0.04461111111111111
+    ]
+  ],
+  "effective_team_size": 2,
+  "topologies_clearing_sequential": {},
+  "verdict_note": "sequential + N=3 partition stands",
+  "caveats": [
+    "Synthetic universe is a wiring fixture, not evidence; no live topology claim.",
+    "Validated novelty counted AFTER the membrane stand-in (never raw agent output).",
+    "Live model reads are gated; the real run replaces the mock reader + membrane stand-in.",
+    "Agent count is not a metric; effective team size + validated-novelty/token are."
+  ]
+}

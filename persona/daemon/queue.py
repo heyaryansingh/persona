@@ -15,6 +15,14 @@ from typing import Optional
 
 from .. import config
 
+# FC-1 (Lane 1 provides) — task types this lane's heterogeneous team introduces. The queue stores the
+# `type` as a free string (only `status` is CHECK-constrained), so these constants are the single
+# source of truth other lanes enqueue against; the handlers live in worker.py's append-only registry.
+TASK_VERIFY = "verify"          # 1.2 — a tool-grounded verifier agent re-checks a high-value claim
+TASK_DEBATE = "debate"          # 1.3 — a gated two-side debate on a contested claim
+TASK_STALENESS = "staleness"    # runs Lane 2's conflicts.revisit_pass (budget-churn-safe re-check)
+FC1_TASK_TYPES = frozenset({TASK_VERIFY, TASK_DEBATE, TASK_STALENESS})
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)

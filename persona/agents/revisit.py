@@ -46,5 +46,20 @@ def revisit(*, parent_id=None) -> dict:
     arrow = "held" if new == e["status"] else f"{e['status']}→{new}"
     log().emit("belief_update", f"re-verified “{stmt[:52]}”: {arrow} ({note})", actor="revisit",
                parent_id=parent_id)
-    return {"ok": True, "statement": stmt, "old": e["status"], "new": new, "note": note,
-            "method": method}
+    result = {"ok": True, "statement": stmt, "old": e["status"], "new": new, "note": note,
+              "method": method}
+    # F1.9: a REFUTED past result must not just sit there relabeled — it re-opens the question as fresh
+    # grounded work (the self-correcting loop). Route through the single FC-1 seam (open_from_conflict:
+    # dedup + auto-launch live there); pass no evidence → the fresh investigation re-gathers, never
+    # fabricating the contradicting claim. Only on a real FLIP to refuted, and human still anchors any
+    # high-stakes reversal downstream. (PRD-01 F1.9)
+    if new == "refuted" and e.get("status") != "refuted":
+        try:
+            from ..research.investigation import Investigation
+            inv = Investigation.open_from_conflict(f"revisit:{e['key']}", evidence_claim_ids=None)
+            result["reinvestigated"] = inv.slug
+            log().emit("thought", "a past result was refuted on re-test — reopening it as a fresh "
+                       "investigation", actor="revisit", parent_id=parent_id)
+        except Exception:
+            pass
+    return result

@@ -20,6 +20,20 @@ def _should_reflect(depth: int, now: float, last_reflect: float) -> bool:
     return depth < config.QUEUE_MIN_DEPTH and now - last_reflect >= config.SCOUT_INTERVAL_S
 
 
+def _should_reaudit(watchlist, can_spend: bool) -> bool:
+    """M2 budget-churn guard: enqueue a PAID re-audit only when the budget allows AND the watchlist
+    has an item that is actually DUE. Gating on `due()` (not `entries()`) means once Lane 2 lands the
+    staleness floor in `watchlist.due(min_age_hours=...)`, a fully-fresh watchlist returns None → no
+    redundant re-audits burning the daily cap. Behaviour-neutral until that floor lands (due() returns
+    the least-recent entry today). See S2 audit M2 + requests/S4--to--S5--reaudit-staleness-consumer-contract.md."""
+    if not can_spend:
+        return False
+    try:
+        return watchlist.due() is not None
+    except Exception:
+        return False
+
+
 class Daemon:
     def __init__(self, n_workers: int = None, queue: TaskQueue = None, scheduler: bool = True,
                  persona=None):
@@ -150,7 +164,7 @@ class Daemon:
                     # LIVING RE-AUDIT: re-check an audited paper's replication verdict as the literature moves.
                     try:
                         from ..memory import watchlist
-                        if watchlist.entries() and can_spend:
+                        if _should_reaudit(watchlist, can_spend):   # M2: only when actually due
                             self.queue.enqueue("reaudit", priority=4)
                     except Exception:
                         pass

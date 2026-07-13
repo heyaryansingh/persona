@@ -29,6 +29,41 @@ def _claim_id(subject: str, relation: str, obj: str, sign: str) -> str:
     return "clm_" + hashlib.sha1(key.encode()).hexdigest()[:12]
 
 
+_OPPOSED = {("+", "-"), ("-", "+")}
+
+
+def contradiction_surprise(claim: dict, beliefs) -> float:
+    """F1.6: how belief-OVERTURNING is this new claim? A claim whose sign OPPOSES a known belief on the
+    same subject→object is maximally surprising — its surprise is that belief's confidence (opposing a
+    0.9-confidence belief is a bigger deal than opposing a 0.3 one). A claim restating a known belief is
+    unsurprising (0.0). Pure + local + $0 — no encoder, no API logprobs (the Messages API exposes none;
+    embedding-novelty is the complementary signal, computed with the local encoder in the full fill)."""
+    subj = str(claim.get("subject", "")).strip().lower()
+    obj = str(claim.get("object", "")).strip().lower()
+    sign = claim.get("effect_sign")
+    best = 0.0
+    for b in (beliefs or []):
+        if (str(b.get("subject", "")).strip().lower() == subj
+                and str(b.get("object", "")).strip().lower() == obj
+                and (sign, b.get("effect_sign")) in _OPPOSED):
+            try:
+                best = max(best, min(1.0, max(0.0, float(b.get("confidence", 0.0)))))
+            except (TypeError, ValueError):
+                continue
+    return best
+
+
+def surprise_priority(surprise: float, base: int = 4, k: int = 3) -> int:
+    """Map a surprise score (0-1) to a queue priority — MORE surprising → LOWER number → leased sooner,
+    so the swarm investigates the most belief-overturning tension first. Reuses the existing priority
+    integer (queue.lease() orders by it); no lease-SQL change. Clamped to the queue's [0,6] band."""
+    try:
+        s = max(0.0, min(1.0, float(surprise)))
+    except (TypeError, ValueError):
+        s = 0.0
+    return max(0, min(6, round(base - s * k)))
+
+
 def _already_read(slug: str) -> bool:
     # keyed on meta.json: a source is "seen" once fetched+stored (before extraction), so a paper
     # submitted to a pending batch isn't re-scouted. Harvest still skips sources with no claims.jsonl.

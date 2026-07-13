@@ -1,0 +1,141 @@
+{
+  "experiment": "RQ-E05 real-retrieval evaluation",
+  "status": "SCAFFOLD \u2014 dry-run, no deployment claim, no scientific verdict",
+  "mode": "dry-run",
+  "gate": "paid stages require PERSONA_E05_LIVE=1 + human budget greenlight + live model probe",
+  "paid_calls": 0,
+  "cost_usd": 0.0,
+  "question_source": "wiring-fixture (NON-SCIENTIFIC scaffold)",
+  "n_items": 5,
+  "seeds": 200,
+  "base_seed": 0,
+  "top_k": 5,
+  "metrics": {
+    "retrieval_recall_at_k": {
+      "mean": 1.0,
+      "ci95_lo": 1.0,
+      "ci95_hi": 1.0,
+      "n": 4
+    },
+    "citation_precision": {
+      "mean": 0.8,
+      "ci95_lo": 0.6,
+      "ci95_hi": 1.0,
+      "n": 5
+    },
+    "citation_recall": {
+      "mean": 1.0,
+      "ci95_lo": 1.0,
+      "ci95_hi": 1.0,
+      "n": 5
+    },
+    "citation_f1": {
+      "mean": 0.8666666666666666,
+      "ci95_lo": 0.7333333333333332,
+      "ci95_hi": 1.0,
+      "n": 5
+    },
+    "primariness": {
+      "mean": 0.75,
+      "ci95_lo": 0.5,
+      "ci95_hi": 1.0,
+      "n": 4
+    },
+    "latency_ms": {
+      "mean": 0.027399975806474686,
+      "ci95_lo": 0.01833797723520547,
+      "ci95_hi": 0.039622452459298074,
+      "n": 5
+    },
+    "abstention_accuracy": {
+      "mean": 1.0,
+      "ci95_lo": 1.0,
+      "ci95_hi": 1.0,
+      "n": 5
+    },
+    "citations_resolvable_rate": {
+      "mean": 1.0,
+      "ci95_lo": 1.0,
+      "ci95_hi": 1.0,
+      "n": 5
+    },
+    "correctness": "gated"
+  },
+  "per_item": [
+    {
+      "qid": "fx1",
+      "retrieval_recall_at_k": 1.0,
+      "citation_precision": 0.5,
+      "citation_recall": 1.0,
+      "citation_f1": 0.6666666666666666,
+      "abstained": false,
+      "abstain_correct": true,
+      "primariness": 0.5,
+      "citations_resolvable": true,
+      "correctness": null,
+      "latency_ms": 0.05009991582483053,
+      "cost_usd": 0.0
+    },
+    {
+      "qid": "fx2",
+      "retrieval_recall_at_k": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0,
+      "citation_f1": 1.0,
+      "abstained": false,
+      "abstain_correct": true,
+      "primariness": 1.0,
+      "citations_resolvable": true,
+      "correctness": null,
+      "latency_ms": 0.02459995448589325,
+      "cost_usd": 0.0
+    },
+    {
+      "qid": "fx3",
+      "retrieval_recall_at_k": null,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0,
+      "citation_f1": 1.0,
+      "abstained": true,
+      "abstain_correct": true,
+      "primariness": null,
+      "citations_resolvable": true,
+      "correctness": null,
+      "latency_ms": 0.014499993994832039,
+      "cost_usd": 0.0
+    },
+    {
+      "qid": "fx4",
+      "retrieval_recall_at_k": 1.0,
+      "citation_precision": 0.5,
+      "citation_recall": 1.0,
+      "citation_f1": 0.6666666666666666,
+      "abstained": false,
+      "abstain_correct": true,
+      "primariness": 0.5,
+      "citations_resolvable": true,
+      "correctness": null,
+      "latency_ms": 0.024099950678646564,
+      "cost_usd": 0.0
+    },
+    {
+      "qid": "fx5",
+      "retrieval_recall_at_k": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0,
+      "citation_f1": 1.0,
+      "abstained": false,
+      "abstain_correct": true,
+      "primariness": 1.0,
+      "citations_resolvable": true,
+      "correctness": null,
+      "latency_ms": 0.023700064048171043,
+      "cost_usd": 0.0
+    }
+  ],
+  "caveats": [
+    "Correctness, reranking, exact-span verify, and answer synthesis are GATED paid stages (not executed in dry-run).",
+    "The bundled fixture is test scaffolding, not an evaluation gold set; real runs load a human-labeled question set via --questions.",
+    "No hybrid/dense/deployment claim is made; this file only proves the harness runs."
+  ]
+}

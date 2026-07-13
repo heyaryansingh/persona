@@ -1,0 +1,36 @@
+{
+  "experiment": "RQ-E06 evidence-tree / derivation-constrained synthesis",
+  "status": "SCAFFOLD \u2014 dry-run, no deployment claim, no scientific verdict",
+  "mode": "dry-run",
+  "gate": "H2 + real synthesis are PAID; require PERSONA_E06_LIVE=1 + human budget greenlight",
+  "paid_calls": 0,
+  "cost_usd": 0.0,
+  "case_source": "wiring-fixture (NON-SCIENTIFIC scaffold)",
+  "n_statements": 6,
+  "n_claims": 5,
+  "seeds": 200,
+  "base_seed": 0,
+  "h1_gate": 0.5,
+  "H1_unsupported_reduction": {
+    "mean": 1.0,
+    "ci95_lo": 1.0,
+    "ci95_hi": 1.0,
+    "n": 6
+  },
+  "H1_pass": true,
+  "H2_qualifier_recall_gain": "gated",
+  "detail": {
+    "unsupported_free": 0.6666666666666666,
+    "unsupported_derivation": 0.0,
+    "reduction": 1.0,
+    "kept_free": 6,
+    "kept_derivation": 2,
+    "drop_precision": 1.0,
+    "false_drops": 0
+  },
+  "caveats": [
+    "H1 is measured structurally over a wiring fixture (not gold) \u2014 no deployment claim.",
+    "H2 (qualifier-recall gain) and real LLM synthesis are gated paid stages, not run here.",
+    "false_drops must stay 0: the gate must never drop a genuinely-supported statement."
+  ]
+}

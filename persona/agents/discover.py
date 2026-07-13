@@ -18,6 +18,18 @@ from ..budget import budget
 from ..context import get_persona
 from ..events import log
 
+
+def _value_priority(value, base: int = 4) -> int:
+    """F1.7: map a discover idea's elicited `value` (0-10) to a queue priority — higher value → lower
+    number → leased sooner (queue.lease() orders by priority). A missing/invalid value returns the base
+    priority, so unvalued ideas keep today's behaviour. Clamped to the queue's [0,6] band."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return base
+    norm = max(0.0, min(1.0, v / 10.0))
+    return max(0, min(6, round(base - norm * 3)))
+
 _TOOL = {"name": "propose", "description": "Propose falsifiable hypotheses / research leads from "
          "the current knowledge, each grounded in evidence and routed to compute or a human.",
          "input_schema": {"type": "object", "properties": {"ideas": {"type": "array", "items": {
@@ -103,7 +115,10 @@ def discover(*, parent_id=None, max_investigations: int = 1) -> dict:
     q = p.queue()
     for i in ideas:
         if i.get("testable_computationally") and queued < max_investigations:
-            q.enqueue("investigate", priority=4, params={"question": i.get("hypothesis", i["title"])},
+            # F1.7: the model already elicits a `value` per idea — stop discarding it. Higher value →
+            # lower priority number → leased sooner, so the swarm works its highest-value leads first.
+            q.enqueue("investigate", priority=_value_priority(i.get("value")),
+                      params={"question": i.get("hypothesis", i["title"]), "value": i.get("value")},
                       parent_id=parent_id)
             queued += 1
         elif not i.get("testable_computationally") and i.get("human_action"):

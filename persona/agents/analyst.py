@@ -156,6 +156,38 @@ def _safe_join(project: Path, rel: str) -> Path | None:
     return p if project.resolve() in p.parents else None
 
 
+def _code_syntax_error(code: str) -> str | None:
+    """A9: return a human-readable error if generated analysis code won't compile, else None. Used to
+    reject syntactically-broken code BEFORE the sandbox runs it — a numeric result from code that never
+    ran cleanly is the worst kind of false science (it can flow into a belief). Fail loud, don't run it."""
+    try:
+        compile(code, "<generated>", "exec")
+        return None
+    except SyntaxError as se:
+        return f"SyntaxError: {se.msg} at line {se.lineno}"
+    except ValueError as ve:                     # e.g. source with null bytes
+        return f"invalid source: {str(ve)[:80]}"
+
+
+def _finalize_crashed(session: ResearchSession, exc: BaseException, parent_id) -> None:
+    """An unexpected model/FS exception must NEVER leave a session stuck at status 'running' — a
+    silent zombie masquerading as live work is the worst bug per the frozen contract. Mark it
+    'invalidated' (best-effort). Replay still verifies afterwards: verify_session only enforces the
+    required-evidence gate on 'completed', and finalize seals the event log + re-writes the crate.
+    A finalizer failure (e.g. the same disk-full that crashed the run) must not mask the original
+    error, so every step here is guarded. See .agent-orchestration T4.1."""
+    reason = f"crashed: {type(exc).__name__}: {str(exc)[:200]}"
+    try:
+        session.finalize("invalidated", reason=reason)
+    except Exception:
+        pass
+    try:
+        log().emit("thought", f"investigation crashed → session invalidated: {type(exc).__name__}",
+                   actor="analyst", parent_id=parent_id)
+    except Exception:
+        pass
+
+
 def investigate(question: str, *, parent_id=None, max_turns: int = 8,
                 evidence_claim_ids: list[str] | None = None) -> dict:
     if not config.have_key():
@@ -172,6 +204,20 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
                                         "required_claim_ids": evidence_claim_ids or [],
                                         "sandbox_image": sandbox.IMAGE,
                                         "sandbox_image_digest": sandbox.image_digest()})
+    # Every happy/salvage path below finalizes the session itself; this guard catches ANYTHING else
+    # (model API error, sandbox/FS failure, disk full mid-write) and invalidates the session so it is
+    # never left 'running'. Fail loud: the session is explicitly invalidated + logged + ok:False.
+    try:
+        return _run_investigation(question, client, session, parent_id=parent_id,
+                                  max_turns=max_turns, evidence_claim_ids=evidence_claim_ids)
+    except Exception as exc:
+        _finalize_crashed(session, exc, parent_id)
+        return {"ok": False, "reason": "crashed",
+                "error": f"{type(exc).__name__}: {str(exc)[:200]}", "session_id": session.id}
+
+
+def _run_investigation(question, client, session, *, parent_id, max_turns,
+                       evidence_claim_ids) -> dict:
     project = get_persona().paths.projects_dir / _slug(question) / session.id
     (project / "results").mkdir(parents=True, exist_ok=True)
     (project / "data").mkdir(parents=True, exist_ok=True)
@@ -223,6 +269,16 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
                 ch = _hl.sha256(code.encode()).hexdigest()[:12]
                 (project / "analysis").mkdir(exist_ok=True)
                 (project / "analysis" / f"step_{len(steps)}_{ch}.py").write_text(code, encoding="utf-8")
+                # A9: NEVER run syntactically-broken code — fail loud, hand the model the error so it
+                # fixes and resends, rather than the sandbox emitting a misleading result. (board A9)
+                syn = _code_syntax_error(code)
+                if syn:
+                    _logstep("run_python", f"REJECTED (did not compile) — {syn}")
+                    log().emit("tool", f"generated code rejected before run — {syn}", actor="analyst",
+                               parent_id=parent_id)
+                    return {"ok": False, "exit_code": -1, "stdout": "", "stderr": syn,
+                            "compile_error": True,
+                            "error": f"code did not compile — fix the SyntaxError and resend: {syn}"}
                 r = sandbox.run_python(code, project, timeout=90)
                 _logstep("run_python", f"code sha256:{ch} → exit {r['exit_code']}"
                          + (" (timeout)" if r.get("timeout") else ""))
@@ -328,8 +384,8 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
                 tool_started = perf_counter()
                 out = _tool(b.name, b.input)
                 tool_latency_ms = round((perf_counter() - tool_started) * 1000)
-                if b.name == "run_python":
-                    ran_code = True
+                if b.name == "run_python" and not out.get("compile_error"):
+                    ran_code = True          # A9: broken code that never ran doesn't count as "ran code"
                 evidence_ids = []
                 if b.name == "write_file" and isinstance(b.input.get("content"), str):
                     evidence_ids.append(session.store_text(

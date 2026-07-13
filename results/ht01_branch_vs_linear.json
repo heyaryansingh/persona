@@ -1,0 +1,61 @@
+{
+  "experiment": "RQ-HT01 branch vs linear (paid-calls-to-verdict on decomposable questions)",
+  "status": "SCAFFOLD \u2014 dry-run, no deployment claim, no verdict",
+  "mode": "dry-run",
+  "gate": "LIVE analyst runs require PERSONA_HT01_LIVE=1 + human budget greenlight + live probe",
+  "paid_calls": 0,
+  "cost_usd": 0.0,
+  "seeds": 200,
+  "n_questions": 40,
+  "max_retries": 3,
+  "real_plan_base": {
+    "linear": [
+      3,
+      1
+    ],
+    "branch_2sub": [
+      3,
+      2
+    ]
+  },
+  "linear_calls": {
+    "mean": 5.264875,
+    "ci95_lo": 4.874375,
+    "ci95_hi": 5.626250000000001
+  },
+  "branch_calls": {
+    "mean": 6.251375,
+    "ci95_lo": 5.8,
+    "ci95_hi": 6.675625
+  },
+  "linear_grounding": {
+    "mean": 0.8177500000000001,
+    "ci95_lo": 0.675,
+    "ci95_hi": 0.925
+  },
+  "branch_grounding": {
+    "mean": 0.9555625000000001,
+    "ci95_lo": 0.9125,
+    "ci95_hi": 0.9878125000000001
+  },
+  "calls_delta_branch_minus_linear": {
+    "mean": 0.9865,
+    "ci95_lo": 0.47437500000000055,
+    "ci95_hi": 1.5999999999999996
+  },
+  "grounding_delta_branch_minus_linear": {
+    "mean": 0.1378125,
+    "ci95_lo": 0.012187499999999964,
+    "ci95_hi": 0.28781250000000014
+  },
+  "go_no_go": {
+    "branch_cheaper_or_equal": false,
+    "grounding_not_worse_by_2pp": true,
+    "PASS": false
+  },
+  "caveats": [
+    "Simulation over the REAL plan step-counts with a SEEDED retry model \u2014 not live evidence.",
+    "The retry model is the load-bearing assumption; the live arm (gated) measures actual calls.",
+    "No superiority/deployment claim from dry-run; go/no-go here is a design smoke test only."
+  ]
+}
