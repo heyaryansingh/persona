@@ -12,6 +12,39 @@ from . import communities
 from .synthesizer import _slug
 
 
+def _handoff_for_contradiction(cc: dict) -> str:
+    """FC-2: a live sign-contradiction isn't only displayed — it's filed as a human-handoff dossier
+    so it lands in the inbox queue for judgment. Built DETERMINISTICALLY from the contradiction's
+    existing fields (no model, no network); file_handoff's content-hash id dedups identical dossiers.
+    Best-effort — a schema mismatch must never break the field map render."""
+    subj, obj = cc["subject"], cc["object"]
+    pos, neg = cc.get("pos", 0), cc.get("neg", 0)
+    total = (pos + neg) or 1
+    dossier = {
+        "decision_requested": f"Does {subj} increase or decrease {obj}?",
+        "why_unresolvable": f"{pos} independent source(s) report an increase and {neg} report a "
+                            f"decrease — a same-relation sign conflict the swarm can't settle by count.",
+        "disagreeing": [
+            {"claim_id": cc.get("pos_claim", ""), "span": f"{subj} increases {obj}"},
+            {"claim_id": cc.get("neg_claim", ""), "span": f"{subj} decreases {obj}"},
+        ],
+        "conflict_type": "semantic",  # opposite signs on the same relation
+        "cheapest_test": {"action": f"human review of the opposing spans on {subj} -> {obj}",
+                          "cost_tier": "human", "dataset": ""},
+        "expected_updates": [{"outcome": "resolved",
+                              "belief_change": "keep the supported sign, retract the other"}],
+        # PLACEHOLDER heuristic: uncertainty = balance of opposing sources (1.0 = evenly split / most
+        # contested, -> 0 as one side dominates). Not validated; a defensible split metric would replace it.
+        "uncertainty": round(2 * min(pos, neg) / total, 3),
+        "authority_boundary": "human anchors any sign reversal; Persona cannot run the wet-lab test",
+    }
+    try:
+        from .. import inbox
+        return inbox.file_handoff("field_contradiction", dossier)
+    except Exception:
+        return ""
+
+
 def _open_questions(note_path) -> list:
     if not note_path.exists():
         return []
@@ -39,6 +72,11 @@ def build(kg, notes_dir) -> dict:
                  "neg": cc["neg_sources"], "pos_claim": cc["pos_claim"], "neg_claim": cc["neg_claim"]}
                 for cc in contra if (cc["subject"], cc["object"]) in
                 {(cl["subject"], cl["object"]) for cl in claims}]
+        # FC-2: don't just show the contradiction — file it for human judgment. Deterministic + deduped
+        # (content-hash id), so re-rendering the map doesn't create new asks. ponytail: appends one line
+        # per build; move to file-if-new if the jsonl grows unwieldy.
+        for cc in subc:
+            cc["handoff_id"] = _handoff_for_contradiction(cc)
         slug = _slug(ents)
         note_p = notes_dir / f"{slug}.md"
         title = slug

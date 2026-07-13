@@ -8,6 +8,7 @@ Claim), and embedded for retrieval. This is durable, cited UNDERSTANDING — not
 """
 from __future__ import annotations
 
+import difflib
 import re
 from datetime import datetime, timezone
 
@@ -76,6 +77,29 @@ def demo() -> None:  # ponytail: one runnable check on the branchy gate
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def note_diff(old: str, new: str) -> str:
+    """Deterministic line-level diff between two synthesis revisions (stdlib difflib, no model/network).
+    Returns a unified diff of the changed lines (file-header lines dropped); '' when nothing changed."""
+    old_lines = (old or "").splitlines()
+    new_lines = (new or "").splitlines()
+    diff = difflib.unified_diff(old_lines, new_lines, lineterm="", n=1)
+    return "\n".join(l for l in diff if not l.startswith(("---", "+++")))
+
+
+def record_revision(notes_dir, slug: str, title: str, old: str, new: str) -> str:
+    """When a synthesis note is rewritten, append what changed to a `<slug>.history.md` sidecar so the
+    note's evolution is auditable. No-op (returns '') when the body is unchanged. Deterministic diff;
+    only the revision timestamp is wall-clock."""
+    diff = note_diff(old, new)
+    if not diff.strip():
+        return ""
+    hist = notes_dir / f"{slug}.history.md"
+    hist.parent.mkdir(parents=True, exist_ok=True)
+    with hist.open("a", encoding="utf-8") as fh:
+        fh.write(f"## revision {_now()} — {title}\n\n```diff\n{diff}\n```\n\n")
+    return diff
 
 
 def synthesize(community: dict, *, parent_id=None) -> dict:
@@ -168,7 +192,11 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
           + ("## contradictions\n" + "\n".join(f"- {q}" for q in contra) + "\n\n" if contra else "")
           + "## sources\n" + sources_md + "\n")
     p.paths.notes_dir.mkdir(parents=True, exist_ok=True)
-    (p.paths.notes_dir / f"{slug}.md").write_text(md, encoding="utf-8")
+    note_path = p.paths.notes_dir / f"{slug}.md"
+    prev = note_path.read_text(encoding="utf-8") if note_path.exists() else None
+    note_path.write_text(md, encoding="utf-8")
+    if prev is not None:  # a revision — log what changed to the .history sidecar
+        record_revision(p.paths.notes_dir, slug, title, prev, md)
     kg.add_synthesis_note(slug, title, community["entities"], [c["claim_id"] for c in claims])
     try:
         p.vectors.upsert(f"note:{slug}", f"{title}\n{body}", {"title": title, "slug": slug, "kind": "note"})
