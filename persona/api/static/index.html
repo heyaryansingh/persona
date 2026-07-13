@@ -895,7 +895,9 @@
    ========================================================================= */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>(s==null?"":String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const ftime=iso=>{try{return new Date(iso).toLocaleTimeString([],{hour12:false})}catch{return""}};
+const ftime=iso=>{try{const d=new Date(iso);return isNaN(d)?"":d.toLocaleTimeString([],{hour12:false})}catch{return""}};
+// A7: a missing/invalid/epoch timestamp renders "n.d.", never 1970-01-01.
+const fdate=iso=>{if(!iso)return"n.d.";const d=new Date(iso);return (isNaN(d)||d.getTime()<=0)?"n.d.":d.toISOString().slice(0,10);};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let PID=null, es=null, timers=[], CURSURF='stream', SOUND=false;
 const A=p=>`/api/persona/${PID}${p}`;
@@ -1185,8 +1187,8 @@ async function refreshSelf(){try{const s=await (await fetch(A("/self"))).json();
     if(t) sentences.push(t);
   });
   $("#identity").textContent=sentences[sentences.length-1]||"A researcher, newly born, still forming its stance.";
-  if(born){const d=new Date(born),days=Math.max(0,Math.floor((Date.now()-d)/86400000));
-    $("#bornline").textContent=`born ${born.slice(0,10)} · ${days===0?'less than a day':days+' day'+(days>1?'s':'')} old`;}
+  if(born){const d=new Date(born),valid=!isNaN(d)&&d.getTime()>0,days=valid?Math.max(0,Math.floor((Date.now()-d)/86400000)):0;
+    $("#bornline").textContent=valid?`born ${fdate(born)} · ${days===0?'less than a day':days+' day'+(days>1?'s':'')} old`:"born n.d.";}
   else $("#bornline").textContent="";
   const ints=(s.interests||[]);
   const mx=Math.max(1,...ints.map(([,w])=>w||0));
