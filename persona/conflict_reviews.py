@@ -274,6 +274,24 @@ def append_conflict_review(
     return record
 
 
+def route_true_refutation(record: dict):
+    """F2.12: a review that lands a **true_refutation** verdict re-opens the question as fresh grounded
+    work — routed through the FC-1 seam `Investigation.open_from_conflict`, pinning the exact colliding
+    claims. This opens WORK, never a belief: the human review is what judged it a refutation; this only
+    launches the follow-up investigation (and any anchor still stays human-gated). Returns the new
+    investigation's slug, or None if the verdict isn't a refutation or the engine is unavailable.
+    Import-guarded + best-effort so the append-only ledger never hard-depends on the research engine."""
+    if str((record or {}).get("verdict")) != "true_refutation":
+        return None
+    try:
+        from .research.investigation import Investigation
+        inv = Investigation.open_from_conflict(record.get("conflict_id"),
+                                               evidence_claim_ids=record.get("claim_ids"))
+        return getattr(inv, "slug", None)
+    except Exception:
+        return None
+
+
 def summarize_conflict_reviews(ops_dir: Path | str) -> dict[str, dict]:
     """Return the latest review and total review count for every conflict."""
     summaries: dict[str, dict] = {}
