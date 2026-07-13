@@ -408,18 +408,24 @@ def investigate(question: str, *, parent_id=None, max_turns: int = 8,
         f"({' '.join(f'[{e}]' for e in item['evidence_ids']) or '[no evidence — hypothesis]'})"
         for item in conclusions]
     report = rbanner + "\n\n" + report.rstrip() + "\n\n" + "\n".join(conclusion_lines) + "\n"
-    # THE VERIFIED LOOP: an evidence-backed (SUPPORTED) computational conclusion is a TESTED result.
+    # THE VERIFIED LOOP: an evidence-backed (SUPPORTED) computational conclusion is a TESTED result —
+    # recorded WITH the source papers the investigation rests on, so it is traceable to the literature.
     try:
         from ..memory import verified as vled
+        papers = []
+        for c in evidence:                             # the gathered evidence packet's source papers
+            for s in (c.get("sources") or []):
+                cite = (s.get("title") or s.get("slug") or "").strip()
+                if cite:
+                    papers.append(cite + (f" (doi:{s['doi']})" if s.get("doi") else ""))
+        papers = list(dict.fromkeys(papers))[:6]
         for item in conclusions:
             eids = item.get("evidence_ids") or []
             claim = str(item.get("claim", "")).strip()
-            # only a SUPPORTED conclusion backed by a real COMPUTATION artifact (run_python output/data)
-            # is a TESTED result — a literature-only 'claim:' citation is READ/INFERRED, not tested. And a
-            # question is never a verified fact. This stops literature claims being re-badged as computation.
             has_computation = any(str(e).startswith("artifact:") for e in eids)
             if item.get("status") == "SUPPORTED" and has_computation and not claim.endswith("?"):
-                vled.record(claim, "analyst", "verified", evidence=",".join(eids[:3]), source="investigate")
+                vled.record(claim, "analyst", "verified", evidence=",".join(eids[:3]),
+                            source="investigate", papers=papers)
     except Exception:
         pass
     draft = get_persona().paths.drafts_dir / f"{_slug(question)}-{session.id[-8:]}.md"

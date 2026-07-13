@@ -84,6 +84,36 @@ def _prune_refs(md: str) -> str:
     return head + m.group(1) + "\n" + "\n".join(kept).strip() + "\n"
 
 
+_PLACEHOLDER_CAP = re.compile(
+    r"structure and objects of the problem|key quantities?\s*/?\s*distribution|"
+    r"a labeled (?:concept )?diagram of the core|a quantitative chart", re.I)
+
+
+def _fix_references(md: str, sources: list) -> str:
+    """Guarantee clean citations: strip the model's own (often canned/bracket-style/orphaned) reference
+    list, drop any inline [n] that has no source, and append the canonical DOI-carrying list of ONLY the
+    cited sources — so every reference is cited and every citation resolves to a real paper + DOI."""
+    md = re.sub(r"\n##\s*references\b.*\Z", "\n", md, flags=re.I | re.S)   # remove model's ref section
+    cited = {int(n) for n in re.findall(r"\[(\d+)\]", md)}
+    valid = {n for n in cited if 1 <= n <= len(sources)}
+    if not valid or not sources:
+        return re.sub(r"\[(\d+)\]", "", md).rstrip() + "\n"                 # no resolvable cites → drop them
+    md = re.sub(r"\[(\d+)\]", lambda m: m.group(0) if int(m.group(1)) in valid else "", md)  # kill danglers
+    lines = "\n".join(f"{i}. {t}" for i, t in enumerate(sources, 1) if i in valid)
+    return md.rstrip() + "\n\n## References\n\n" + lines + "\n"
+
+
+def _fix_captions(md: str, capmap: dict) -> str:
+    """Replace shipped PLACEHOLDER figure captions ('structure and objects of the problem') with the
+    figure's real title, so a paper never ships a generic/framing caption."""
+    def repl(m):
+        num, cap = m.group(1), m.group(2)
+        if _PLACEHOLDER_CAP.search(cap) or len(cap.strip()) < 4:
+            return f"![Figure {num}. {capmap.get(int(num)) or 'illustration'}](figure{num}.png)"
+        return m.group(0)
+    return re.sub(r"!\[Figure (\d+)\.?\s*([^\]]*)\]\(figure\1\.png\)", repl, md)
+
+
 def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     if not config.have_key() or not budget().can_spend():
         return {"ok": False, "reason": "no-key-or-budget"}
@@ -208,11 +238,11 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
         block = "\n\n" + "\n\n".join(f"![Figure {i}. {caps.get(i) or 'illustration'}](figure{i}.png)" for i in missing) + "\n\n"
         anchor = re.search(r"^##\s*(discussion|reasoning chain|references)", md, re.I | re.M)
         md = (md[:anchor.start()] + block + md[anchor.start():]) if anchor else (md.rstrip() + block)
-    # Append the canonical References list ONLY when the paper actually cites inline — otherwise the
-    # list is orphaned (references with nothing citing them), which reads as unprofessional.
-    if sources and inline and not re.search(r"^##\s*references", md, re.I | re.M):
-        md = md.rstrip() + "\n\n" + references_md + "\n"
-    md = _prune_refs(md)                              # drop any references nothing cites (no orphans)
+    # Citations: canonicalize to the real DOI-carrying sources, drop danglers, keep only cited (no
+    # orphans, nothing dangling). Then strip leaked HTML tags and fix placeholder figure captions.
+    md = _fix_references(md, sources)
+    md = re.sub(r"</?(?:i|b|em|strong|sup|sub|mml:[a-z]+)\b[^>]*>", "", md)   # leaked <i>…</i> from titles
+    md = _fix_captions(md, dict(figinfo))
     hm = re.search(r"^#\s+(.+)$", md, re.M)
     title = (hm.group(1).strip() if hm else "") or topic
     # SUBSTANCE FLOOR: never ship a bodyless / references-only stub as a paper.

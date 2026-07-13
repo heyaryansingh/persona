@@ -103,8 +103,9 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
         claim_lines.append(f"- {c['subject']} {arrow.get(c['effect_sign'],'~')} {c['object']} "
                            f"({c['independent_sources']} labs) {['['+str(n)+']' for n in cites]}"
                            + (f'  quote: "{q[:180]}"' if q else ""))
-    sources_md = "\n".join(f"[{src_num[s['slug']]}] {s.get('title') or s['slug']} — "
-                           f"{s.get('lab','')}" + (f" (doi:{s['doi']})" if s.get('doi') else "")
+    _st = lambda x: re.sub(r"<[^>]+>", "", str(x or "")).strip()   # strip leaked <i>/<b>… from titles
+    sources_md = "\n".join(f"[{src_num[s['slug']]}] {_st(s.get('title')) or s['slug']} — "
+                           f"{_st(s.get('lab'))}" + (f" (doi:{s['doi']})" if s.get('doi') else "")
                            for s in src_list)
     prompt = (f"Subtopic entities: {', '.join(community['entities'][:12])}\n\n"
               f"CLAIMS (with independent-lab counts, [n]=source, and a quote):\n"
@@ -135,13 +136,21 @@ def synthesize(community: dict, *, parent_id=None) -> dict:
         log().emit("control", f"skipped an empty synthesis for {slug} (no substance, {len(claims)} claims)",
                    actor="synthesizer", parent_id=parent_id, slug=slug)
         return {"ok": False, "reason": "empty-synthesis"}
+    def _clean(s):
+        s = re.sub(r"</?item>", "", str(s))       # leaked XML wrapper the model sometimes emits
+        s = re.sub(r"<[^>]+>", "", s)               # any stray tag (<i>, <b>, …)
+        return s.strip()
+
     def _aslist(v):
-        # the model sometimes returns a STRING (or a leaked tool-param blob) where a list is expected;
-        # iterating that with `for q in v` serialized it ONE CHARACTER PER BULLET (600+ junk bullets).
+        # the model sometimes returns a STRING (or a "<item>a</item><item>b</item>" blob) where a list
+        # is expected; iterating that char-by-char was the single-letter-bullet bug. Split on item tags
+        # (NOT characters), strip tags, drop empties/1-char noise.
         if isinstance(v, str):
-            return [v.strip()] if v.strip() else []
+            parts = [_clean(p) for p in re.split(r"</?item>", v)]
+            items = [p for p in parts if len(p) > 1]
+            return items if items else ([_clean(v)] if len(_clean(v)) > 1 else [])
         if isinstance(v, list):
-            return [str(x).strip() for x in v if str(x).strip()]
+            return [_clean(x) for x in v if len(_clean(x)) > 1]
         return []
     oq = _aslist(out.get("open_questions"))
     contra = _aslist(out.get("contradictions"))

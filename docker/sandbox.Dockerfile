@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # exact/arbitrary-precision arithmetic) — not just numeric estimation; networkx for graph reasoning.
 RUN pip install --no-cache-dir \
       numpy pandas scipy scikit-learn matplotlib statsmodels sympy mpmath networkx
+# CPU PyTorch for the code editor / ML experiments (large; separate layer + index so the cache reuses it)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 # non-root user for defense in depth
 RUN useradd -m -u 10001 analyst
 USER analyst

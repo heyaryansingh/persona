@@ -47,16 +47,18 @@ def entries() -> list[dict]:
 
 
 def record(statement: str, method: str, status: str, *, evidence: str = "", source: str = "",
-           checks: int | None = None) -> dict:
+           checks: int | None = None, papers: list | None = None) -> dict:
     """Append (or replace) a tested result. method: lean|sympy|analyst. status: verified|weakened|refuted.
-    Dedup by (statement, method) so re-proving the same thing updates in place, not duplicates."""
+    `papers` = the source papers ("Title (doi:…)") this result rests on, so every verified entry is
+    traceable to the literature. Dedup by (statement, method) so re-proving updates in place."""
     d = _dir()
     d.mkdir(parents=True, exist_ok=True)
     key = _key(statement, method)
     ents = [e for e in entries() if e.get("key") != key]
     entry = {"key": key, "statement": statement.strip()[:400], "method": method, "status": status,
              "verified": status == "verified", "evidence": (evidence or "")[:200], "source": source,
-             "checks": checks, "at": _now(), "revisits": 0}
+             "checks": checks, "papers": [str(x)[:160] for x in (papers or [])][:6],
+             "at": _now(), "revisits": 0}
     ents.append(entry)
     _write(ents)
     return entry
@@ -102,8 +104,10 @@ def _write(ents: list[dict]) -> None:
         tail = (f" · {e['checks']} checks" if e.get("checks") else "") \
             + (f" · re-tested {e['revisits']}×" if e.get("revisits") else "") \
             + (f" · {e['source']}" if e.get("source") else "")
+        papers = e.get("papers") or []
+        src_line = ("  \n  ↳ grounded in: " + "; ".join(papers[:4])) if papers else ""
         lines.append(f"- {_SYM.get(e['status'], '·')} **{e['statement']}**  \n"
-                     f"  _{meth} · {e['status']}{tail}_"
+                     f"  _{meth} · {e['status']}{tail}_" + src_line
                      + (f"  \n  ↳ {e['revisit_note']}" if e.get("revisit_note") else ""))
     (d / "verified.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

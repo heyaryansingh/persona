@@ -1172,10 +1172,16 @@ async function openDoc(path,title){
   $("#lvtitle").textContent=title||path; $("#lvstat").textContent="compiling document…"; $("#lvlog").classList.remove("show");
   $("#lvsrc").value=""; lvSetPdf(null); $("#lvzip").removeAttribute("href");
   try{
-    const d=await (await fetch(A("/document?path="+encodeURIComponent(path)))).json();
-    LV.format=d.format||"md"; LV.title=d.title||title||path; $("#lvsrc").value=d.source||"";
-    if(d.ok&&d.rel_pdf){ lvSetPdf(d.rel_pdf); $("#lvdl").href=A("/file?path="+encodeURIComponent(d.rel_pdf)); $("#lvstat").textContent=LV.format+" · compiled — edit and recompile"; }
-    else { $("#lvstat").textContent="couldn't compile — showing source"; if(d.log){$("#lvlog").textContent=d.log;$("#lvlog").classList.add("show");} $("#lvdl").removeAttribute("href"); }
+    const res=await fetch(A("/document?path="+encodeURIComponent(path)));
+    const d=res.ok?await res.json():{};
+    if(res.ok && d.source!==undefined){
+      LV.format=d.format||"md"; LV.title=d.title||title||path; $("#lvsrc").value=d.source||"";
+      if(d.ok&&d.rel_pdf){ lvSetPdf(d.rel_pdf); $("#lvdl").href=A("/file?path="+encodeURIComponent(d.rel_pdf)); $("#lvstat").textContent=LV.format+" · compiled — edit and recompile"; }
+      else { $("#lvstat").textContent="couldn't compile — showing source"; if(d.log){$("#lvlog").textContent=d.log;$("#lvlog").classList.add("show");} $("#lvdl").removeAttribute("href"); }
+    } else {
+      // not a compilable document (image/html/csv/binary/missing) — show it raw, never blank
+      $("#latexview").classList.remove("on"); setSurface('brain'); setTimeout(()=>openDeliverableFile(encodeURIComponent(path.replace(/^deliverables\//,""))),300);
+    }
   }catch(e){ $("#lvstat").textContent="could not open document"; }
 }
 async function openLatex(deliverable){
@@ -1184,8 +1190,12 @@ async function openLatex(deliverable){
   $("#lvstat").textContent="loading source…"; $("#lvlog").classList.remove("show");
   LV.isnew=false; LV.deliverable=deliverable; LV.rel_tex=null;
   try{
-    const d=await (await fetch(A("/deliverable/source?deliverable="+encodeURIComponent(deliverable)))).json();
-    if(!d.ok){ $("#lvsrc").value=""; $("#lvstat").textContent="no editable source found for this PDF"; lvSetPdf(null); return; }
+    const res=await fetch(A("/deliverable/source?deliverable="+encodeURIComponent(deliverable)));
+    const d=res.ok?await res.json():{};
+    if(!d.ok){  // no editable .tex back-reference — still SHOW the PDF (never a blank editor)
+      $("#lvsrc").value=""; $("#lvstat").textContent="PDF (no editable source for this file)";
+      lvSetPdf("deliverables/"+deliverable); $("#lvdl").href=A("/file?path="+encodeURIComponent("deliverables/"+deliverable)); return;
+    }
     LV.rel_tex=d.rel_tex; LV.format="tex"; $("#lvsrc").value=d.tex||""; lvSetPdf(d.rel_pdf);
     $("#lvdl").href=A("/file?path="+encodeURIComponent(d.rel_pdf));
     $("#lvzip").href=A("/deliverable/bundle?deliverable="+encodeURIComponent(deliverable));

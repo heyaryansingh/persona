@@ -47,6 +47,9 @@ _UNI = {
     "Θ": r"$\Theta$", "Λ": r"$\Lambda$", "Π": r"$\Pi$", "Σ": r"$\Sigma$", "Φ": r"$\Phi$",
     "Ψ": r"$\Psi$", "Ω": r"$\Omega$", "°": r"$^\circ$", "²": r"$^2$", "³": r"$^3$", "½": r"$\frac12$",
     "–": "--", "—": "---", "“": "``", "”": "''", "‘": "`", "’": "'", "→": r"$\to$",
+    "✓": r"\checkmark{}", "✗": r"$\times$", "⊕": r"$\oplus$", "⊗": r"$\otimes$", "⊙": r"$\odot$",
+    "∓": r"$\mp$", "≅": r"$\cong$", "≜": r"$\triangleq$", "⟨": r"$\langle$", "⟩": r"$\rangle$",
+    "†": r"$\dagger$", "‖": r"$\|$", "⌀": r"$\varnothing$", "★": r"$\star$", "•": r"$\bullet$",
 }
 _UNI_RE = re.compile("|".join(re.escape(k) for k in _UNI))
 
@@ -203,6 +206,12 @@ def compile_source(source: str, fmt: str, project: Path, *, title: str = "") -> 
     else:
         body = md_to_latex(sanitize_markdown(source), title)
         tex = _TEMPLATE % {"title": _scrub(_esc(title or "Document")), "body": body}
+    # FINAL GUARANTEE (no dead PDFs): any non-ASCII math glyph that survived into a verbatim code block
+    # or a raw .tex source — ≡ ≈ Ω ⊕ ✓ … — is undeclared under utf8 inputenc and aborts pdflatex
+    # ("not set up for use with LaTeX → no output PDF"). Prose is already mapped to ASCII macros
+    # upstream; here we strip anything ≥ U+0300 across the WHOLE document. Precomposed Latin accents
+    # (é ő ü, < U+0300) are preserved and rendered by inputenc+fontenc.
+    tex = "".join(c if ord(c) < 0x0300 else " " for c in tex)
     (project / "main.tex").write_text(tex, encoding="utf-8")
     r = sandbox.compile_latex(project, "main.tex")
     return r
