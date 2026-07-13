@@ -13,6 +13,7 @@ Only re-auditable targets are tracked: a read source (`slug`, text on disk) or a
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 
 from ..context import get_persona
@@ -68,12 +69,35 @@ def add(title: str, likelihood: float, band: str, *, slug: str = "", upload: str
     return entry
 
 
-def due(min_history: int = 1) -> dict | None:
-    """The least-recently-audited watchlist item — the next one to re-check. Oldest last_audit first."""
+def due(min_age_hours: float = 12.0) -> dict | None:
+    """The least-recently-audited watchlist item — the next one to re-check — but ONLY if its
+    last_audit is older than `min_age_hours`; else None. This staleness floor stops the reaudit
+    busy-loop (supervisor gates enqueue on `due() is not None`) from burning the daily budget
+    re-checking papers nothing has changed for. Env PERSONA_REAUDIT_MIN_HOURS overrides the default;
+    pass min_age_hours=0 to force (manual/API re-audit)."""
+    env = os.environ.get("PERSONA_REAUDIT_MIN_HOURS")
+    if env:
+        try:
+            min_age_hours = float(env)
+        except ValueError:
+            pass
     ents = entries()
     if not ents:
         return None
-    return sorted(ents, key=lambda e: (e.get("last_audit", ""), e.get("reaudits", 0)))[0]
+    oldest = sorted(ents, key=lambda e: (e.get("last_audit", ""), e.get("reaudits", 0)))[0]
+    if min_age_hours > 0:
+        age_h = (datetime.now(timezone.utc) - _parse(oldest.get("last_audit", ""))).total_seconds() / 3600
+        if age_h < min_age_hours:
+            return None
+    return oldest
+
+
+def _parse(ts: str) -> datetime:
+    """Parse an ISO last_audit; missing/garbage => epoch (treated as maximally stale => due)."""
+    try:
+        return datetime.fromisoformat(ts)
+    except (ValueError, TypeError):
+        return datetime.fromtimestamp(0, timezone.utc)
 
 
 def record_reaudit(key: str, likelihood: float, band: str, *, support: int = 0, contradict: int = 0,

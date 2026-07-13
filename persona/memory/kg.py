@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from datetime import datetime, timezone
 
@@ -28,6 +29,30 @@ from .. import config
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _clean_confidence(value) -> float:
+    """Belief-store write boundary: confidence MUST be a finite number in [0.0, 1.0].
+    Non-numeric/NaN/inf raises ValueError (fail loud — a garbage number silently entering the
+    belief-state is CLAUDE.md's 'worst possible bug'). Out-of-range values clamp to [0,1]:
+    the live KG had confidence>1 that broke value_queue VoI (A10/L3-CONF)."""
+    try:
+        c = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"confidence must be numeric, got {value!r}")
+    if math.isnan(c) or math.isinf(c):
+        raise ValueError(f"confidence must be finite, got {value!r}")
+    return max(0.0, min(1.0, c))
+
+
+def _clean_year(value):
+    """Write boundary: a missing/invalid year is None (omitted), never 0 — a stored 0 renders
+    as 1970 downstream (A7). Returns an int year only for a plausible value, else None."""
+    try:
+        y = int(value)
+    except (TypeError, ValueError):
+        return None
+    return y if 1000 <= y <= 3000 else None
 
 
 def pair_key(subject: str, obj: str) -> str:
@@ -41,6 +66,25 @@ def lab_of(affiliations: list, slug: str) -> str:
     if affiliations:
         return "lab:" + " ".join(str(affiliations[0]).lower().split())
     return "src:" + slug
+
+
+# FC-3 constants ---------------------------------------------------------------
+# A belief is "confirmed" once a human or a run has signed off (or it is anchored). Everything
+# still on cheap READ/INFERRED literature evidence is never-confirmed and, past STALE_DAYS, stale.
+CONFIRMED_PROVENANCE = ("HUMAN_CONFIRMED", "TESTED")
+STALE_DAYS = 180  # ponytail: fixed staleness horizon; promote to a param if a surface needs to tune it
+DEP_REL_TYPES = frozenset({"supports", "contradicts", "presupposes", "derives_from",
+                           "generalizes", "operationalizes", "qualifies", "extends"})
+
+
+def _age_days(iso: str, now: datetime) -> int | None:
+    try:
+        t = datetime.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return int((now - t).total_seconds() // 86400)
 
 
 class KG:
@@ -81,7 +125,7 @@ class KG:
             "ON CREATE SET s.title=$title, s.year=$year, s.lab=$lab, s.affiliations=$affs, "
             "s.doi=$doi, s.url=$url",
             {"slug": meta["slug"], "title": (meta.get("title") or "")[:200],
-             "year": meta.get("year") or 0,
+             "year": _clean_year(meta.get("year")),
              "lab": lab_of(meta.get("affiliations") or [], meta["slug"]),
              "affs": meta.get("affiliations") or [],
              "doi": meta.get("doi") or "", "url": meta.get("url") or ""})
@@ -100,7 +144,7 @@ class KG:
         pk = pair_key(subj, obj)
         params = {"cid": cid, "subj": subj, "obj": obj,
                   "rel": rec.get("relation", ""), "sign": rec.get("effect_sign", "na"),
-                  "pk": pk, "conf": float(rec.get("confidence", 0.6) or 0.6),
+                  "pk": pk, "conf": _clean_confidence(rec.get("confidence", 0.6) or 0.6),
                   "prov": rec.get("provenance", "READ"), "now": _now(), "slug": source_slug,
                   "quote": (rec.get("quote", "") or "")[:600]}
         self._q(
@@ -280,6 +324,86 @@ class KG:
         cols = ["claim_id", "subject", "relation", "object", "effect_sign", "confidence",
                 "independent_sources", "sources"]
         return [dict(zip(cols, row)) for row in r.result_set]
+
+    # ------------------------------------------------- FC-3: provenance audit + dependency graph
+    def provenance_breakdown(self) -> dict:
+        """Audit the live belief store by provenance state: a count per state, the never-confirmed
+        claims (still on cheap READ/INFERRED evidence and unanchored), and the stale ones
+        (never-confirmed AND ingested > STALE_DAYS ago). Retired claims (valid_to set) are excluded."""
+        rows = self._q(
+            "MATCH (c:Claim) WHERE c.valid_to IS NULL "
+            "RETURN c.claim_id, c.provenance, c.anchored, c.ingest_time").result_set
+        counts = {"READ": 0, "INFERRED": 0, "HUMAN_CONFIRMED": 0, "TESTED": 0}
+        never, stale = [], []
+        now = datetime.now(timezone.utc)
+        for cid, prov, anchored, ingest in rows:
+            if prov in counts:
+                counts[prov] += 1
+            confirmed = (prov in CONFIRMED_PROVENANCE) or bool(anchored)
+            if not confirmed:
+                never.append(cid)
+                age = _age_days(ingest, now)
+                if age is not None and age > STALE_DAYS:
+                    stale.append({"claim_id": cid, "age_days": age})
+        return {**counts, "never_confirmed": never, "stale": stale}
+
+    def add_dependency_edge(self, src_claim_id: str, dst_claim_id: str, rel_type: str,
+                            confidence: float, span: str) -> None:
+        """Record a typed dependency between two claims (the claim-dependency graph). rel_type must
+        be one of DEP_REL_TYPES; raises ValueError otherwise. Keyed on rel_type so distinct relation
+        types between the same pair are distinct edges; re-adding one updates confidence/span."""
+        if rel_type not in DEP_REL_TYPES:
+            raise ValueError(f"invalid rel_type {rel_type!r}; must be one of {sorted(DEP_REL_TYPES)}")
+        if src_claim_id == dst_claim_id:
+            return  # no self-dependency: a self-loop inflates load_bearing in-degree (S2 L-DEP-1)
+        self._q(
+            "MATCH (a:Claim {claim_id:$src}), (b:Claim {claim_id:$dst}) "
+            "MERGE (a)-[d:DEPENDS_ON {rel_type:$rt}]->(b) "
+            "SET d.confidence=$conf, d.span=$span",
+            {"src": src_claim_id, "dst": dst_claim_id, "rt": rel_type,
+             "conf": float(confidence), "span": (span or "")[:600]})
+
+    def dependency_edges(self, topic: str = None) -> list:
+        """All dependency edges; if topic is given, only those touching a claim whose subject or
+        object contains it (case-insensitive)."""
+        if topic:
+            t = " ".join(str(topic).lower().split())
+            rows = self._q(
+                "MATCH (a:Claim)-[d:DEPENDS_ON]->(b:Claim) "
+                "WHERE toLower(a.subject) CONTAINS $t OR toLower(a.object) CONTAINS $t "
+                "   OR toLower(b.subject) CONTAINS $t OR toLower(b.object) CONTAINS $t "
+                "RETURN a.claim_id, b.claim_id, d.rel_type, d.confidence, d.span", {"t": t}).result_set
+        else:
+            rows = self._q(
+                "MATCH (a:Claim)-[d:DEPENDS_ON]->(b:Claim) "
+                "RETURN a.claim_id, b.claim_id, d.rel_type, d.confidence, d.span").result_set
+        cols = ["src", "dst", "rel_type", "confidence", "span"]
+        return [dict(zip(cols, r)) for r in rows]
+
+    def citation_support_ratio(self, claim_id: str) -> dict:
+        """scite-style citation intent tally, grounded in the store: over all LIVE claims on the same
+        (subject,object) pair, count supporting source-citations (same effect_sign as the claim),
+        contrasting (opposite +/- sign) and mentioning (neutral 0/na). ratio = support/(support+contrast)."""
+        r = self._q("MATCH (c:Claim {claim_id:$cid}) RETURN c.pair_key, c.effect_sign",
+                    {"cid": claim_id}).result_set
+        if not r:
+            return {"support": 0, "contrast": 0, "mention": 0, "ratio": 0.0}
+        pk, sign = r[0][0], r[0][1]
+        rows = self._q(
+            "MATCH (c:Claim {pair_key:$pk})-[:SUPPORTED_BY]->(s:Source) "
+            "WHERE c.valid_to IS NULL RETURN c.effect_sign, count(s)", {"pk": pk}).result_set
+        support = contrast = mention = 0
+        for esign, n in rows:
+            n = int(n)
+            if esign == sign:
+                support += n
+            elif {esign, sign} == {"+", "-"}:
+                contrast += n
+            else:
+                mention += n
+        denom = support + contrast
+        return {"support": support, "contrast": contrast, "mention": mention,
+                "ratio": round(support / denom, 4) if denom else 0.0}
 
     # --------------------------------------- human corpus + cross-check (v6 P5 co-researcher)
     def add_human_work(self, doc_id: str, title: str, kind: str, owner: str = "human") -> None:
