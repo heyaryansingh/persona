@@ -424,6 +424,15 @@
   .audflag{border:1px solid var(--line);border-left:3px solid var(--live);border-radius:0 6px 6px 0;padding:8px 10px;margin-bottom:6px;font-size:12.5px}
   .audspan{font-style:italic;color:var(--dim);font-size:11.5px;margin-top:4px}
   .audledger{margin-top:12px;padding-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--faint)}
+  .labbar{display:flex;gap:6px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .labbar input{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line2);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:11.5px;padding:6px 9px}
+  .labbar button{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;color:var(--dim);font-size:11px;padding:6px 9px;cursor:pointer;font-family:var(--mono);white-space:nowrap}
+  .labbar button:hover{border-color:var(--live);color:var(--live)}
+  .termwrap{border-bottom:1px solid var(--line);background:#0a0b0e}
+  .termout{max-height:220px;overflow:auto;padding:8px 10px;font-family:var(--mono);font-size:12px}
+  .termout pre{margin:2px 0;white-space:pre-wrap}.tcmd{color:#8fb7ff;margin-top:6px}.tok{color:#c9d3dd}.terr{color:#e79b93}
+  .terminp{display:flex;align-items:center;gap:6px;padding:6px 10px;border-top:1px solid var(--line)}.terminp span{color:var(--live)}
+  .terminp input{flex:1;background:transparent;border:0;color:#d6dae2;font-family:var(--mono);font-size:12.5px;outline:none}
   .codeed{display:flex;flex-direction:column;height:100%;min-height:0}
   .cehead{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line)}
   .cehead button{background:var(--live);color:#fff;border:0;border-radius:6px;font-size:12px;padding:5px 14px;cursor:pointer;font-family:var(--mono)}
@@ -805,6 +814,17 @@
             <input id="fsearch" placeholder="filter…" oninput="fsFilter(this.value)">
           </div>
           <div class="ticker"><span class="pd"></span><span class="tk" id="fsTicker">its mind, on disk</span></div>
+          <div class="labbar">
+            <input id="cloneurl" placeholder="paste a GitHub repo URL to clone…" onkeydown="if(event.key==='Enter')cloneRepo()">
+            <button onclick="cloneRepo()" title="shallow-clone a repo into repos/">⧉ clone</button>
+            <button onclick="$('#folderin').click()" title="upload a folder as a .zip">⬆ folder</button>
+            <button onclick="toggleTerm()" title="run shell commands in the sandbox">⌘_ terminal</button>
+            <input type="file" id="folderin" accept=".zip" style="display:none" onchange="uploadFolder(this)">
+          </div>
+          <div class="termwrap" id="termwrap" style="display:none">
+            <div class="termout" id="termout"><span class="cemuted">sandbox shell · bash · runs in the current folder · offline &amp; sandboxed</span></div>
+            <div class="terminp"><span>$</span><input id="termcmd" placeholder="ls -la · pip list · python analysis.py …" onkeydown="if(event.key==='Enter')runShell()"></div>
+          </div>
           <div class="dirlist" id="dirlist"></div>
         </div>
         <div class="previewcol">
@@ -1658,6 +1678,36 @@ function showFolderOverview(path){
   $("#pvbody").innerHTML=`<div class="folderview"><div class="fh">${esc(path)}/</div><div class="fd">${esc(desc)}</div><div class="pvmeta" style="border:0;padding:0"><span class="who"><span class="adot" style="background:${au.col}"></span>written by ${esc(au.who)}</span><span>${esc(au.why)}</span></div></div>`;
 }
 function clearPreview(){ FS._fileOpen=false; }
+// Code lab: clone a GitHub repo, upload a folder (.zip), and a sandboxed shell terminal — so a bench
+// scientist can pull a pipeline and run it without ever touching a real terminal.
+async function cloneRepo(){
+  const url=($("#cloneurl").value||"").trim(); if(!url||!PID)return;
+  toast("cloning "+url.split("/").slice(-1)[0]+"…");
+  try{ const r=await (await fetch(A("/clone_repo"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})})).json();
+    if(r.ok){ toast(`cloned ${r.name} · ${r.files} files → repos/`); $("#cloneurl").value=""; openBrain(); }
+    else toast(r.reason||"clone failed"); }catch(e){ toast("clone failed"); }
+}
+async function uploadFolder(inp){
+  const f=inp.files[0]; if(!f||!PID)return; toast("uploading "+f.name+"…");
+  try{ const fd=new FormData(); fd.append("file",f);
+    const r=await (await fetch(A("/upload"),{method:"POST",body:fd})).json();
+    if(r.ok){ toast(r.folder?`extracted ${r.files} files → ${r.path}`:`uploaded ${r.path}`); openBrain(); } else toast(r.reason||"upload failed"); }
+  catch(e){ toast("upload failed"); } inp.value="";
+}
+function toggleTerm(){ const t=$("#termwrap"); const show=t.style.display==="none"; t.style.display=show?"block":"none"; if(show)$("#termcmd").focus(); }
+async function runShell(){
+  const cmd=($("#termcmd").value||"").trim(); if(!cmd||!PID)return;
+  const out=$("#termout"), cwd=(FS.path||"code");
+  out.innerHTML+=`<div class="tcmd">${esc(cwd)} $ ${esc(cmd)}</div>`; $("#termcmd").value="";
+  out.innerHTML+='<div class="cemuted" id="_trun">running…</div>'; out.scrollTop=out.scrollHeight;
+  try{ const r=await (await fetch(A("/run_shell"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cmd,cwd})})).json();
+    const run=$("#_trun"); if(run)run.remove();
+    if(r.reason) out.innerHTML+=`<pre class="terr">${esc(r.reason)}</pre>`;
+    if(r.stdout) out.innerHTML+=`<pre class="tok">${esc(r.stdout)}</pre>`;
+    if(r.stderr) out.innerHTML+=`<pre class="terr">${esc(r.stderr)}</pre>`;
+  }catch(e){ const run=$("#_trun"); if(run)run.textContent="shell error"; }
+  out.scrollTop=out.scrollHeight;
+}
 // VSCode-style code editor: edit a .py file, Run it in the offline sandbox (torch/numpy/matplotlib
 // preinstalled), see stdout/stderr + rendered figures. Agents write .py here too — open one and run it.
 function codeEditor(path, code){

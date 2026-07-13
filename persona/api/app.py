@@ -284,6 +284,62 @@ def knowledge_tree(pid: str):
         return knowledge.tree()
 
 
+@app.post("/api/persona/{pid}/clone_repo")
+def clone_repo(pid: str, payload: dict):
+    """Link a GitHub/GitLab repo: shallow-clone it into the persona's workspace (repos/<name>) so its
+    files are browsable and runnable in the code editor. HTTPS git URLs only."""
+    import re as _re
+    import subprocess as _sp
+    p = _p(pid)
+    url = (payload.get("url") or "").strip()
+    if not _re.match(r"^https://(github\.com|gitlab\.com|bitbucket\.org|[\w.-]+)/[\w.-]+/[\w.-]+", url):
+        return {"ok": False, "reason": "need an https git URL (github/gitlab/…)"}
+    name = _re.sub(r"[^A-Za-z0-9._-]", "-", url.rstrip("/").split("/")[-1].replace(".git", ""))[:60] or "repo"
+    dest = p.paths.workspace / "repos" / name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        r = _sp.run(["git", "clone", "--depth", "1", url, str(dest)], capture_output=True, text=True,
+                    timeout=120, encoding="utf-8", errors="replace")
+    except Exception as e:
+        return {"ok": False, "reason": str(e)[:200]}
+    if r.returncode != 0:
+        return {"ok": False, "reason": (r.stderr or "clone failed")[-300:]}
+    files = sum(1 for _ in dest.rglob("*") if _.is_file())
+    with context.use(p):
+        from ..events import log
+        log().emit("artifact", f"cloned repo {name} ({files} files) into repos/", actor="you",
+                   file=f"repos/{name}")
+    return {"ok": True, "path": f"repos/{name}", "name": name, "files": files}
+
+
+@app.post("/api/persona/{pid}/run_shell")
+def run_shell(pid: str, payload: dict):
+    """A terminal: run a shell command in the offline sandbox (bash, network-denied, resource-capped),
+    with a chosen workspace directory (e.g. a cloned repo) mounted at /work. Returns stdout/stderr."""
+    p = _p(pid)
+    cmd = (payload.get("cmd") or "").strip()
+    if not cmd:
+        return {"ok": False, "reason": "empty"}
+    cwd = (payload.get("cwd") or "code").strip()
+    with context.use(p):
+        from ..tools import sandbox
+        if not sandbox.image_ready():
+            return {"ok": False, "reason": "sandbox-image-missing"}
+        try:
+            workdir = p.paths.safe(cwd)
+        except Exception:
+            workdir = p.paths.workspace / "code"
+        workdir.mkdir(parents=True, exist_ok=True)
+        # run the shell command via a tiny python shim so we reuse the sandbox runner + its limits
+        shim = ("import subprocess,sys\n"
+                "r=subprocess.run(%r,shell=True,capture_output=True,text=True,cwd='/work')\n"
+                "sys.stdout.write(r.stdout); sys.stderr.write(r.stderr); sys.exit(r.returncode)\n" % cmd)
+        r = sandbox.run_python(shim, workdir, timeout=90)
+    return {"ok": r.get("exit_code") == 0, "stdout": (r.get("stdout") or "")[-8000:],
+            "stderr": (r.get("stderr") or "")[-4000:], "exit_code": r.get("exit_code"),
+            "timeout": r.get("timeout")}
+
+
 @app.post("/api/persona/{pid}/run_code")
 def run_code(pid: str, payload: dict):
     """Code editor: run Python in the offline sandbox (torch/numpy/scipy/sklearn/matplotlib/pandas/
@@ -1204,6 +1260,27 @@ async def upload(pid: str, file: UploadFile = File(...)):
     dest = up / (name or "upload.bin")
     data = await file.read()
     dest.write_bytes(data)
+    # a ZIP is an uploaded FOLDER — extract it (path-jailed) so its files are browsable/runnable
+    if name.lower().endswith(".zip"):
+        import zipfile
+        outdir = up / name[:-4]
+        n = 0
+        try:
+            with zipfile.ZipFile(dest) as z:
+                for m in z.namelist():
+                    if m.endswith("/") or ".." in m or m.startswith("/"):
+                        continue
+                    try:
+                        target = p.paths.safe(f"uploads/{name[:-4]}/{m}")
+                    except Exception:
+                        continue
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(z.read(m))
+                    n += 1
+            dest.unlink(missing_ok=True)
+            return {"ok": True, "path": f"uploads/{name[:-4]}", "folder": True, "files": n}
+        except Exception as e:
+            return {"ok": False, "reason": str(e)[:200]}
     return {"ok": True, "path": f"uploads/{dest.name}", "bytes": len(data)}
 
 
