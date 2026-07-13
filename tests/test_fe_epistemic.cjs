@@ -33,4 +33,14 @@ ok(g.includes("RQ-E02") && g.includes("contradiction typing"), "gate row shows i
 ok(g.includes("gate-pending") && g.includes("gate-contested"), "gate status classes applied");
 ok(g.includes("pending") && g.includes("contested"), "gate status shown as text");
 
+// 5. Gate decisions (F4.6): rows with decision badge + reason; degrades empty; read-only.
+const gd = E.renderGateDecisions({ available: true, decisions: [
+  { candidate_id: "c1", title: "a claim", gate: "membrane", decision: "admit", reason: "spans agree", score: 0.9 },
+  { candidate_id: "c2", gate: "relevance", decision: "skip", reason: "off-topic" }] });
+ok(gd.includes("gd-admit") && gd.includes("gd-skip"), "decision classes applied");
+ok(gd.includes("admit") && gd.includes("skip") && gd.includes("spans agree"), "decision + reason shown");
+ok(gd.includes("membrane") && gd.includes("relevance"), "gate names shown");
+ok(E.renderGateDecisions({ available: false, decisions: [] }).includes("no gate decisions"), "degrades empty (honest)");
+ok(E.renderGateDecisions({}).includes("no gate decisions"), "missing ledger → honest empty");
+
 console.log(`OK — ${n} assertions passed (test_fe_epistemic)`);

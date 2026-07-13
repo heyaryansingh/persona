@@ -196,3 +196,15 @@
 .gate-gated{border-left:3px solid var(--inferred)}
 .gate-pending,.gate-in_progress{border-left:3px solid var(--line2)}
 @media (max-width:760px){.gate{grid-template-columns:auto 1fr}.gate-s{grid-column:2}}
+/* gate-decisions ledger (F4.6) */
+.gdlist{display:flex;flex-direction:column;gap:4px}
+.gd{display:grid;grid-template-columns:auto auto 1fr auto;gap:8px;align-items:baseline;padding:5px 9px;border:1px solid var(--line);border-left-width:3px;border-radius:7px;background:var(--panel);font-size:11.5px}
+.gd-admit{border-left-color:var(--live)}.gd-admit .gd-dec{color:var(--live)}
+.gd-skip{border-left-color:var(--line2)}.gd-skip .gd-dec{color:var(--dim)}
+.gd-abstain{border-left-color:var(--human)}.gd-abstain .gd-dec{color:var(--human)}
+.gd-dec{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase}
+.gd-gate{font-size:10px;color:var(--dim)}
+.gd-t{color:var(--ink)}
+.gd-reason{color:var(--dim);grid-column:1/-1;font-size:10.5px}
+.gd-score{color:var(--faint)}
+@media (max-width:760px){.gd{grid-template-columns:auto 1fr}}

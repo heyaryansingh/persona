@@ -60,6 +60,23 @@
     return `<div class="gates">${rows || '<div class="fempty">no RQ gates found</div>'}</div>`;
   }
 
+  // F4.6 — read-only view of the append-only gate-decisions ledger (Lanes 1/2 write). Empty if absent.
+  function renderGateDecisions(gd) {
+    gd = gd || {};
+    if (!gd.available || !(gd.decisions || []).length) {
+      return `<div class="fempty">no gate decisions recorded yet — Lanes 1/2 append; this view is read-only</div>`;
+    }
+    const rows = gd.decisions.slice().reverse().map((d) => {
+      const dec = d.decision || "—";
+      return `<div class="gd gd-${esc(dec)}"><span class="gd-dec">${esc(dec)}</span>` +
+        `<span class="gd-gate mono">${esc(orDash(d.gate))}</span>` +
+        `<span class="gd-t">${esc(orDash(d.title || d.candidate_id))}</span>` +
+        `<span class="gd-reason">${esc(orDash(d.reason))}</span>` +
+        (d.score != null ? `<span class="gd-score mono">${esc(d.score)}</span>` : "") + `</div>`;
+    }).join("");
+    return `<div class="gdlist">${rows}</div>`;
+  }
+
   function mount(rootEl, data) {
     if (!rootEl) return;
     data = data || mockData();
@@ -68,14 +85,23 @@
       renderProvenance(data.provenance) + renderCalibration(data.calibration_bound, data.calibration_available) + `</div>` +
       `<div class="epi-sec"><div class="epi-h">Research-quality gates</div>` +
       `<p class="col-sub">a gate is a claim's licence to drive autonomy — advisory until it passes</p>` +
-      renderGates(data.gates) + `</div>`;
+      renderGates(data.gates) + `</div>` +
+      `<div class="epi-sec"><div class="epi-h">Gate decisions · admitted / skipped</div>` +
+      `<p class="col-sub">what the relevance / drift / membrane gates admitted or skipped, and why</p>` +
+      renderGateDecisions(data.gate_decisions) + `</div>`;
     return rootEl;
   }
 
   async function loadEpistemic(pid, rootEl) {
-    let data = null;
-    try { data = await root.fetch(`/api/persona/${encodeURIComponent(pid)}/epistemic`).then((r) => r.json()); }
-    catch (e) { data = { provenance: {}, gates: [], calibration_available: false }; }
+    const base = `/api/persona/${encodeURIComponent(pid)}`;
+    let epi = null, gd = null;
+    try {
+      [epi, gd] = await Promise.all([
+        root.fetch(`${base}/epistemic`).then((r) => r.json()),
+        root.fetch(`${base}/gate_decisions?limit=100`).then((r) => r.json()),
+      ]);
+    } catch (e) { epi = { provenance: {}, gates: [] }; gd = { decisions: [], available: false }; }
+    const data = Object.assign({ provenance: {}, gates: [] }, epi || {}, { gate_decisions: gd || { decisions: [], available: false } });
     mount(rootEl, data);
     return data;
   }
@@ -90,10 +116,14 @@
         { id: "RQ-E12", title: "executable science", status: "contested" },
         { id: "RQ-E13", title: "SFT vs RL", status: "gated" },
       ],
+      gate_decisions: { available: true, decisions: [
+        { candidate_id: "clm_x", title: "SLC7A11 ↑ under NRF2", gate: "membrane", decision: "admit", reason: "verbatim span + KG support agree", score: 0.86, at: "2026-07-12T22:40Z" },
+        { candidate_id: "clm_y", title: "vague claim", gate: "relevance", decision: "skip", reason: "off-topic for active question", score: 0.12, at: "2026-07-12T22:41Z" },
+      ] },
     };
   }
 
-  const API = { renderProvenance, renderGates, renderCalibration, mount, loadEpistemic, mockData };
+  const API = { renderProvenance, renderGates, renderCalibration, renderGateDecisions, mount, loadEpistemic, mockData };
   root.PEpistemic = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 })(typeof window !== "undefined" ? window : globalThis);
