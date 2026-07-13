@@ -407,6 +407,15 @@
   .steerbar input{flex:1;background:var(--bg);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:8px 12px}
   .steerbar input:focus{outline:none;border-color:var(--live)}
   .steerbar button{background:var(--live);color:#fff;border:0;border-radius:8px;font-size:12px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+  .codeed{display:flex;flex-direction:column;height:100%;min-height:0}
+  .cehead{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line)}
+  .cehead button{background:var(--live);color:#fff;border:0;border-radius:6px;font-size:12px;padding:5px 14px;cursor:pointer;font-family:var(--mono)}
+  .cesrc{flex:1 1 55%;min-height:120px;background:#0e0f13;color:#d6dae2;border:0;font-family:var(--mono);font-size:12.5px;line-height:1.5;padding:12px;resize:none;tab-size:4;outline:none}
+  .ceterm{flex:1 1 45%;overflow:auto;background:#0a0b0e;border-top:1px solid var(--line);padding:8px 10px;min-height:80px}
+  .ceterm pre{margin:4px 0;white-space:pre-wrap;font-family:var(--mono);font-size:12px}
+  .ceok{color:#b7e6c9}  .ceerr{color:#e79b93}  .cemuted{color:var(--faint);font-size:11.5px}
+  .cestatus{font-size:11px;margin-bottom:6px}  .cestatus.ok{color:var(--live)}  .cestatus.err{color:var(--contra)}
+  .cefig{max-width:100%;margin:8px 0;border:1px solid var(--line);border-radius:6px;background:#fff}
   .swarmcol{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
   .swarmcol.done{border-right:0;background:var(--panel2)}
   .swcolhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:12px 18px 8px}
@@ -1628,6 +1637,32 @@ function showFolderOverview(path){
   $("#pvbody").innerHTML=`<div class="folderview"><div class="fh">${esc(path)}/</div><div class="fd">${esc(desc)}</div><div class="pvmeta" style="border:0;padding:0"><span class="who"><span class="adot" style="background:${au.col}"></span>written by ${esc(au.who)}</span><span>${esc(au.why)}</span></div></div>`;
 }
 function clearPreview(){ FS._fileOpen=false; }
+// VSCode-style code editor: edit a .py file, Run it in the offline sandbox (torch/numpy/matplotlib
+// preinstalled), see stdout/stderr + rendered figures. Agents write .py here too — open one and run it.
+function codeEditor(path, code){
+  const id="ce_"+Math.random().toString(36).slice(2,8);
+  window.__ce=window.__ce||{}; window.__ce[id]={path};
+  return `<div class="codeed">`
+    +`<div class="cehead"><span class="cemuted">sandbox · torch · numpy · scipy · matplotlib · sympy</span>`
+    +`<button onclick="runCode('${id}')">▶ Run</button></div>`
+    +`<textarea id="${id}_src" class="cesrc" spellcheck="false">${esc(code)}</textarea>`
+    +`<div class="ceterm" id="${id}_out"><span class="cemuted">▶ Run to execute in the offline sandbox…</span></div></div>`;
+}
+async function runCode(id){
+  const st=(window.__ce||{})[id]; if(!st)return;
+  const src=$("#"+id+"_src").value, out=$("#"+id+"_out");
+  out.innerHTML='<span class="cemuted">running in the sandbox…</span>';
+  try{
+    const r=await (await fetch(A("/run_code"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:src,path:st.path})})).json();
+    if(r.reason){ out.innerHTML=`<pre class="ceerr">${esc(r.reason)}</pre>`; return; }
+    let h="";
+    if(r.stdout) h+=`<pre class="ceok">${esc(r.stdout)}</pre>`;
+    if(r.stderr) h+=`<pre class="ceerr">${esc(r.stderr)}</pre>`;
+    (r.figures||[]).forEach(f=>{ h+=`<img class="cefig" src="${A('/file?path='+encodeURIComponent(f))}&t=${Date.now()}">`; });
+    if(!h) h=`<span class="cemuted">exit ${r.exit_code} · no output</span>`;
+    out.innerHTML=`<div class="cestatus ${r.ok?'ok':'err'}">${r.ok?'✓ ran':'✗ exit '+r.exit_code}${r.timeout?' · timed out':''}</div>`+h;
+  }catch(e){ out.innerHTML='<pre class="ceerr">run failed</pre>'; }
+}
 async function fsOpen(row){
   $$(".frow.sel").forEach(x=>x.classList.remove("sel")); row.classList.add("sel");
   FS._fileOpen=true;
@@ -1644,6 +1679,7 @@ async function fsOpen(row){
   try{
     const txt=await (await fetch(url)).text();
     if(ext==="md"){ v.innerHTML=`<div class="mdv">${md(txt)}</div>`; }
+    else if(ext==="py"){ v.innerHTML=codeEditor(path, txt); }
     else if(ext==="csv"||ext==="tsv"){ v.innerHTML=csvTable(txt, ext==="tsv"?"\t":","); }
     else if(ext==="json"||ext==="jsonl"){ let pretty=txt; if(ext==="json"){try{pretty=JSON.stringify(JSON.parse(txt),null,2);}catch{}} const pre=document.createElement("pre"); pre.textContent=pretty.slice(0,20000); v.innerHTML=""; v.appendChild(pre); }
     else { const pre=document.createElement("pre"); pre.textContent=txt.slice(0,40000); v.innerHTML=""; v.appendChild(pre); }

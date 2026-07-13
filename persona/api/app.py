@@ -284,6 +284,41 @@ def knowledge_tree(pid: str):
         return knowledge.tree()
 
 
+@app.post("/api/persona/{pid}/run_code")
+def run_code(pid: str, payload: dict):
+    """Code editor: run Python in the offline sandbox (torch/numpy/scipy/sklearn/matplotlib/pandas/
+    sympy preinstalled, network-denied, resource-capped) and return stdout/stderr + any figures it
+    wrote. Optionally save the edited code back to a workspace file first."""
+    p = _p(pid)
+    code = payload.get("code", "")
+    if not code.strip():
+        return {"ok": False, "reason": "empty"}
+    with context.use(p):
+        from ..tools import sandbox
+        if not sandbox.image_ready():
+            return {"ok": False, "reason": "sandbox-image-missing"}
+        path = (payload.get("path") or "").strip()
+        if path:                                  # persist the edit to the workspace
+            try:
+                dst = p.paths.safe(path)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.write_text(code, encoding="utf-8")
+            except Exception:
+                pass
+        workdir = p.paths.workspace / "code" / "run"
+        workdir.mkdir(parents=True, exist_ok=True)
+        for old in workdir.rglob("*.png"):        # clear prior figures so we only report new ones
+            try:
+                old.unlink()
+            except Exception:
+                pass
+        r = sandbox.run_python(code, workdir, timeout=90)
+        figs = [str(f.relative_to(p.paths.workspace)).replace("\\", "/") for f in sorted(workdir.rglob("*.png"))]
+    return {"ok": r.get("exit_code") == 0, "stdout": (r.get("stdout") or "")[-8000:],
+            "stderr": (r.get("stderr") or "")[-4000:], "exit_code": r.get("exit_code"),
+            "timeout": r.get("timeout"), "figures": figs[:6]}
+
+
 @app.post("/api/persona/{pid}/report")
 def region_report(pid: str, payload: dict):
     """Idea-genealogy: a grounded, CITED report for a selected region (a query or an explicit entity
