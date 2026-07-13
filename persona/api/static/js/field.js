@@ -72,7 +72,8 @@
       `<div class="vq-m"><span class="vq-voi mono" title="value of information (server)">VoI ${esc(orDash(item.voi))}</span>` +
       `<span class="cost cost-${esc(item.cost_tier || "unknown")}">${esc(cost)}</span>` +
       `<span class="ds">${esc(ds)}</span>` +
-      `<span class="mono">de-risks ${esc(orDash(item.de_risks_n))}</span></div>` +
+      // R-1: hide "de-risks 0" (uniform when the dep-graph is empty) — reads as a broken metric.
+      (item.de_risks_n ? `<span class="mono">de-risks ${esc(item.de_risks_n)}</span>` : "") + `</div>` +
       `<div class="vq-act">` +
       `<button type="button" class="run" data-action="${esc(orDash(item.run_action))}">${esc(orDash(item.run_action))}</button>` +
       `<button type="button" class="dossier" data-resolves="${esc(orDash(item.resolves_claim_id))}">open dossier</button>` +
@@ -91,12 +92,20 @@
   function mount(rootEl, data) {
     if (!rootEl) return;
     data = data || mockData();
-    rootEl.innerHTML =
+    const depEmpty = !(((data.dependency || {}).nodes) || []).length;
+    if (rootEl.classList) rootEl.classList.toggle("fieldwrap-single", depEmpty);
+    // R-1: an empty dependency graph must not render a dead ~40% column — collapse to a single
+    // full-width value queue with a hint that the map builds as claims accumulate links.
+    const fieldCol = depEmpty ? "" :
       `<section class="field-col"><div class="col-h">Field rests on</div>` +
       `<p class="col-sub">node = a claim others depend on · ◇ = thinly supported · numbers are server-computed</p>` +
-      renderDependency(data.dependency) + `</section>` +
+      renderDependency(data.dependency) + `</section>`;
+    const vqSub = depEmpty
+      ? "ranked by value-of-information ÷ cost · advisory until RQ-E17 · the dependency map builds as claims link"
+      : "ranked by value-of-information ÷ cost · advisory until RQ-E17 passes";
+    rootEl.innerHTML = fieldCol +
       `<section class="vq-col"><div class="col-h">Highest-value experiments</div>` +
-      `<p class="col-sub">ranked by value-of-information ÷ cost · advisory until RQ-E17 passes</p>` +
+      `<p class="col-sub">${vqSub}</p>` +
       renderValueQueue(data.value_queue) + `</section>`;
     return rootEl;
   }

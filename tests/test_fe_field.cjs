@@ -54,4 +54,18 @@ ok(empty.dependency.nodes.length === 0 && empty.value_queue.length === 0, "degra
 const bare = F.normalizeField(null, [{ question: "q2" }]);
 ok(bare.value_queue.length === 1 && bare.dependency.nodes.length === 0, "handles bare-array value_queue + null dependency");
 
+// 8. R-1: value-queue hides "de-risks 0"; shows it when > 0.
+ok(!F.renderValueQueue([{ question: "q", voi: 0.5, de_risks_n: 0 }]).includes("de-risks"), "de-risks 0 hidden");
+ok(F.renderValueQueue([{ question: "q", voi: 0.5, de_risks_n: 3 }]).includes("de-risks 3"), "de-risks shown when > 0");
+
+// 9. R-1: empty dependency graph → single-column mount (no dead 'Field rests on' col), with a hint.
+const fake = { classList: { _c: {}, toggle(c, on) { this._c[c] = on; } }, innerHTML: "" };
+F.mount(fake, { dependency: { nodes: [], edges: [] }, value_queue: [{ question: "q", voi: 0.4 }] });
+ok(fake.classList._c["fieldwrap-single"] === true, "empty dep → single-col class toggled on");
+ok(!fake.innerHTML.includes("field-col"), "empty dep → no dead Field-rests-on column");
+ok(/dependency map builds/i.test(fake.innerHTML), "empty dep → shows a build hint");
+const fake2 = { classList: { _c: {}, toggle(c, on) { this._c[c] = on; } }, innerHTML: "" };
+F.mount(fake2, F.mockData());
+ok(fake2.classList._c["fieldwrap-single"] === false && fake2.innerHTML.includes("field-col"), "non-empty dep → two columns");
+
 console.log(`OK — ${n} assertions passed (test_fe_field)`);

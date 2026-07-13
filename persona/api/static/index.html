@@ -1067,18 +1067,28 @@ async function openSwarm(){
       const c=s.counts||{}, invs=iv.investigations||[], vs=vr.summary||{};
       const qmap={}; invs.forEach(i=>qmap[i.slug]=i);
       const running=invs.filter(i=>i.status!=='done'), doneInv=invs.filter(i=>i.status==='done').slice(0,4);
-      $("#swarmsummary").innerHTML=`<b>${s.in_flight||0}</b> agents in flight · ${(s.active||[]).length} live (cap ${s.live_cap||s.workers||0}) · <b>${running.length}</b> team(s) on distinct problems · ✓ ${vs.verified||0} verified${vs.refuted?` · ✗ ${vs.refuted} refuted`:''}`;
+      // FL-1 (honesty): derive in-flight from the real active/queued agents, not the stale server
+      // counter; a halted/idle mind must not claim activity (design §5: claims only for real state).
+      const active=s.active||[], queued=s.queued||[];
+      const inflight=active.length+queued.length;
+      const idle=inflight===0 && running.length===0;
+      $("#swarmsummary").innerHTML= idle
+        ? `idle · not currently reading · ✓ ${vs.verified||0} verified${vs.refuted?` · ✗ ${vs.refuted} refuted`:''}`
+        : `<b>${inflight}</b> agent${inflight===1?'':'s'} in flight · ${active.length} live (cap ${s.live_cap||s.workers||0}) · <b>${running.length}</b> team(s) on distinct problems · ✓ ${vs.verified||0} verified${vs.refuted?` · ✗ ${vs.refuted} refuted`:''}`;
       // group live+queued agents by the team (investigation) they serve
-      const all=[...(s.active||[]).map(t=>({...t,_live:true})),...((s.queued||[]).map(t=>({...t,_live:false})))];
+      const all=[...active.map(t=>({...t,_live:true})),...queued.map(t=>({...t,_live:false}))];
       const groups={},loose=[];
       all.forEach(t=>{ (t.investigation_id&&qmap[t.investigation_id]) ? (groups[t.investigation_id]=groups[t.investigation_id]||[]).push(t) : loose.push(t); });
-      let html=`<div class="floordirector">▟ <b>Director</b> — ${running.length} team${running.length===1?'':'s'} on non-overlapping problems · ${loose.length} agent${loose.length===1?'':'s'} on background reading & upkeep</div>`;
+      const liveLoose=loose.filter(t=>t._live), queuedLoose=loose.filter(t=>!t._live);
+      let html=`<div class="floordirector">▟ <b>Director</b> — ${running.length} team${running.length===1?'':'s'} on non-overlapping problems${liveLoose.length?` · ${liveLoose.length} agent${liveLoose.length===1?'':'s'} on background reading & upkeep`:''}${queuedLoose.length?` · ${queuedLoose.length} queued`:''}</div>`;
       html+=running.map(i=>floorLane(i,groups[i.slug])).join("");
       if(!running.length) html+='<div class="empty">no teams running — hand the swarm a question above, or resume the mind</div>';
       if(doneInv.length) html+=`<div class="floorsub">recently closed</div>`+doneInv.map(i=>floorLane(i,[])).join("");
       if(loose.length) html+=`<div class="floorsub">background reading & upkeep</div><div class="loosewrap">`+loose.slice(0,20).map(t=>swCard(t,!t._live)).join("")+`</div>`;
       $("#swactive").innerHTML=html;
-      $("#swdone").innerHTML=(s.recent||[]).slice(0,12).map(t=>swCard(t,true)).join("")||'<div class="empty">—</div>';
+      // FL-1: a no-op completion (0 readers/reads, nothing new) is not an accomplishment — don't list it.
+      const isNoOp=t=>{const r=(t.result||'').toLowerCase(); return /\b0 (reader|read|paper|claim|note)|checked 0|collected 0|queued 0|nothing new|no new/.test(r);};
+      $("#swdone").innerHTML=(s.recent||[]).filter(t=>!isNoOp(t)).slice(0,12).map(t=>swCard(t,true)).join("")||'<div class="empty">no notable completions yet</div>';
     }catch(e){}
   };
   render(); if(SWARM.iv)clearInterval(SWARM.iv); SWARM.iv=setInterval(render,1500);

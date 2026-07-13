@@ -111,6 +111,7 @@
 
 /* ---- Flagship 4.1 "Field rests on" + value queue (field.js) ---------- */
 .fieldwrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:8px 2px}
+.fieldwrap.fieldwrap-single{grid-template-columns:1fr}   /* R-1: no dead column when dep-graph empty */
 @media (max-width:760px){.fieldwrap{grid-template-columns:1fr}}
 .field-col,.vq-col{display:flex;flex-direction:column;gap:8px;min-width:0}
 .col-sub{font-size:11px;color:var(--dim);margin:0 0 6px}
