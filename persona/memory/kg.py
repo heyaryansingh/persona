@@ -351,7 +351,9 @@ class KG:
                             confidence: float, span: str) -> None:
         """Record a typed dependency between two claims (the claim-dependency graph). rel_type must
         be one of DEP_REL_TYPES; raises ValueError otherwise. Keyed on rel_type so distinct relation
-        types between the same pair are distinct edges; re-adding one updates confidence/span."""
+        types between the same pair are distinct edges; re-adding one updates confidence/span.
+        confidence goes through the same [0,1] clamp + fail-loud guard as claim confidence — a
+        dependency edge is a belief-store write too (S2 review-kg-hygiene: last unclamped path)."""
         if rel_type not in DEP_REL_TYPES:
             raise ValueError(f"invalid rel_type {rel_type!r}; must be one of {sorted(DEP_REL_TYPES)}")
         if src_claim_id == dst_claim_id:
@@ -361,7 +363,7 @@ class KG:
             "MERGE (a)-[d:DEPENDS_ON {rel_type:$rt}]->(b) "
             "SET d.confidence=$conf, d.span=$span",
             {"src": src_claim_id, "dst": dst_claim_id, "rt": rel_type,
-             "conf": float(confidence), "span": (span or "")[:600]})
+             "conf": _clean_confidence(confidence), "span": (span or "")[:600]})
 
     def dependency_edges(self, topic: str = None) -> list:
         """All dependency edges; if topic is given, only those touching a claim whose subject or

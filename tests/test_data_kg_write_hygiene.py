@@ -67,3 +67,21 @@ def test_valid_year_is_preserved():
     kg, captured = _boundary_kg()
     kg.upsert_source({"slug": "src1", "title": "t", "year": 2021})
     assert captured[0]["year"] == 2021
+
+
+def _stored_dep_conf(confidence):
+    kg, captured = _boundary_kg()
+    kg.add_dependency_edge("clm_a", "clm_b", "supports", confidence, "span")
+    return captured[0]["conf"]  # the DEPENDS_ON MERGE carries $conf
+
+
+@pytest.mark.parametrize("given, expected", [(1.7, 1.0), (-0.2, 0.0), (0.6, 0.6)])
+def test_dependency_edge_confidence_is_clamped(given, expected):
+    # a dependency edge is a belief-store write too — same clamp as claim confidence
+    assert _stored_dep_conf(given) == expected
+
+
+def test_dependency_edge_nan_confidence_raises_at_boundary():
+    kg, _ = _boundary_kg()
+    with pytest.raises(ValueError):
+        kg.add_dependency_edge("clm_a", "clm_b", "supports", float("nan"), "span")
