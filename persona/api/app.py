@@ -17,6 +17,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .. import config, context, selfmind
 from ..manager import manager
@@ -24,6 +25,30 @@ from ..manager import manager
 app = FastAPI(title="Persona v5", version="5.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 _STATIC = Path(__file__).resolve().parent / "static"
+# Lane 4 (S3): serve /static JS+CSS assets (ui.js/focus.js/field.js/focus.css). Distinct
+# prefix — never shadows the /api routes or the `/` gallery. (Former Wave-0 P0.1 mount.)
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
+
+# --- H1/M1 security hardening (S0 board 2026-07-12, Lane 4 owns app.py) ---
+# run_shell mounts its cwd rw into the sandbox. Jail it to scratch dirs so a shell
+# command can NEVER write the durable self/knowledge — belief-state mutated outside
+# the membrane is the worst-possible bug (AGENTS.md §4). Protected dirs are refused.
+_SHELL_SCRATCH = {"repos", "uploads", "code", "runs", "datasets"}
+# clone_repo previously allowed a `[\w.-]+` host catch-all → SSRF (169.254.169.254
+# cloud metadata, localhost, internal hosts). Explicit host allowlist only.
+_GIT_URL_RE = re.compile(r"^https://(github\.com|gitlab\.com|bitbucket\.org)/[\w.-]+/[\w.-]+")
+
+
+def _jail_shell_cwd(paths, cwd: str) -> Path:
+    """Resolve `cwd` under the workspace AND require it inside a scratch dir.
+    Raises ValueError on traversal escape or a protected (non-scratch) target."""
+    workdir = paths.safe(cwd)                       # traversal/symlink jail (paths.py)
+    ws = paths.workspace.resolve()
+    if workdir == ws:
+        raise ValueError("cwd may not be the workspace root")
+    if workdir.relative_to(ws).parts[0] not in _SHELL_SCRATCH:
+        raise ValueError(f"cwd must be a scratch dir ({', '.join(sorted(_SHELL_SCRATCH))}); refused {cwd!r}")
+    return workdir
 
 
 @app.on_event("startup")
@@ -292,8 +317,8 @@ def clone_repo(pid: str, payload: dict):
     import subprocess as _sp
     p = _p(pid)
     url = (payload.get("url") or "").strip()
-    if not _re.match(r"^https://(github\.com|gitlab\.com|bitbucket\.org|[\w.-]+)/[\w.-]+/[\w.-]+", url):
-        return {"ok": False, "reason": "need an https git URL (github/gitlab/…)"}
+    if not _GIT_URL_RE.match(url):   # M1: explicit host allowlist, no catch-all (SSRF)
+        return {"ok": False, "reason": "need an https git URL on github/gitlab/bitbucket"}
     name = _re.sub(r"[^A-Za-z0-9._-]", "-", url.rstrip("/").split("/")[-1].replace(".git", ""))[:60] or "repo"
     dest = p.paths.workspace / "repos" / name
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -326,9 +351,9 @@ def run_shell(pid: str, payload: dict):
         if not sandbox.image_ready():
             return {"ok": False, "reason": "sandbox-image-missing"}
         try:
-            workdir = p.paths.safe(cwd)
-        except Exception:
-            workdir = p.paths.workspace / "code"
+            workdir = _jail_shell_cwd(p.paths, cwd)   # H1: scratch dirs only; refuse durable self
+        except ValueError as e:
+            return {"ok": False, "reason": str(e)}
         workdir.mkdir(parents=True, exist_ok=True)
         # run the shell command via a tiny python shim so we reuse the sandbox runner + its limits
         shim = ("import subprocess,sys\n"
@@ -1357,6 +1382,77 @@ async def stream(pid: str):
                     yield ": keepalive\n\n"
                 await asyncio.sleep(0.4)
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+# ============================ Lane 4 (S3) — legibility routes ============================
+# Contract-first: consume FC-4 (engine), FC-2 (inbox), FC-7 (eval). FC providers in Lanes 2/3
+# are parked, so each route DEGRADES gracefully (typed empty + available:false) until they land.
+# None of these mutate the KG.
+
+@app.post("/api/persona/{pid}/eval")
+def run_eval(pid: str, payload: dict):
+    """FC-7 — run a benchmark oracle (litqa2/bixbench). persona.eval.run_oracle exists (M0 stub)."""
+    payload = payload or {}
+    name = (payload.get("oracle") or payload.get("name") or "").strip()
+    with context.use(_p(pid)):
+        from ..eval import run_oracle
+        try:
+            return run_oracle(name, n=int(payload.get("n", 0)), seed=int(payload.get("seed", 0)), persona=pid)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/persona/{pid}/engine/dependency")
+def engine_dependency(pid: str, topic: str = ""):
+    """FC-4 passthrough (Lane 3 engine.dependency_graph). Field-rests-on flagship data."""
+    with context.use(_p(pid)):
+        try:
+            from ..analysis.engine import dependency_graph
+            return dependency_graph(topic)
+        except Exception:
+            return {"nodes": [], "edges": [], "available": False}
+
+
+@app.get("/api/persona/{pid}/engine/value_queue")
+def engine_value_queue(pid: str, topic: str = ""):
+    """FC-4 passthrough (Lane 3 engine.value_queue). VoI-ranked experiment queue."""
+    with context.use(_p(pid)):
+        try:
+            from ..analysis.engine import value_queue
+            return {"queue": value_queue(topic), "available": True}
+        except Exception:
+            return {"queue": [], "available": False}
+
+
+@app.post("/api/persona/{pid}/engine/handoff")
+def engine_handoff(pid: str, payload: dict):
+    """FC-2 passthrough (Lane 2 inbox.file_handoff). Files a human-resolution dossier. Never anchors."""
+    payload = payload or {}
+    with context.use(_p(pid)):
+        try:
+            from ..inbox import file_handoff
+            hid = file_handoff(payload.get("kind", "conflict"), payload.get("dossier", {}))
+            return {"ok": True, "handoff_id": hid}
+        except Exception:
+            return {"ok": False, "reason": "handoff inbox not available yet", "handoff_id": None}
+
+
+@app.get("/api/persona/{pid}/gate_decisions")
+def gate_decisions(pid: str, limit: int = 200):
+    """Read-only view of the append-only gate-decisions ledger (Lanes 1/2 append). Empty if absent."""
+    f = _p(pid).paths.ops_dir / "gate_decisions.jsonl"
+    if not f.exists():
+        return {"decisions": [], "available": False}
+    rows = []
+    for line in f.read_text(encoding="utf-8", errors="replace").splitlines()[-max(1, limit):]:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rows.append(json.loads(line))
+        except Exception:
+            pass
+    return {"decisions": rows, "available": True}
 
 
 @app.get("/")
