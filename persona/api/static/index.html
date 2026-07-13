@@ -697,6 +697,7 @@
           <div class="stcolhead">co-work console</div>
           <div class="stactions">
             <button data-k="ask" onclick="stAct('ask')" class="on">ask (cited)</button>
+            <button data-k="report" onclick="stAct('report')">report on a topic</button>
             <button data-k="verify" onclick="stAct('verify')">verify a claim</button>
             <button data-k="investigate" onclick="stAct('investigate')">investigate</button>
             <button data-k="paper" onclick="stAct('paper')">draft a paper</button>
@@ -1045,6 +1046,10 @@ async function stRun(){
     if(STUDIO.mode==='ask'){
       const r=await (await fetch(A("/ask"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:t})})).json();
       pb().innerHTML=md(r.answer||r.reason||'(no answer)')+((r.claims&&r.claims.length)?`<div class="stmuted">grounded in ${r.claims.length} claim(s)</div>`:'');
+    } else if(STUDIO.mode==='report'){
+      const r=await (await fetch(A("/report"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:t})})).json();
+      if(r.ok){ pb().innerHTML=md(r.markdown)+`<div class="stmuted">${r.n_claims} claims · ${r.n_sources} sources — every statement traces to a paper · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','report');return false;">open &amp; export ↗</a></div>`; }
+      else pb().innerHTML='could not build a report ('+esc(r.reason||'error')+') — try a broader topic it has read.';
     } else {
       const ep=STUDIO.mode==='paper'?'/deliver':(STUDIO.mode==='verify'?'/verify':'/investigate');
       const body=STUDIO.mode==='paper'?{kind:'paper',topic:t}:(STUDIO.mode==='verify'?{statement:t}:{question:t});

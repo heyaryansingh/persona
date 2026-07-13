@@ -334,7 +334,7 @@ class KG:
             MATCH (c:Claim)-[:ABOUT_SUBJECT|ABOUT_OBJECT]->(e:Entity)
             WHERE e.name IN $ents AND c.valid_to IS NULL
             OPTIONAL MATCH (c)-[sr:SUPPORTED_BY]->(s:Source)
-            WITH c, collect(DISTINCT {slug:s.slug, title:s.title, lab:s.lab, doi:s.doi, quote:sr.quote}) AS srcs
+            WITH c, collect(DISTINCT {slug:s.slug, title:s.title, lab:s.lab, doi:s.doi, year:s.year, quote:sr.quote}) AS srcs
             RETURN DISTINCT c.claim_id, c.subject, c.relation, c.object, c.effect_sign, c.confidence,
                    c.independent_source_count, c.provenance, c.anchored, srcs
             ORDER BY c.independent_source_count DESC, c.confidence DESC LIMIT $lim

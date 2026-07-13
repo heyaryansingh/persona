@@ -284,6 +284,21 @@ def knowledge_tree(pid: str):
         return knowledge.tree()
 
 
+@app.post("/api/persona/{pid}/report")
+def region_report(pid: str, payload: dict):
+    """Idea-genealogy: a grounded, CITED report for a selected region (a query or an explicit entity
+    set) with an optional follow-up focus. Every statement traces to a source paper + year + DOI."""
+    p = _p(pid)
+    q = (payload.get("query") or payload.get("q") or payload.get("text") or "").strip()
+    ents = payload.get("entities") or None
+    msg = (payload.get("message") or "").strip()
+    if not q and not ents:
+        return {"ok": False, "reason": "empty"}
+    with context.use(p):
+        from ..agents import report
+        return report.generate(q or (ents[0] if ents else ""), entities=ents, message=msg)
+
+
 @app.post("/api/persona/{pid}/verify")
 @app.post("/api/persona/{pid}/prove")
 def verify_claim(pid: str, payload: dict):
