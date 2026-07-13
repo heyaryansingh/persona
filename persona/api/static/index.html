@@ -2046,6 +2046,7 @@ async function openInstruments(){
   try{
     const k=window.__kg||await (await fetch(A("/kg"))).json();
     const graph=k.graph||{nodes:[],edges:[]}; const beliefs=k.beliefs||[]; const contras=k.candidate_conflicts||k.contradictions||[];
+    const gd=await fetch(A("/gate_decisions?limit=20")).then(r=>r.json()).catch(()=>({decisions:[],available:false}));  // C1 action feed
     // degree map over entity graph → load-bearing proxy
     const deg={}; (graph.edges||[]).forEach(e=>{deg[e.source]=(deg[e.source]||0)+1;deg[e.target]=(deg[e.target]||0)+1;});
     const contested=new Set(); contras.forEach(c=>{contested.add(c.pos_claim);contested.add(c.neg_claim);});
@@ -2061,6 +2062,10 @@ async function openInstruments(){
     // --- 4. silence (thinly held, uncontested — candidate buried nulls) ---
     const silent=beliefs.filter(b=>b.independent_sources<=1&&!contested.has(b.subject)&&!contested.has(b.object)).slice(0,8);
     let h='';
+    // C1: live action feed — real membrane admit/skip decisions + flagged candidates (read-only, degrades empty).
+    h+=`<div class="inst"><h3>Live action feed</h3><div class="isub">recent gate decisions + flagged candidates · read-only, grounded in real events</div>`;
+    if(contras.length) h+=`<div style="font-size:11.5px;color:var(--human);padding:4px 0">⚑ ${contras.length} candidate conflict${contras.length===1?'':'s'} flagged · awaiting review</div>`;
+    h+=(window.PEpistemic?PEpistemic.renderGateDecisions(gd):'<div class="iplace">gate feed unavailable</div>')+`</div>`;
     // convergence
     h+=`<div class="inst"><h3>Epistemic status</h3><div class="isub">Server-owned states: observed, corroborated, tested, or anchored. An opposite stored sign is only a candidate conflict until its exact evidence and qualifiers are verified.</div><div class="irows">`+
       (conv.length?conv.map(t=>`<div class="irow" onclick="prov('${t.b.claim_id}')"><span class="ilab"><b>${esc(t.b.subject)}</b> ${t.b.effect_sign==='+'?'↑':t.b.effect_sign==='-'?'↓':'·'} ${esc(t.b.object)}<div class="m">${t.b.independent_sources} lab${t.b.independent_sources>1?'s':''} · p=${(t.b.confidence||0).toFixed(2)}</div></span>${confBar(t.b.confidence,t.v)}<span class="iverdict ${VCLASS[t.v]}">${t.v}</span></div>`).join(""):'<div class="iplace">no beliefs yet</div>')+`</div></div>`;
