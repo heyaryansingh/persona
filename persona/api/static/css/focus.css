@@ -1,0 +1,170 @@
+/* focus.css — styles for focus.js / ui.js (S3-owned, NEW file).
+   Kept SEPARATE from app.css so the P0.2 extraction stays a byte-for-byte copy
+   for S2's P0.3 render check. Linked only when the modules are wired (post-P0.3).
+   Uses the app's REAL light-theme :root tokens (verified against app.css) — the
+   spec's dark palette is the Figma target, not the running app.
+   Debt rule: a candidate conflict is styled NEUTRAL, never contradiction-red. */
+
+/* ---- shared badges (ui.js) ------------------------------------------- */
+.pbadge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);
+  font-size:10px;letter-spacing:.04em;padding:1px 7px;border-radius:10px;
+  border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.pbadge-g{font-size:11px;line-height:1}
+.st-observed,.st-observed .pbadge-g{color:var(--claim)}      /* observed/read = gold */
+.st-corroborated{color:var(--live)}
+.st-tested{color:var(--tested);font-weight:500}
+.st-anchored{color:var(--anchor)}
+.st-inferred{color:var(--inferred)}
+.st-rejected{color:var(--contra)}
+.st-candidate{color:var(--dim);border-style:dashed}          /* NEVER red — unverified */
+.st-unknown{color:var(--faint)}
+.pbadge.st-observed{border-color:color-mix(in srgb,var(--claim) 40%,var(--line2))}
+.pbadge.st-tested,.pbadge.st-corroborated{border-color:color-mix(in srgb,var(--live) 40%,var(--line2))}
+.pbadge.st-anchored{border-color:color-mix(in srgb,var(--anchor) 40%,var(--line2))}
+.pbadge.st-rejected{border-color:color-mix(in srgb,var(--contra) 40%,var(--line2))}
+
+/* trace-integrity and scientific-review are two SEPARATE chips (never one) */
+.dual{display:inline-flex;gap:6px}
+.chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 7px;border-radius:9px;border:1px solid var(--line2);color:var(--dim)}
+.tr-ok{color:var(--live);border-color:color-mix(in srgb,var(--live) 45%,var(--line2))}
+.tr-bad{color:var(--contra)}
+.sc-verified{color:var(--live)}
+.sc-contested{color:var(--human)}          /* needs judgement */
+.sc-bad{color:var(--contra)}
+.sc-unverified{color:var(--dim)}
+
+/* ---- Focus column ---------------------------------------------------- */
+.focus-col,.review-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.col-h{font-family:var(--serif);font-size:15px;color:var(--ink);
+  border-bottom:1px solid var(--line);padding-bottom:6px}
+
+.nextact{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.na-h{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--human)}
+.na-what{font-family:var(--serif);font-size:16px;color:var(--ink);margin:4px 0 10px;line-height:1.35}
+.na-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0}
+.na-grid dt{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+.na-grid dd{margin:0;font-size:13px;color:var(--ink);line-height:1.4}
+.na-grid dd.mono,.mono{font-family:var(--mono)}
+.na-mode{margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+
+.notebook{background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:6px 4px;overflow-y:auto;max-height:52vh;font-family:var(--mono);font-size:12px}
+.frow{display:grid;grid-template-columns:56px 16px 1fr auto;gap:6px;align-items:baseline;
+  padding:3px 8px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.frow:last-child{border-bottom:0}
+.frow.child{padding-left:22px;opacity:.9}
+.ft{color:var(--faint);font-size:10.5px}
+.fg{color:var(--dim);text-align:center}
+.fmsg{color:var(--ink);word-break:break-word;line-height:1.45}
+.fwho{color:var(--faint);font-size:10.5px;white-space:nowrap}
+.fempty{padding:14px;color:var(--dim);font-style:italic}
+/* meaning-bearing accents per event type */
+.ev-contradiction .fg{color:var(--human)}     /* candidate tension → needs-human hue, not red */
+.ev-belief_update .fg,.ev-artifact .fg{color:var(--live)}
+.ev-escalate .fg{color:var(--human);font-weight:700}
+.ev-error .fg{color:var(--contra)}
+.ev-claim .fg{color:var(--claim)}
+
+/* Motion ONLY on a real new event, and only if the user allows it. */
+@media (prefers-reduced-motion: no-preference){
+  .frow.fresh{animation:frowIn .28s var(--eout)}
+  @keyframes frowIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+}
+
+/* ---- Review column (blinded candidate conflict) ---------------------- */
+.review{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.rv-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.rv-tag{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--dim);
+  border:1px dashed var(--line2);border-radius:9px;padding:2px 9px}
+.rv-note{font-size:11.5px;color:var(--dim);margin:8px 0 10px;line-height:1.5}
+.rv-why{font-size:13px;color:var(--ink);line-height:1.45}
+.rv-caveat{font-size:11.5px;color:var(--human);margin-top:3px}
+.packets{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.packet{border:1px solid var(--line2);border-radius:8px;padding:10px;background:var(--bg2)}
+.pk-h{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.pk-span{margin:6px 0;padding:6px 9px;border-left:2px solid var(--line2);
+  font-family:var(--serif);font-size:13.5px;color:var(--ink);line-height:1.4}
+.pk-src{font-size:10.5px;color:var(--dim);word-break:break-word}
+.pk-hash{color:var(--faint)}
+.quals{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;margin-top:8px}
+.ql{display:flex;justify-content:space-between;gap:6px;font-size:10.5px}
+.ql-k{color:var(--dim)}
+.ql-v{color:var(--ink);font-family:var(--mono)}
+.rv-lab{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.rv-gaps{margin:10px 0}
+.gap{display:inline-block;font-size:10.5px;color:var(--human);border:1px solid color-mix(in srgb,var(--human) 35%,var(--line2));
+  border-radius:9px;padding:1px 8px;margin:0 4px 4px 0}
+.rv-checks ol{margin:4px 0 0;padding-left:18px}
+.rv-checks li{font-size:12px;color:var(--ink);line-height:1.5;margin-bottom:2px}
+.rv-actions{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px}
+.lbl{font-family:var(--mono);font-size:11px;padding:5px 10px;border:1px solid var(--line2);
+  border-radius:8px;background:var(--panel2);color:var(--ink);cursor:pointer}
+.lbl:hover{border-color:var(--dim)}
+.lbl:focus-visible{outline:2px solid var(--anchor);outline-offset:1px}
+.rv-rationale{width:100%;min-height:52px;box-sizing:border-box;font-family:var(--mono);font-size:12px;
+  border:1px solid var(--line2);border-radius:8px;padding:8px;background:var(--bg2);color:var(--ink);resize:vertical}
+
+/* responsive: stack packets/columns, no horizontal overflow (spec acceptance) */
+@media (max-width:760px){.packets{grid-template-columns:1fr}.na-grid{grid-template-columns:1fr}}
+
+/* ---- Flagship 4.1 "Field rests on" + value queue (field.js) ---------- */
+.fieldwrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:8px 2px}
+@media (max-width:760px){.fieldwrap{grid-template-columns:1fr}}
+.field-col,.vq-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.col-sub{font-size:11px;color:var(--dim);margin:0 0 6px}
+.deplist,.vqlist{display:flex;flex-direction:column;gap:8px}
+.dep{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.dep:focus-visible{outline:2px solid var(--anchor);outline-offset:1px}
+.dep-top{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.frag{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--human);
+  border:1px dashed color-mix(in srgb,var(--human) 45%,var(--line2));border-radius:9px;padding:1px 7px}
+.dep-stmt{font-family:var(--serif);font-size:14.5px;color:var(--ink);line-height:1.35}
+.dep-m{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;margin:8px 0 0}
+.dep-m>div{display:flex;justify-content:space-between;gap:8px}
+.dep-m dt{font-size:10.5px;color:var(--dim);margin:0}
+.dep-m dd{margin:0;font-size:11.5px;color:var(--ink)}
+.vq{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.vq-q{font-family:var(--serif);font-size:14px;color:var(--ink);line-height:1.35}
+.vq-m{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0}
+.vq-voi{color:var(--anchor)}
+.vq-m .ds,.vq-m .mono{font-size:10.5px;color:var(--dim)}
+.cost{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:1px 7px;border-radius:9px;border:1px solid var(--line2);color:var(--dim)}
+.cost-public_data{color:var(--live);border-color:color-mix(in srgb,var(--live) 40%,var(--line2))}
+.cost-expensive{color:var(--human);border-color:color-mix(in srgb,var(--human) 40%,var(--line2))}
+.vq-act{display:flex;gap:6px;margin-top:4px}
+.vq-act button{font-family:var(--mono);font-size:11px;padding:4px 9px;border:1px solid var(--line2);
+  border-radius:7px;background:var(--panel2);color:var(--ink);cursor:pointer}
+.vq-act button:hover{border-color:var(--dim)}
+.vq-act button:focus-visible{outline:2px solid var(--anchor);outline-offset:1px}
+@media (max-width:760px){.dep-m{grid-template-columns:1fr}}
+
+/* ---- Oracle-verdict card (verdict.js / FC-8, one renderer for all oracles) --- */
+.verdict{background:var(--panel);border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:11px 13px;margin:8px 0}
+.v-na{border-left-color:var(--faint);opacity:.85}
+.v-bad{border-left-color:var(--contra)}
+.v-weak{border-left-color:var(--inferred)}
+.v-human{border-left-color:var(--human)}
+.v-read{border-left-color:var(--claim)}
+.v-tested{border-left-color:var(--tested)}
+.v-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.v-state{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.v-tested .v-state{color:var(--tested)}
+.v-bad .v-state{color:var(--contra)}
+.v-human .v-state{color:var(--human)}
+.v-adv{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);
+  border:1px solid var(--line2);border-radius:8px;padding:1px 6px}
+.v-headline{font-family:var(--serif);font-size:15px;color:var(--ink);margin:6px 0 4px;line-height:1.35}
+.v-na-body{font-size:12.5px;color:var(--dim);margin-top:4px}
+.v-sens{font-size:11.5px;color:var(--dim)}
+.v-sens-missing{color:var(--contra)}
+.v-quar{font-size:11.5px;color:var(--contra);margin-top:6px}
+.v-needs{font-size:11.5px;color:var(--human);margin-top:6px;display:flex;align-items:center;gap:8px}
+.v-cap{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-top:8px;font-size:10px;color:var(--faint)}
+.v-cap-h{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.v-cap-missing{color:var(--contra)}
+.v-replay,.v-handoff{font-family:var(--mono);font-size:10.5px;cursor:pointer;color:var(--anchor);background:none;border:0;padding:0}
+.v-handoff{border:1px solid var(--line2);border-radius:7px;padding:3px 8px}
+.v-handoff:focus-visible,.v-replay:focus-visible{outline:2px solid var(--anchor);outline-offset:1px}

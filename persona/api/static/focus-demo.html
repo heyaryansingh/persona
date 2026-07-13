@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focus / Review — module demo (S3, mock data)</title>
+<!-- Standalone visual harness for ui.js + focus.js. NOT wired into index.html.
+     Loads app.css for :root tokens + focus.css for module styles. Works under
+     file:// and under /static once P0.1's mount exists. Delete-safe. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/app.css">
+<link rel="stylesheet" href="./css/focus.css">
+<style>
+  body{background:var(--bg);color:var(--ink);font-family:var(--serif);margin:0;padding:28px}
+  .demo-h{max-width:1100px;margin:0 auto 18px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .demo{display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:1100px;margin:0 auto;align-items:start}
+  @media(max-width:760px){.demo{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="demo-h">Persona · Lane-4 surface modules · mock data · not yet wired</div>
+<div class="demo-h" style="margin-top:0">Flagship 4.1 — Field rests on + value queue</div>
+<div class="demo" id="flagship"></div>
+<div class="demo-h" style="margin-top:22px">Focus + Review</div>
+<div class="demo" id="demo"></div>
+<div class="demo-h" style="margin-top:22px">Oracle verdicts (FC-8) — one honest renderer, every state</div>
+<div id="verdicts" style="max-width:560px;margin:0 auto"></div>
+<script src="./js/ui.js"></script>
+<script src="./js/focus.js"></script>
+<script src="./js/field.js"></script>
+<script src="./js/verdict.js"></script>
+<script>
+  PField.mount(document.getElementById("flagship"));
+  PFocus.mount(document.getElementById("demo"));
+  const M = PVerdict.mockEnvelopes();
+  document.getElementById("verdicts").innerHTML =
+    Object.values(M).map(e => PVerdict.renderVerdict(e)).join("");
+</script>
+</body>
+</html>

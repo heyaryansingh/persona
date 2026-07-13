@@ -2,6 +2,10 @@ const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
 
+// S2 P0.3: allow a non-default base URL so the gate can run on a clean :8138 server
+// while an idle leftover server holds :8137 (see requests/S2--to--S0--orphan-server-8137.md).
+const BASE = process.env.PERSONA_SMOKE_BASE || "http://127.0.0.1:8137";
+
 async function main() {
   const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ||
     ["C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -19,7 +23,7 @@ async function main() {
     }
   });
 
-  await page.goto("http://127.0.0.1:8137", { waitUntil: "networkidle" });
+  await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => { openMind("curie-3c33"); setSurface("studios"); });
   await page.locator(".sessioncard").first().waitFor({ state: "visible" });
 

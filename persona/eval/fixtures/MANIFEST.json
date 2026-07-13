@@ -1,0 +1,25 @@
+{
+  "litqa2": {
+    "benchmark": "LitQA2",
+    "source_url": "https://github.com/Future-House/LAB-Bench",
+    "license": "see upstream (record before redistribution)",
+    "version": "unpinned",
+    "n": 0,
+    "selected_ids": [],
+    "frozen_at_utc": null,
+    "subset_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourcing_status": "unfetched"
+  },
+  "bixbench": {
+    "benchmark": "BixBench",
+    "source_url": "https://github.com/Future-House/BixBench",
+    "license": "see upstream (record before redistribution)",
+    "version": "unpinned",
+    "n": 0,
+    "selected_ids": [],
+    "frozen_at_utc": null,
+    "subset_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sourcing_status": "unfetched"
+  },
+  "_note": "Empty = real benchmark gold not fetched offline in this env. Run persona/eval/fetch_fixtures.py with network to pull + freeze a stratified subset. NEVER hand-author items."
+}

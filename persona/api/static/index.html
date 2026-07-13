@@ -585,6 +585,7 @@
     .row.contradiction,.row.escalate,.row.artifact{animation:rowIn .26s var(--eout)}
   }
 </style>
+<link rel="stylesheet" href="/static/css/focus.css">
 </head>
 <body>
 
@@ -804,6 +805,12 @@
       <div id="knowledgebody" class="knowbody"><div class="empty">building the knowledge ladder…</div></div>
     </div>
 
+    <!-- FIELD (flagship 4.1 — Lane 4) -->
+    <div class="surface" id="surf-field">
+      <div class="surfhead"><span class="stitle">field rests on this · load-bearing claims + value queue</span><span class="note">server-computed · ◇ = thinly supported · value queue advisory until RQ-E17</span></div>
+      <div id="fieldmount" class="fieldwrap"></div>
+    </div>
+
     <!-- BRAIN -->
     <div class="surface" id="surf-brain">
       <div class="fsgrid">
@@ -868,6 +875,12 @@
   </div>
 </div>
 <div id="toast" aria-live="polite"></div>
+
+<!-- Lane-4 surface modules (served by /static; define PUI/PFocus/PField/PVerdict globals) -->
+<script src="/static/js/ui.js"></script>
+<script src="/static/js/focus.js"></script>
+<script src="/static/js/field.js"></script>
+<script src="/static/js/verdict.js"></script>
 
 <script>
 /* =========================================================================
@@ -936,7 +949,7 @@ function ignitionAnim(){}
 /* ------------------------- open a mind (shell) ------------------------- */
 function openMind(id){
   PID=id; $("#genesis").style.display="none"; $("#ignition").style.display="none"; $("#shell").style.display="flex";
-  $("#stream").innerHTML=""; $("#mindname").textContent="…"; window.__kg=null; FS.tree=null; FS.path="";
+  $("#stream").innerHTML=""; _seenEv.clear(); $("#mindname").textContent="…"; window.__kg=null; FS.tree=null; FS.path="";
   TEL.obs=0; TEL.esc=0; TEL.workers=0; TEL.queue=0;
   setSurface('brain');            // documents-first: land on the file browser, not the text stream
   backfillStream();
@@ -961,8 +974,8 @@ function toGenesis(){
 // Four destinations; grouped surfaces expose a sub-tab strip. Internal surface keys
 // (stream/graph/evolution/fieldmap/brain/studios/instruments) are unchanged so every
 // deep link and the research smoke test keep working.
-const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',graph:'map',evolution:'map',fieldmap:'map',knowledge:'map',studios:'work',brain:'work',instruments:'review'};
-const SUBTABS={map:[['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map'],['knowledge','Knowledge']],work:[['studios','Research'],['brain','Brain']]};
+const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',field:'map',graph:'map',evolution:'map',fieldmap:'map',knowledge:'map',studios:'work',brain:'work',instruments:'review'};
+const SUBTABS={map:[['field','Field rests on'],['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map'],['knowledge','Knowledge']],work:[['studios','Research'],['brain','Brain']]};
 function setSurface(name){
   CURSURF=name;
   const dest=SURF_DEST[name]||'focus';
@@ -973,7 +986,8 @@ function setSurface(name){
   sb.innerHTML=subs?subs.map(([k,l])=>`<button class="${k===name?'on':''}" onclick="setSurface('${k}')">${esc(l)}</button>`).join(""):"";
   sb.style.display=subs?"flex":"none";
   stopSurfaceLoops();
-  if(name==="graph"){ openGraph(); }
+  if(name==="field"){ openField(); }
+  else if(name==="graph"){ openGraph(); }
   else if(name==="evolution"){ openEvolution(); }
   else if(name==="fieldmap"){ openFieldmap(); }
   else if(name==="knowledge"){ openKnowledge(); }
@@ -990,6 +1004,13 @@ function stopSurfaceLoops(){
   if(GX.playIv){clearInterval(GX.playIv);GX.playIv=null;}
   if(EV.playIv){clearInterval(EV.playIv);EV.playIv=null;}
   if(SWARM.iv){clearInterval(SWARM.iv);SWARM.iv=null;}
+}
+/* --------------------- flagship: field rests on this --------------------- */
+function openField(){
+  const el=$("#fieldmount"); if(!el)return;
+  if(!window.PField){ el.innerHTML='<div class="empty">field module unavailable</div>'; return; }
+  if(PID && PField.loadField){ PField.loadField(PID, '', el); }   // live FC-4 → render (empty if absent)
+  else { el.innerHTML='<div class="empty">no persona loaded</div>'; }
 }
 /* ------------------------- live swarm view ------------------------- */
 const SWARM={iv:null,seenDone:new Set()};
@@ -1152,9 +1173,13 @@ async function refreshSelf(){try{const s=await (await fetch(A("/self"))).json();
 /* ------------------------- stream ------------------------- */
 const GLYPH={thought:"∴",read:"▤",claim:"◆",belief_update:"⟳",contradiction:"◈",spawn:"▹",tool:"⌥",artifact:"✦",say:"›",reply:"‹",escalate:"!",boot:"●",error:"✕",control:"·",seed:"✧",schedule:"·",lease:"·",coherence:"~",cost:"$",synthesis:"❋",observe:"◎"};
 const MAXROWS=1200; let pendingRow=null,pendingTO=null;
+const _seenEv=new Set();
 function addEvent(e){
   const stream=$("#stream"); if(!stream)return;
   if(["spawn","lease","schedule","cost"].includes(e.type))return;
+  const _k=e.id||`${e.ts}|${e.type}|${e.actor}|${e.message}`;   // dedup backfill/live overlap (S2 report)
+  if(_seenEv.has(_k))return; _seenEv.add(_k);
+  if(_seenEv.size>MAXROWS*2)_seenEv.delete(_seenEv.values().next().value);   // bound like the DOM
   if(e.type==="reply")clearPending();
   const near=stream.scrollHeight-stream.scrollTop-stream.clientHeight<100;
   const d=document.createElement("div");
