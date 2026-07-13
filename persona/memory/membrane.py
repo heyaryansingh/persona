@@ -267,6 +267,75 @@ def admit_candidate(candidate: dict, kg=None) -> dict:
             "signals": {"nli_span": nli, "kg_support": kgs}}
 
 
+# ------------------------------------------------------------ recomposition / feasibility (F2.4)
+# A second, cheaper gate than admit_candidate: before believing (or even crediting a signal), ask
+# whether the candidate is even *physically/logically possible*. Two deterministic, offline checks
+# — no model, no network:
+#   1. sign-vs-anchor: the candidate's effect_sign directly opposes an ANCHORED (human/tested)
+#      belief on the same (subject,object) pair. Overturning verified knowledge is a human's call,
+#      not the gate's — so an implausible sign-flip is routed out, never silently committed.
+#   2. magnitude-range: a numeric effect size parsed from the free-text `magnitude` field falls
+#      outside a sane range for a ratio/fold (must be > 0; absurdly large = extraction/typo).
+# PLACEHOLDER: the magnitude bounds below are unvalidated heuristics, not calibrated against a
+# labelled set of real vs implausible effect sizes.
+_MAGNITUDE_RATIO_CEILING = 1000.0   # PLACEHOLDER: fold/HR/OR/RR above this ~never real in-vivo
+_RATIO_WORDS = ("fold", "hr", "or", "rr", "ratio")
+
+
+def _magnitude_flag(candidate: dict):
+    """Return a flag string if the free-text `magnitude` names an impossible ratio, else None.
+
+    Deterministic parse (no model): pull the first number out of e.g. '2.1-fold' / 'HR 1.4'. If
+    the magnitude reads as a ratio/fold (the only kind with a hard floor) it must be > 0 and below
+    a sane ceiling — a non-positive or absurdly large fold-change is a physical impossibility /
+    extraction error. Percentages and bare numbers are left alone (no universal sane range).
+    """
+    import re
+    mag = str(candidate.get("magnitude") or "").strip().lower()
+    if not mag or "%" in mag or not any(w in mag for w in _RATIO_WORDS):
+        return None
+    m = re.search(r"-?\d+(?:\.\d+)?", mag)
+    if not m:
+        return None
+    val = float(m.group())
+    if val <= 0:
+        return "magnitude-range: ratio/fold '%s' is non-positive (physically impossible)" % mag
+    if val > _MAGNITUDE_RATIO_CEILING:
+        return ("magnitude-range: ratio/fold %g exceeds sane ceiling %g (likely extraction error)"
+                % (val, _MAGNITUDE_RATIO_CEILING))
+    return None
+
+
+def feasibility_flags(candidate: dict, kg=None) -> dict:
+    """Recomposition/feasibility gate (PRD F2.4) — is this candidate even possible? Offline.
+
+    Flags a candidate claim as physically/logically implausible so the membrane can route it to a
+    human instead of crediting it. Deterministic, no model/network. Two checks (see module notes):
+      * sign-vs-anchor — effect_sign contradicts an ANCHORED belief on the same (subject,object).
+      * magnitude-range — a ratio/fold effect size out of a sane range.
+
+    Returns {feasible: bool, flags: [str]}. feasible=False means "do not admit; hand to a human".
+    """
+    kg = kg if kg is not None else get_kg()
+    flags = []
+    mag = _magnitude_flag(candidate)
+    if mag:
+        flags.append(mag)
+    if kg is not None:
+        try:
+            cc = kg.crosscheck(candidate.get("subject", ""), candidate.get("object", ""),
+                               candidate.get("effect_sign", "na"))
+            for opp in cc.get("contradict", []):
+                prov = kg.provenance(opp.get("claim_id", ""))
+                if prov and prov.get("anchored"):
+                    flags.append("sign-vs-anchor: effect_sign contradicts anchored belief %s (%s)"
+                                 % (opp.get("claim_id"), opp.get("text", "")))
+                    break
+        except Exception:
+            pass
+    return {"feasible": not flags, "flags": flags}
+
+
 def project_beliefs(kg=None, min_independent: int = 2) -> None:
     """Render the KG's high-confidence beliefs into legible self/beliefs.md (git-diffable mind)."""
     kg = kg or get_kg()
