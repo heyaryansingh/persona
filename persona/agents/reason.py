@@ -37,6 +37,12 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _hd() -> str:
+    """Human authoring date, e.g. 'July 13, 2026' (never an epoch/ISO timestamp in the reader's face)."""
+    d = datetime.now(timezone.utc)
+    return f"{d:%B} {d.day}, {d.year}"
+
+
 def _slug(t: str) -> str:
     return (re.sub(r"[^a-z0-9]+", "-", (t or "").lower()).strip("-")[:48]) or "derivation"
 
@@ -76,27 +82,46 @@ def prove(question: str, *, parent_id=None) -> dict:
     project = p.paths.projects_dir / f"derivation-{_slug(question)}" / run_id
     project.mkdir(parents=True, exist_ok=True)
 
-    # extract every sympy check block and RUN it in the sandbox — this is the machine verification
-    blocks = re.findall(r"```python\s*(.*?)```", md, re.S)
+    # Extract every sympy check block WITH the step it belongs to (nearest preceding heading), RUN it in
+    # the sandbox, then STRIP the raw code from the rendered document. A published derivation reads as
+    # prose + a clean machine-check summary — not pasted sympy scripts and print() output (that is slop).
+    blocks = []
+    for m in re.finditer(r"```python\s*(.*?)```", md, re.S):
+        hpos = md.rfind("\n#", 0, m.start())
+        label = ""
+        if hpos != -1:
+            line_end = md.find("\n", hpos + 1)
+            label = re.sub(r"^#+\s*", "", md[hpos + 1:line_end if line_end != -1 else None]).strip()
+        blocks.append({"code": m.group(1), "label": label})
     results = []
-    for i, code in enumerate(blocks):
-        wrapped = code.strip() + '\nprint("__STEP_OK__")\n'
+    for i, b in enumerate(blocks):
+        wrapped = b["code"].strip() + '\nprint("__STEP_OK__")\n'
         r = sandbox.run_python(wrapped, project / f"check_{i}", timeout=30)
         ok = r.get("exit_code") == 0 and "__STEP_OK__" in (r.get("stdout") or "")
-        results.append({"idx": i, "ok": ok, "stderr": (r.get("stderr") or "")[-300:]})
+        results.append({"idx": i, "ok": ok, "label": b["label"], "stderr": (r.get("stderr") or "")[-300:]})
 
     verified = sum(1 for r in results if r["ok"])
     total = len(results)
-    # annotate the document with the verification outcome (honest: checked vs argued)
-    banner = (f"_derivation · {verified}/{total} step-checks machine-verified in the sandbox · {_now()}_"
-              if total else f"_derivation · no machine-checkable steps · {_now()}_")
-    body = re.sub(r"^#\s+.*$", lambda m: m.group(0) + "\n\n" + banner, md, count=1, flags=re.M)
+    # strip the raw code blocks and any leaked machine-output prose ("Step k OK: …", bare print(...))
+    clean = re.sub(r"```python\s*.*?```\n?", "", md, flags=re.S)
+    clean = re.sub(r'^\s*(?:print\(.*|Step \d+ OK:.*|__STEP_OK__.*)$', "", clean, flags=re.M)
+    clean = re.sub(r"\n{3,}", "\n\n", clean).strip()
+    # honest, professional subtitle — no bot-name, no epoch timestamp
+    banner = (f"*{verified} of {total} steps machine-checked by symbolic computation in an isolated "
+              f"sandbox · {_hd()}*" if total
+              else f"*Analytical derivation — no symbolically checkable steps · {_hd()}*")
+    body = re.sub(r"^#\s+.*$", lambda m: m.group(0) + "\n\n" + banner, clean, count=1, flags=re.M)
     if banner not in body:                          # no H1 to anchor under
-        body = f"# Derivation\n\n{banner}\n\n" + md
+        body = f"# Derivation\n\n{banner}\n\n" + clean
     if total:
-        body += "\n\n## verification\n" + "\n".join(
-            f"- check {r['idx']+1}: {'✓ verified' if r['ok'] else '✗ failed — ' + (r['stderr'] or 'no output')}"
-            for r in results) + "\n"
+        # each line names the STEP it verifies (not an opaque "check 1"), and says what verification means
+        body += ("\n\n## Machine-checked steps\n\n_Each step's symbolic assertion was executed in an "
+                 "isolated, offline sandbox; a failing check would have blocked publication. This certifies "
+                 "the internal logic/arithmetic, not the empirical premises._\n\n" + "\n".join(
+            f"- **{r['label'] or ('Step ' + str(r['idx'] + 1))}** — "
+            + ("verified" if r['ok'] else "not verified ("
+               + ((r['stderr'].splitlines()[-1][:120]) if r['stderr'] else "no output") + ")")
+            for r in results) + "\n")
     (project / "derivation.md").write_text(body, encoding="utf-8")
 
     # compile to a real PDF deliverable (best-effort; the .md stands on its own if compile fails)

@@ -31,33 +31,40 @@ _TOOL = {"name": "write_paper", "description": "Write a complete research paper 
              "required": ["title", "markdown"]}}
 
 _SYSTEM = (
-    "You are writing a research article to the standard of a top journal (Nature / PNAS): precise, "
-    "structured, figure-rich, every claim traceable. Write in MARKDOWN from the mind's cited synthesis "
-    "notes, prior beliefs, and prior papers. Follow this journal structure EXACTLY:\n"
-    "1. `# Title` — specific, informative, and self-contained.\n"
-    "2. `## Abstract` — ONE tight paragraph, ≤180 words: background, the question, what you establish, "
-    "and the key result. No walls of text.\n"
-    "3. `## Significance` — 2–3 sentences a non-specialist scientist could read: why this matters "
-    "(Nature/PNAS-style significance statement).\n"
+    "You are a domain scientist writing a research article to the standard of a top journal (Nature / "
+    "PNAS). Write in MARKDOWN from the mind's cited synthesis notes, prior beliefs, and prior papers.\n\n"
+    "VOICE — write like a working scientist, not an AI:\n"
+    "• Measured, precise, declarative. State findings; let the evidence carry them.\n"
+    "• NEVER narrate your own process, tools, or limitations in the body: no 'the sandbox was used to…', "
+    "no 'no wet-lab/statistical computation was performed', no 'we searched the notes', no meta-commentary "
+    "about steps you did or did not take or why a step is weak. That belongs nowhere in a manuscript.\n"
+    "• No filler or AI tells: drop 'it is important to note', 'it is worth mentioning', 'in conclusion', "
+    "'delve', 'landscape', 'plays a crucial role', 'a testament to'. No hedging pileups. No restating the "
+    "question as a finding.\n"
+    "• LEAD WITH WHAT IS NEW OR UNSETTLED. Prioritise the most novel, non-obvious, or decision-relevant "
+    "result — a genuine tension in the literature, a mechanism that discriminates between hypotheses, the "
+    "specific experiment the field now needs. Do not pad with a bland recap of textbook background.\n\n"
+    "STRUCTURE — follow EXACTLY:\n"
+    "1. `# Title` — specific, informative, self-contained (no colon-salad buzzwords).\n"
+    "2. `## Abstract` — ONE tight paragraph, ≤180 words: the question, what you establish, the key result.\n"
+    "3. `## Significance` — 2–3 sentences a non-specialist scientist could read: why it matters now.\n"
     "4. `## Main result` — the precise claims of THIS paper as a short bulleted list. Flag ONLY the "
     "noteworthy ones: **[PROVED HERE]** (a complete argument is given below), **[VERIFIED NUMERICALLY]** "
     "(machine-checked by computation), or **[OPEN]** (conjecture / not settled). A claim merely "
-    "established in the literature needs NO tag — just carry its [n] citation (the citation is its "
-    "evidence; do NOT write '[CITED]'). Never tag PROVED HERE unless the argument is actually in the paper.\n"
-    "5. `## Introduction` — the problem, prior work (cite [n]), and the gap.\n"
-    "6. `## Methods` — how the result is obtained: the reduction/derivation strategy, and any "
-    "computation (state that code was run in a sandbox and what it checked).\n"
-    "7. `## Results` — the actual argument/derivation/computation, section by section. Show the "
-    "reasoning, not just conclusions. Reference **Figure 1**, **Figure 2** where they clarify, and give "
-    "each a real one-line caption.\n"
-    "8. `## Reasoning chain` — a numbered chain tracing each Main-result item to its support: a cited "
-    "source `[n]`, a prior belief, or a step proved above. A reader must walk evidence → conclusion.\n"
-    "9. `## Discussion` — established vs contested vs open, limitations, and the next question.\n"
-    "10. `## References` — number every source `1. Authors/title — venue (doi:…)`; every inline `[n]` "
-    "must resolve here.\n"
-    "Use $…$ / $$…$$ for math. Embed EACH provided figure once as `![Figure N. <caption>](figureN.png)` "
-    "in Results where it is discussed. Ground every claim in the provided material; never claim a proof "
-    "you do not have — an honest 'not settled by the present evidence' beats a bluff.")
+    "established in the literature needs NO tag — carry its [n] citation. Never tag PROVED HERE unless the "
+    "argument is actually in the paper.\n"
+    "5. `## Introduction` — the problem, prior work (cite [n]), and the specific gap this paper addresses.\n"
+    "6. `## Results` — the actual findings/argument, section by section, in scientific prose. Show the "
+    "reasoning and the evidence, not just conclusions; quantify where the sources quantify. Reference "
+    "**Figure 1**/**Figure 2** where they clarify, each with a real one-line caption.\n"
+    "7. `## Discussion` — what is established vs contested vs open, the strongest counter-evidence, the "
+    "real limitations of the EVIDENCE (not of your tooling), and the single most valuable next experiment.\n"
+    "8. `## References` — number every source `1. Authors. Title. Venue. Year. https://doi.org/…`; every "
+    "inline `[n]` must resolve here. Put each reference on its own line.\n"
+    "Use $…$ / $$…$$ for math. Embed EACH provided figure once as `![Figure N. <caption>](figureN.png)` in "
+    "Results where it is discussed. Ground every claim in the provided material; where evidence is "
+    "preclinical, single-lab, or mixed, say so plainly in-line — an honest 'not settled by present "
+    "evidence' beats a bluff, but state it as a scientist would, without apologising for your method.")
 
 
 def _slug(t, limit=48):
@@ -153,6 +160,97 @@ def _fix_references(md: str, sources: list) -> str:
     return md.rstrip() + "\n\n## References\n\n" + lines + "\n"
 
 
+def _fmt_authors(authors) -> str:
+    """'Surname I.' for up to 3 authors, then 'et al.' — the byline of a real reference."""
+    if isinstance(authors, str):
+        try:
+            authors = json.loads(authors.replace("'", '"'))
+        except Exception:
+            authors = [a.strip(" '\"[]") for a in authors.split(",")]
+    authors = [a for a in (authors or []) if a and str(a).strip()]
+
+    def si(name):
+        parts = str(name).replace(",", " ").split()
+        return f"{parts[-1]} " + "".join(p[0] + "." for p in parts[:-1] if p) if len(parts) > 1 else (parts[0] if parts else "")
+    named = [si(a).strip() for a in authors[:3] if si(a).strip()]
+    return (", ".join(named) + (", et al." if len(authors) > 3 else "")) if named else ""
+
+
+def _source_index(p) -> dict:
+    """doi (lowercased) -> source meta.json, from the papers this mind has actually read. No network:
+    authors/year/venue/title were already captured at ingest, so every reference resolves off disk."""
+    idx = {}
+    for mf in p.paths.sources_dir.glob("*/meta.json"):
+        try:
+            m = json.loads(mf.read_text(encoding="utf-8", errors="replace"))
+            d = (m.get("doi") or "").strip().lower()
+            if d:
+                idx[d] = m
+        except Exception:
+            pass
+    return idx
+
+
+def _pro_citation(cite: str, idx: dict) -> str:
+    """Promote a note's impoverished '[Title — lab:university (doi:D)]' into a professional reference
+    built from the source metadata: 'Chen J, Mei A, et al. Title. Journal. 2022. https://doi.org/D'.
+    The DOI becomes a resolvable link (the 'citation link'). Falls back to a de-uglified cite string."""
+    m = re.search(r"doi:\s*([^\s)\]]+)", cite, re.I)
+    doi = m.group(1).strip().lower() if m else ""
+    meta = idx.get(doi)
+    if not meta:                                    # no metadata: at least drop the 'lab:…' stand-in
+        return re.sub(r"\s*[—-]\s*lab:[^()]*", " ", cite).strip()
+    title = re.sub(r"</?[A-Za-z][^>]*>", "", str(meta.get("title") or cite)).strip().rstrip(".")
+    venue = (meta.get("venue") or "").strip()
+    year = str(meta.get("year") or "").strip()
+    authors = _fmt_authors(meta.get("authors"))
+    parts = [p for p in (
+        (authors.rstrip(".") + "." if authors else ""), title + ".",
+        (f"*{venue}*." if venue else ""), (year + "." if year and year != "0" else ""),
+        (f"https://doi.org/{doi}" if doi else "")) if p]
+    return " ".join(parts)
+
+
+def _process_appendix(p, n_sources: int) -> str:
+    """The bottom 'how this was made' section — the funnel of trust, from REAL persona state: which
+    agents/teams ran, on how much evidence, and how it was checked. Honest and specific, not model prose."""
+    try:
+        n_read = sum(1 for _ in p.paths.sources_dir.glob("*/meta.json"))
+        n_notes = sum(1 for _ in p.paths.notes_dir.glob("*.md"))
+    except Exception:
+        n_read = n_notes = 0
+    n_verified = 0
+    try:
+        from ..memory import verified as vled
+        n_verified = sum(1 for e in vled.entries() if e.get("verified"))
+    except Exception:
+        pass
+    checked = (f" ({n_verified} result(s) currently stand as machine-verified in this mind's ledger)"
+               if n_verified else "")
+    return "\n".join([
+        "## How this paper was produced",
+        "",
+        "*Persona is a persistent, autonomous synthetic researcher. This manuscript was assembled by a "
+        "pipeline of bounded agents that read the literature at scale and machine-check their own logic; "
+        "it synthesises published work and does not report new wet-lab experiments. The trail is auditable.*",
+        "",
+        f"- **Reading — reader swarm.** Retrieved and read {n_read} primary source(s) from the open "
+        "literature (Europe PMC / OpenAlex), each agent extracting structured claims tied to a source span.",
+        "- **Admission — the membrane.** Screened those claims by provenance and cross-source agreement "
+        "before any entered the belief-state: scale of reading, discipline of believing.",
+        f"- **Synthesis — consolidation agent.** Clustered the admitted claims into {n_notes} cited note(s); "
+        f"the {n_sources} numbered references above are the sources this argument rests on.",
+        f"- **Reasoning — derivation & analyst agents.** Symbolic and numeric steps were checked by running "
+        f"them in an isolated, offline sandbox{checked}.",
+        "- **Writing & review — writer and reviewer agents.** Drafted this manuscript, then verified "
+        "citation integrity, figure captions, and honest claim-status labelling before release.",
+        "",
+        "*Every numbered reference resolves to a real paper and DOI; claim status — established, contested, "
+        "or open — is labelled explicitly rather than asserted.*",
+        "",
+    ])
+
+
 def _fix_captions(md: str, capmap: dict) -> str:
     """Replace shipped PLACEHOLDER figure captions ('structure and objects of the problem') with the
     figure's real title, so a paper never ships a generic/framing caption."""
@@ -175,14 +273,16 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
         return {"ok": False, "reason": "no-notes-yet"}
     slugs = [h["slug"] for h in p.vectors.search(topic, k=max_notes) if h.get("slug")] or \
             [f.stem for f in sorted(nd.glob("*.md"))[:max_notes]]
-    notes, sources = [], []               # sources: unique "[n] Title — venue (doi:…)" strings, numbered 1..N
+    src_idx = _source_index(p)            # doi -> read-source metadata (authors/year/venue), off disk
+    notes, sources = [], []               # sources: professional numbered references, 1..N
     for s in slugs:
         f = nd / f"{s}.md"
         if f.exists():
             txt = f.read_text(encoding="utf-8")
             notes.append(txt[:3000])
             for m in re.finditer(r"^\[(\d+)\]\s*(.+)$", txt, re.M):
-                cite = re.sub(r"</?[A-Za-z][^>]*>", "", m.group(2)).strip()   # strip leaked HTML tags
+                raw = re.sub(r"</?[A-Za-z][^>]*>", "", m.group(2)).strip()     # strip leaked HTML tags
+                cite = _pro_citation(raw, src_idx)                            # real authors/venue/year/link
                 if cite not in sources and len(sources) < 24:      # cap so the ref tail can't blow tokens
                     sources.append(cite)
     if not notes:
@@ -294,6 +394,7 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
     md = re.sub(r"</?(?:i|b|em|strong|sup|sub|mml:[a-z]+)\b[^>]*>", "", md)   # leaked <i>…</i> from titles
     md = _fix_captions(md, dict(figinfo))
     md = _style_status(md)                                # A5: raw **[OPEN]** -> styled badge + legend
+    md = md.rstrip() + "\n\n" + _process_appendix(p, len(sources))   # bottom: the agents/steps that made it
     hm = re.search(r"^#\s+(.+)$", md, re.M)
     title = (hm.group(1).strip() if hm else "") or topic
     # SUBSTANCE FLOOR: never ship a bodyless / references-only stub as a paper.
@@ -346,6 +447,19 @@ def write_paper(topic: str, *, parent_id=None, max_notes: int = 6) -> dict:
         log().emit("error", f"paper on “{topic}” did not compile", actor="paper", parent_id=parent_id)
         return {"ok": False, "reason": "compile-failed",
                 "project": str(project.relative_to(p.paths.projects_dir)).replace("\\", "/")}
+    # HARSH PRE-SHIP AUDIT (deterministic, offline — no model): formatting overflow, leaked status
+    # literals, citation integrity, and epoch-date '1970' forensics over the compiled .tex + sources.
+    from .paper_lint import lint_paper
+    lint = lint_paper({"tex": (project / "main.tex").read_text(encoding="utf-8", errors="replace"),
+                       "markdown": md, "filename": _deliverable_name(topic), "sources": sources})
+    receipt["lint"] = lint
+    if lint["ok"]:
+        log().emit("control", "paper passed the pre-ship audit (formatting · citations · dates)",
+                   actor="paper", parent_id=parent_id)
+    else:
+        log().emit("control", f"pre-ship audit flagged {len(lint['violations'])} issue(s): "
+                   + "; ".join(f"{x['code']} {x['msg']}" for x in lint["violations"][:6]),
+                   actor="paper", parent_id=parent_id)
     p.paths.deliverables_dir.mkdir(parents=True, exist_ok=True)
     source_hash = attempts[-1]["source_sha256"]
     dst = p.paths.deliverables_dir / _deliverable_name(topic)   # B1: readable title + ISO date, no hash

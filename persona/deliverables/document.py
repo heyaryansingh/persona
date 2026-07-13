@@ -37,9 +37,19 @@ _TEMPLATE = (
     "showstringspaces=false}\n"
     "\\sloppy\\emergencystretch=3em\n"
     "\\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,breaklinks=true}\n"
-    "\\title{%(title)s}\n\\author{Persona}\n\\date{\\today}\n"
+    "\\title{%(title)s}\n\\author{Persona}\n\\date{%(date)s}\n"
     "\\begin{document}\n\\maketitle\n%(body)s\n\\end{document}\n"
 )
+
+
+def _human_date() -> str:
+    """The real authoring date, computed on the HOST (e.g. 'July 13, 2026'). Never '\\today': the
+    offline sandbox runs pdflatex with SOURCE_DATE_EPOCH=0 + FORCE_SOURCE_DATE=1 (reproducible builds),
+    which makes '\\today' render as 'January 1, 1970'. Baking the date into the source keeps the build
+    byte-reproducible (same source -> same bytes) while showing the correct date."""
+    from datetime import datetime, timezone
+    d = datetime.now(timezone.utc)
+    return f"{d:%B} {d.day}, {d.year}"
 
 # fence language -> listings language name. Only languages listings ships a dictionary for (an unknown
 # `language=` aborts the build); everything else renders as a plain lstlisting. Keys are lowercased.
@@ -292,7 +302,10 @@ def render_latex(source: str, fmt: str = "md", *, title: str = "", layout: str =
         lay = choose_layout(md) if layout == "auto" else layout
         classopts = "11pt,twocolumn" if lay == "two" else "11pt"
         body = md_to_latex(md, title, assets=assets)
-        tex = _TEMPLATE % {"classopts": classopts, "title": _scrub(_esc(title or "Document")), "body": body}
+        tex = _TEMPLATE % {"classopts": classopts, "title": _scrub(_esc(title or "Document")),
+                           "date": _human_date(), "body": body}
+    # never let a raw/model-authored \today reach the sandbox — it renders as 1970 there (see _human_date)
+    tex = tex.replace(r"\today", _human_date())
     # FINAL GUARANTEE (no dead PDFs): any non-ASCII math glyph that survived into a code block
     # or a raw .tex source — ≡ ≈ Ω ⊕ ✓ … — is undeclared under utf8 inputenc and aborts pdflatex
     # ("not set up for use with LaTeX → no output PDF"). Prose is already mapped to ASCII macros
