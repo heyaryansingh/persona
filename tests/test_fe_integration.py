@@ -13,7 +13,15 @@ def test_field_surface_wired():
     assert "field:'map'" in HTML                          # SURF_DEST
 
 
+def test_epistemic_surface_wired():
+    assert 'id="surf-epistemic"' in HTML and 'id="epistemicmount"' in HTML
+    assert "function openEpistemic(" in HTML
+    assert 'else if(name==="epistemic"){ openEpistemic(); }' in HTML
+    assert "['epistemic','Epistemic']" in HTML
+
+
 def test_lane4_modules_linked():
-    for src in ["/static/js/ui.js", "/static/js/focus.js", "/static/js/field.js", "/static/js/verdict.js"]:
+    for src in ["/static/js/ui.js", "/static/js/focus.js", "/static/js/field.js",
+                "/static/js/verdict.js", "/static/js/epistemic.js"]:
         assert f'src="{src}"' in HTML, src
     assert 'href="/static/css/focus.css"' in HTML
