@@ -61,3 +61,19 @@ def test_debit_counts_gated_check_as_not_applicable_not_passed():
 def test_debit_all_gated_yields_zero_applicable():
     d = F.debit({"tests": [{"test": "kruskal", "stat": 3, "df1": 2, "reported_p": 0.1}]})
     assert d["applicable"] == 0 and d["not_applicable"] == 1 and d["passed"] == 0
+
+
+def test_grimmer_flags_arithmetically_impossible_sd():
+    # S2 review HIGH regression: the old `frac < 0.5` test was a tautology and GRIMMER passed every
+    # input. For n=2 integer responses summing to 2, no integer sum-of-squares lands in sd=0.50's
+    # rounding band, so this SD is impossible and MUST be flagged inconsistent (not fabricated 'ok').
+    r = F.grimmer(mean=1.00, sd=0.50, n=2, decimals=2)
+    assert r["status"] == "inconsistent" and not _passed(r["status"])
+
+
+def test_grimmer_passes_an_achievable_sd():
+    # Responses (1, 2): mean 1.50, sum-of-squares 5, sample sd = sqrt(0.5) ~ 0.71 — genuinely achievable.
+    r = F.grimmer(mean=1.50, sd=0.71, n=2, decimals=2)
+    assert _passed(r["status"])
+    # sd = 0 with integer mean (responses 1, 1) is also consistent.
+    assert _passed(F.grimmer(mean=1.00, sd=0.00, n=2, decimals=2)["status"])

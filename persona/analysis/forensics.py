@@ -126,10 +126,15 @@ def grimmer(mean: float, sd: float, n: int, decimals: int = 2, items: int = 1) -
         total = round(float(mean) * n * items)          # integer sum of responses (GRIM)
         # sample variance uses (n-1); sum of squares SS = sd^2*(n-1) + total^2/(n)  (for the raw values)
         ss = float(sd) ** 2 * (n - 1) + (total ** 2) / n
-        # SS must be >= the minimum possible (all mass at the mean) and round to a near-integer
-        frac = abs(ss - round(ss))
-        # tolerance scales with rounding of sd
-        consistent = frac < 0.5 or float(sd) == 0
+        # Σx² must be a NON-NEGATIVE INTEGER (a sum of squares of integer responses). sd is reported
+        # to `decimals` places, so the true sd ∈ [sd−½·10⁻ᵈ, sd+½·10⁻ᵈ); GRIMMER-consistent iff an
+        # integer Σx² lies in the band that maps to (Anaya 2016). The old `frac = |ss−round(ss)| < 0.5`
+        # was a tautology — that distance is always ≤ 0.5 — so GRIMMER passed EVERY input, fabricating
+        # 'ok' for arithmetically impossible SDs (the one thing this module exists to catch). S2 review HIGH.
+        prec = 0.5 * 10 ** (-int(decimals))
+        ss_lo = max(0.0, float(sd) - prec) ** 2 * (n - 1) + (total ** 2) / n
+        ss_hi = (float(sd) + prec) ** 2 * (n - 1) + (total ** 2) / n
+        consistent = math.floor(ss_hi + 1e-9) >= math.ceil(ss_lo - 1e-9)
         return {"check": "grimmer", "status": "ok" if consistent else "inconsistent",
                 "severity": 0 if consistent else 2,
                 "detail": (f"SD {sd} is inconsistent with mean {mean} at n = {n} (implied sum-of-squares "
