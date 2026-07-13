@@ -87,3 +87,19 @@ def test_retraction_pass_contamination_only_is_warn():
         sys.modules.pop("persona.ingest.retraction", None)
         if hasattr(ingest_pkg, "retraction"):
             delattr(ingest_pkg, "retraction")
+
+
+def test_reaudit_force_bypasses_staleness_floor(monkeypatch):
+    """Regression (7723285 -> HTTP 500): reaudit(force=True) must be a valid call AND bypass the
+    12h staleness floor (min_age_hours=0), while the default supervisor path keeps the floor (M2)."""
+    from persona.agents import audit
+    from persona.memory import watchlist
+    calls = []
+    monkeypatch.setattr(watchlist, "due",
+                        lambda min_age_hours=12.0: (calls.append(min_age_hours), None)[1])
+    r = audit.reaudit(force=True)              # was TypeError before the fix
+    assert r == {"ok": True, "reaudited": 0, "reason": "watchlist-empty"}
+    assert calls == [0]                        # force -> ignores staleness floor
+    calls.clear()
+    audit.reaudit()                            # supervisor path
+    assert calls == [12.0]                     # default -> 12h floor intact (M2)

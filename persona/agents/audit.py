@@ -401,11 +401,15 @@ def audit(slug: str | None = None, text: str = "", title: str = "", *, upload_re
     return result
 
 
-def reaudit(*, parent_id=None) -> dict:
+def reaudit(*, parent_id=None, force: bool = False) -> dict:
     """Re-audit the least-recently-checked watchlist paper and record any movement in its verdict.
-    This is the auditor's self-correction loop — the analogue of revisit.py for verified beliefs."""
+    This is the auditor's self-correction loop — the analogue of revisit.py for verified beliefs.
+    force=True bypasses the staleness floor (min_age_hours=0) for the on-demand API path — the
+    supervisor tick leaves it False so the 12h floor (M2) still guards the reaudit busy-loop.
+    (Regression fix: 7723285 dropped this param; the /reaudit endpoint calls reaudit(force=True)
+    and 500'd, and even fixed would have silently honored the floor it must ignore — 18b8e07.)"""
     from ..memory import watchlist
-    e = watchlist.due()
+    e = watchlist.due(min_age_hours=0) if force else watchlist.due()
     if e is None:
         return {"ok": True, "reaudited": 0, "reason": "watchlist-empty"}
     if not config.have_key() or not budget().can_spend():
