@@ -811,6 +811,12 @@
       <div id="fieldmount" class="fieldwrap"></div>
     </div>
 
+    <!-- EPISTEMIC (F4.4 — Lane 4) -->
+    <div class="surface" id="surf-epistemic">
+      <div class="surfhead"><span class="stitle">epistemic status · what the belief store rests on + which gates have earned autonomy</span><span class="note">provenance is a live KG audit · gates advisory until passed</span></div>
+      <div id="epistemicmount" style="padding:10px 2px;max-width:760px"></div>
+    </div>
+
     <!-- BRAIN -->
     <div class="surface" id="surf-brain">
       <div class="fsgrid">
@@ -881,6 +887,7 @@
 <script src="/static/js/focus.js"></script>
 <script src="/static/js/field.js"></script>
 <script src="/static/js/verdict.js"></script>
+<script src="/static/js/epistemic.js"></script>
 
 <script>
 /* =========================================================================
@@ -974,8 +981,8 @@ function toGenesis(){
 // Four destinations; grouped surfaces expose a sub-tab strip. Internal surface keys
 // (stream/graph/evolution/fieldmap/brain/studios/instruments) are unchanged so every
 // deep link and the research smoke test keep working.
-const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',field:'map',graph:'map',evolution:'map',fieldmap:'map',knowledge:'map',studios:'work',brain:'work',instruments:'review'};
-const SUBTABS={map:[['field','Field rests on'],['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map'],['knowledge','Knowledge']],work:[['studios','Research'],['brain','Brain']]};
+const SURF_DEST={stream:'focus',swarm:'swarm',studio:'studio',field:'map',epistemic:'map',graph:'map',evolution:'map',fieldmap:'map',knowledge:'map',studios:'work',brain:'work',instruments:'review'};
+const SUBTABS={map:[['field','Field rests on'],['epistemic','Epistemic'],['graph','Graph'],['evolution','Evolution'],['fieldmap','Field map'],['knowledge','Knowledge']],work:[['studios','Research'],['brain','Brain']]};
 function setSurface(name){
   CURSURF=name;
   const dest=SURF_DEST[name]||'focus';
@@ -987,6 +994,7 @@ function setSurface(name){
   sb.style.display=subs?"flex":"none";
   stopSurfaceLoops();
   if(name==="field"){ openField(); }
+  else if(name==="epistemic"){ openEpistemic(); }
   else if(name==="graph"){ openGraph(); }
   else if(name==="evolution"){ openEvolution(); }
   else if(name==="fieldmap"){ openFieldmap(); }
@@ -1010,6 +1018,12 @@ function openField(){
   const el=$("#fieldmount"); if(!el)return;
   if(!window.PField){ el.innerHTML='<div class="empty">field module unavailable</div>'; return; }
   if(PID && PField.loadField){ PField.loadField(PID, '', el); }   // live FC-4 → render (empty if absent)
+  else { el.innerHTML='<div class="empty">no persona loaded</div>'; }
+}
+function openEpistemic(){
+  const el=$("#epistemicmount"); if(!el)return;
+  if(!window.PEpistemic){ el.innerHTML='<div class="empty">epistemic module unavailable</div>'; return; }
+  if(PID){ PEpistemic.loadEpistemic(PID, el); }   // live FC-3 provenance + RQ gates
   else { el.innerHTML='<div class="empty">no persona loaded</div>'; }
 }
 /* ------------------------- live swarm view ------------------------- */

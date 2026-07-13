@@ -1455,6 +1455,59 @@ def gate_decisions(pid: str, limit: int = 200):
     return {"decisions": rows, "available": True}
 
 
+_RQP_DOC = Path(__file__).resolve().parents[2] / "docs" / "RESEARCH_QUALITY_PROGRAM.md"
+_RQ_RE = re.compile(r"^#+\s*(RQ-E\d+)\s*[—-]\s*([^—\n]+?)(?:\s*[—-]\s*\*\*(.+?)\*\*)?\s*$", re.M)
+
+
+def _rq_gates():
+    """Parse RQ-E gate headings + their bold status note from the RQP doc → coarse state.
+    Read-only; the doc is the source of truth for what has actually earned evidence."""
+    if not _RQP_DOC.exists():
+        return []
+    out = []
+    for m in _RQ_RE.finditer(_RQP_DOC.read_text(encoding="utf-8", errors="replace")):
+        rid, title, note = m.group(1), m.group(2).strip(), (m.group(3) or "").strip()
+        low = note.lower()
+        if not note:
+            state = "pending"
+        elif "contested" in low:
+            state = "contested"
+        elif "gated" in low:
+            state = "gated"
+        elif "pending" in low and ("complete" in low or "passed" in low or "passes" in low or "go" in low):
+            state = "partial"
+        elif "complete" in low or "passed" in low or "passes" in low or "go)" in low or low == "go":
+            state = "passed"
+        elif "pending" in low or "open" in low or "not integrated" in low or "not wired" in low:
+            state = "pending"
+        else:
+            state = "in_progress"
+        out.append({"id": rid, "title": title, "status": state, "detail": note})
+    return out
+
+
+@app.get("/api/persona/{pid}/epistemic")
+def epistemic(pid: str):
+    """F4.4 — provenance breakdown (FC-3, real) + calibration bound (FC-5, pending) + RQ-gate table.
+    No fabricated numbers: provenance is the live KG audit; a global conformal bound is RQ-E16 (not yet)."""
+    prov = {"READ": 0, "INFERRED": 0, "HUMAN_CONFIRMED": 0, "TESTED": 0, "never_confirmed": 0, "stale": 0}
+    prov_available = False
+    with context.use(_p(pid)):
+        try:
+            from ..memory.membrane import get_kg
+            b = get_kg().provenance_breakdown()
+            for k in ("READ", "INFERRED", "HUMAN_CONFIRMED", "TESTED"):
+                prov[k] = int(b.get(k, 0))
+            prov["never_confirmed"] = len(b.get("never_confirmed", []) or [])
+            prov["stale"] = len(b.get("stale", []) or [])
+            prov_available = True
+        except Exception:
+            pass
+    return {"provenance": prov, "provenance_available": prov_available,
+            "calibration_bound": None, "calibration_available": False,  # global conformal bound = RQ-E16 (pending)
+            "gates": _rq_gates()}
+
+
 @app.get("/")
 def root():
     idx = _STATIC / "index.html"

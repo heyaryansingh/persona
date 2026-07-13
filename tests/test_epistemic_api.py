@@ -25,6 +25,17 @@ def test_lane4_routes_registered():
         assert p in paths, f"route not registered: {p}"
 
 
+def test_epistemic_route_and_gate_parse():
+    assert "/api/persona/{pid}/epistemic" in _paths(), "epistemic route not registered"
+    from persona.api.app import _rq_gates
+    gates = _rq_gates()
+    assert len(gates) >= 10, f"expected RQ gates from the doc, got {len(gates)}"   # doc has 14
+    valid = {"passed", "partial", "in_progress", "pending", "contested", "gated"}
+    for g in gates:
+        assert {"id", "title", "status"} <= set(g) and g["id"].startswith("RQ-E")
+        assert g["status"] in valid, g
+
+
 def test_eval_provider_contract():
     # /eval delegates to persona.eval.run_oracle (FC-7) — assert the provider's shape.
     from persona.eval import run_oracle
