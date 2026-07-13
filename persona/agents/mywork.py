@@ -81,5 +81,17 @@ def ingest(path_rel: str, kind: str = "draft", kg=None) -> dict:
     log().emit("artifact", f"cross-checked your work “{f.name}”: {len(results)} claims — "
                f"{n_sup} with literature support, {n_con} contradicted", actor="co-researcher",
                file=path_rel)
+    # AUTO-AUDIT: an uploaded paper is untrusted input — run the robustness auditor on it automatically
+    # (forensics + calibrated replication likelihood) and register it on the living re-audit watchlist.
+    audit_res = None
+    if len(text.strip()) >= 200 and budget().can_spend():
+        try:
+            from ..agents import audit as auditor
+            a = auditor.audit(text=text, title=f.name, upload_ref=path_rel)
+            if a.get("ok"):
+                audit_res = {"likelihood": a["likelihood"], "band": a["band"], "interval": a["interval"],
+                             "checks": a["checks"], "file": a.get("file")}
+        except Exception:
+            pass
     return {"ok": True, "doc_id": doc_id, "title": f.name, "n_claims": len(results),
-            "n_supported": n_sup, "n_contradicted": n_con, "results": results}
+            "n_supported": n_sup, "n_contradicted": n_con, "results": results, "audit": audit_res}

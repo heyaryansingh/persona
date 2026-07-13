@@ -1358,6 +1358,12 @@ function renderCrosscheck(r){
   if(!r.ok){$("#modalbox").innerHTML=`<h1>Couldn't cross-check</h1><p>${esc(r.reason||'error')}</p>`;return;}
   const col=st=>({supported:'var(--live)',contradicted:'var(--contra)',mixed:'var(--claim)',novel:'var(--dim)'}[st]||'var(--dim)');
   let h=`<h1>Cross-check of “${esc(r.title)}”</h1><h2>${r.n_claims} of your claims · <span style="color:var(--live)">${r.n_supported} supported</span> · <span style="color:var(--contra)">${r.n_contradicted} contradicted</span></h2>`;
+  if(r.audit){ const a=r.audit, bc={robust:'var(--live)',contested:'var(--claim)',fragile:'var(--contra)'}[a.band]||'var(--dim)';
+    h+=`<div style="border:1px solid var(--line2);border-left:3px solid ${bc};border-radius:8px;padding:10px 12px;margin:10px 0;font-family:var(--mono);font-size:12px">`+
+       `<b style="color:${bc}">⚗ robustness ${Math.round(a.likelihood*100)}%</b> <span style="color:var(--dim)">(${Math.round(a.interval[0]*100)}–${Math.round(a.interval[1]*100)}% · ${a.band})</span>`+
+       ` · <span style="color:var(--contra)">${a.checks.fail} fail</span> · <span style="color:var(--claim)">${a.checks.warn} warn</span> · ${a.checks.pass} pass`+
+       (a.file?` · <a href="#" onclick="openDoc('deliverables/${esc(a.file)}','audit');return false;">full report ↗</a>`:'')+
+       `<div style="color:var(--dim);font-size:10.5px;margin-top:4px">auto-audited on upload · added to the re-audit watchlist</div></div>`; }
   h+=(r.results||[]).map(c=>`<div style="border-left:3px solid ${col(c.status)};padding:2px 0 10px 14px;margin-bottom:14px">`+
     `<div style="font-family:var(--mono);font-size:12.5px;color:#1d1c1b">${esc(c.your_claim)} <span style="color:${col(c.status)};text-transform:uppercase;font-size:9.5px">· ${c.status}</span></div>`+
     ((c.support||[]).length?`<div style="font-size:9.5px;color:var(--live);margin-top:6px">SUPPORTED BY</div>`+ccEvidence(c.support):'')+
@@ -1946,6 +1952,14 @@ function renderAudit(r){
     +`<div class="audhx"><div class="audband" style="color:${bc}">${esc(r.band)}</div><div class="audone">${esc(r.one_line||'')}</div></div></div>`;
   h+=`<div class="audmetrics"><div><b>${lo}–${hi}%</b><span>95% interval</span></div><div><b>${Math.round((m.grounding_rate||0)*100)}%</b><span>grounding</span></div>`
     +`<div><b style="color:${(ch.fail||0)?'var(--contra)':'var(--live)'}">${ch.fail||0}</b><span>checks failed</span></div><div><b>${(r.claims||[]).length}</b><span>claims scored</span></div></div>`;
+  const cal=r.calibration, rt=r.red_team;
+  if(cal||m.model_raw!=null){ h+=`<div class="audsec"><h4>How this number was reached <span class="audm">· anchored to real replication base rates</span></h4>`;
+    if(cal) h+=`<div class="audvf"><b>${Math.round(cal.likelihood*100)}%</b> empirical prior — ${esc(cal.rationale||'')}</div>`;
+    if(m.model_raw!=null) h+=`<div class="audvf"><b>${Math.round(m.model_raw*100)}%</b> model reading, anchored to that prior</div>`;
+    if(rt) h+=`<div class="audvf" style="border-left-color:${rt.refuted?'var(--contra)':'var(--live)'}"><b>${rt.n_over}/${rt.n}</b> adversarial refuters ${rt.refuted?`→ downgraded toward ${Math.round(rt.corrected*100)}%`:'did not overturn it'}${(rt.objections||[]).length?` · “${esc(rt.objections[0])}”`:''}</div>`;
+    else h+=`<div class="audvf" style="color:var(--dim)">adversarial refuters not run — a code-proven failure or extreme verdict governs (the arithmetic is unrefutable)</div>`;
+    if((ch.fail||0)) h+=`<div class="audvf" style="border-left-color:var(--contra)">${ch.fail} code-proven decision-flip(s) cap the likelihood at ≤20%</div>`;
+    h+=`</div>`; }
   if((r.verify_first||[]).length) h+=`<div class="audsec"><h4>Verify these first</h4>`+r.verify_first.map(v=>`<div class="audvf">${esc(v)}</div>`).join("")+`</div>`;
   if(r.executive_summary) h+=`<div class="audsec"><h4>Executive summary <span class="audm">· written from the results</span></h4><div class="audexec">${esc(r.executive_summary)}</div></div>`;
   if((r.claims||[]).length){ h+=`<div class="audsec"><h4>Central claims (${r.claims.length})</h4>`+r.claims.map(c=>{const cc=_BC[c.band]||'var(--dim)';

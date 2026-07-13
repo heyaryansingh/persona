@@ -160,6 +160,20 @@ async def _revisit(task, queue) -> str:
     return f"revisit: “{res.get('statement','')[:36]}” {res.get('old')}→{res.get('new')}"
 
 
+@handler("reaudit")
+async def _reaudit(task, queue) -> str:
+    """Living watchlist: re-audit the least-recently-checked audited paper against the current literature
+    and record any movement in its replication verdict (the auditor's analogue of the revisit loop)."""
+    import asyncio
+    from ..agents import audit
+    res = await asyncio.to_thread(audit.reaudit, parent_id=task.parent_id)
+    if not res.get("ok"):
+        return f"reaudit: {res.get('reason')}"
+    if res.get("reaudited") == 0:
+        return "reaudit: nothing on the watchlist yet"
+    return f"reaudit: “{res.get('title','')[:36]}” {int((res.get('old') or 0)*100)}%→{int(res['new']*100)}% ({res['delta']:+.0%})"
+
+
 @handler("critique")
 async def _critique(task, queue) -> str:
     """Self-check step: review the report against the question; write critique.md; revise once if weak."""

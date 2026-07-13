@@ -147,6 +147,13 @@ class Daemon:
                             self.queue.enqueue("revisit", priority=3)
                     except Exception:
                         pass
+                    # LIVING RE-AUDIT: re-check an audited paper's replication verdict as the literature moves.
+                    try:
+                        from ..memory import watchlist
+                        if watchlist.entries() and can_spend:
+                            self.queue.enqueue("reaudit", priority=4)
+                    except Exception:
+                        pass
                     # FORMAL PROOFS: drain any pending Aristotle Lean 4 proofs (free to poll; no $ gate).
                     try:
                         from ..memory import proofs

@@ -642,3 +642,37 @@ would have admitted field 13; fixed by keeping only strong-majority fields (shar
 yields a clean `{26}` for Erdos. Wired: `ingest/sources.py::openalex_search(field_ids=…)`,
 `selfmind.allowed_field_ids()`, `reader.scout`. Script `experiments/exp_rq_e15_field_question_gate.py`;
 raw `results/rq_e15_field_gate.json`; tests `tests/test_field_gate.py`.
+
+---
+
+## RQ-CAL — Calibrating the auditor's replication-likelihood ("70% should mean 70%")
+
+**Question.** The robustness auditor emits a replication *likelihood*. Should that number be anchored
+to how often findings at a given evidence level ACTUALLY replicate, or is the field base rate enough?
+
+**Data (real, cited — never invented).** Published replication outcomes stratified by the ORIGINAL
+reported p-value: Open Science Collaboration 2015 (Science 349:aac4716; 36% overall, p<.001 → 20/32 =
+63%), Gordon et al. 2021 (PLOS ONE 16:e0248780; p≤.005 → 74%, .005<p<.05 → 28%), Camerer et al. 2018
+(Nat Hum Behav 2:475; 62% for 21 Nature/Science studies), Nuijten et al. 2016 (Behav Res Methods
+48:1205; 12.9% of papers carry a decision-changing statistical error). 114 labeled study-outcomes
+assembled from the published per-stratum counts.
+
+**Method.** MLE-fit `p_repl = σ(a + b·log10 p_min)`; compare to the flat base-rate baseline over 25
+bootstrap resamples. `experiments/exp_replication_calibration.py`.
+
+**Result (mean ± 95% CI).** Fitted `a=-2.67, b=-1.03` (bootstrap a=-2.76±.22, b=-1.07±.10) →
+p=.0005:67%, .005:43%, .02:28%, .045:22% — matching the published strata. **Brier 0.218±.001 vs
+0.245 baseline** (proper scoring rule, improvement +0.027); Murphy **resolution 0.032 vs 0.000**;
+reliability 0.004 (well-calibrated).
+
+**Honest reversal.** ECE said the *baseline* was perfect (0.000) and the fitted curve worse (0.064) —
+the metric I first reached for gave the flattering-but-wrong answer. Diagnosed: a constant predictor
+pinned at the true base rate is trivially calibrated *in aggregate* (one bin, accuracy = confidence)
+but has **zero resolution** — it hands every paper 43% regardless of its evidence. ECE alone cannot
+see that. A proper scoring rule (Brier) and the resolution term both show the fitted curve is the real
+improvement: it *discriminates* a p<.001 paper (67%) from a p=.045 one (22%) while staying calibrated.
+This is exactly the "a number that confirms your hypothesis deserves more scrutiny" trap — caught.
+
+**Wired.** `persona/analysis/calibration.py::prior()` bakes in the fitted curve; `agents/audit.py`
+anchors the adjudicator to this empirical prior and blends the final likelihood toward it (so the
+headline % means what it says), keeping the code-proven decision-flip hard cap on top.

@@ -408,6 +408,24 @@ def audit_paper(pid: str, payload: dict):
         return audit.audit(slug=slug, text=text, title=title)
 
 
+@app.get("/api/persona/{pid}/watchlist")
+def watchlist_view(pid: str):
+    """The living re-audit watchlist: every audited paper + its verdict history as the literature moves."""
+    p = _p(pid)
+    with context.use(p):
+        from ..memory import watchlist
+        return {"ok": True, "summary": watchlist.summary(), "entries": watchlist.entries()}
+
+
+@app.post("/api/persona/{pid}/reaudit")
+def reaudit_now(pid: str):
+    """Re-audit the least-recently-checked watchlist paper now (on-demand self-correction)."""
+    p = _p(pid)
+    with context.use(p):
+        from ..agents import audit
+        return audit.reaudit()
+
+
 @app.post("/api/persona/{pid}/report")
 def region_report(pid: str, payload: dict):
     """Idea-genealogy: a grounded, CITED report for a selected region (a query or an explicit entity
