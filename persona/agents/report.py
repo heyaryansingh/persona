@@ -17,11 +17,13 @@ from ..events import log
 
 _SYSTEM = (
     "You write a rigorous, CITED research briefing from a set of extracted claims (each with verbatim "
-    "quotes + source papers). Structure: `# Title`, a 2-3 sentence **Overview**, `## What is "
-    "established`, `## What is contested` (name the disagreeing sources), `## Open questions`, and "
-    "`## References`. Cite EVERY statement inline as [n] against the numbered sources; never state "
-    "anything the claims don't support — if the region is thin, say so. Use $…$ for math. Output ONLY "
-    "Markdown starting with '# '.")
+    "quotes + source papers with publication years). Structure: `# Title`, a 2-3 sentence **Overview**, "
+    "`## How the understanding developed` (a SHORT chronological arc keyed to the source YEARS — early "
+    "results → later refinements/challenges, so the reader sees how the idea evolved over the "
+    "literature), `## What is established`, `## What is contested` (name the disagreeing sources), "
+    "`## Open questions`, and `## References`. Cite EVERY statement inline as [n] against the numbered "
+    "sources; never state anything the claims don't support — if the region is thin, say so. Use $…$ "
+    "for math. Output ONLY Markdown starting with '# '.")
 
 
 def _now():
