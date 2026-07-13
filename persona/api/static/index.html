@@ -1860,12 +1860,27 @@ async function openPaper(slug){
     if(!d.ok){ $("#modalbox").innerHTML='<h1>paper not found</h1>'; return; }
     const side=(c)=>`<div class="cl" onclick="prov('${c.claim_id}')">${esc(c.text)} <span style="color:var(--dim)">· ${c.labs} lab${c.labs>1?'s':''}${c.about?' · re: '+esc(c.about):''}</span></div>`;
     let h=`<h1>${esc(d.title||d.slug)}</h1><h2>${esc((d.authors||[]).slice(0,6).join(', ')||'—')}${d.year?' · '+d.year:''}${d.venue?' · '+esc(d.venue):''}${d.doi?` · <a href="https://doi.org/${esc(d.doi)}" target="_blank">${esc(d.doi)}</a>`:''}</h2>`;
+    h+=`<div style="margin:6px 0 12px"><button class="gact" onclick="auditPaper('${esc(slug)}')">⚗ audit robustness — will this replicate?</button><span id="auditout"></span></div>`;
     h+=`<h2>main points (${(d.main_points||[]).length})</h2>`+((d.main_points||[]).map(c=>`<div class="cl" onclick="prov('${c.claim_id}')">${esc(c.text)}${c.quote?`<div class="m" style="font-style:italic">“${esc((c.quote||'').slice(0,180))}”</div>`:''}</div>`).join("")||'<p>no extracted claims</p>');
     if((d.supports||[]).length)h+=`<h2 style="color:var(--live)">supported elsewhere (${d.supports.length})</h2>`+d.supports.map(side).join("");
     if((d.contradictions||[]).length)h+=`<h2 style="color:var(--contra)">contradicted elsewhere (${d.contradictions.length})</h2>`+d.contradictions.map(side).join("");
     if(d.abstract)h+=`<h2>abstract</h2><div style="font-size:14px;line-height:1.6">${esc(d.abstract.slice(0,2500))}</div>`;
     $("#modalbox").innerHTML=h;
   }catch(e){ $("#modalbox").innerHTML='<h1>could not open the paper</h1>'; }
+}
+// Robustness audit inside the dossier: code-run statistical forensics + a grounded replication verdict.
+async function auditPaper(slug){
+  const out=$("#auditout"); if(!out)return; out.innerHTML=' <i>running forensics in code…</i>';
+  try{
+    const r=await (await fetch(A("/audit"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({slug:decodeURIComponent(slug)})})).json();
+    if(!r.ok){ out.innerHTML=' <span style="color:var(--dim)">'+esc(r.reason||'could not audit')+'</span>'; return; }
+    const band={robust:'var(--live)',contested:'var(--human)',fragile:'var(--contra)'}[r.band]||'var(--dim)';
+    let h=`<div style="margin-top:10px;padding:12px;border:1px solid ${band};border-radius:8px">`;
+    h+=`<div style="font-size:15px">replication likelihood <b style="color:${band}">${Math.round(r.likelihood*100)}%</b> · <b style="color:${band}">${esc(r.band)}</b> · ${r.n_major} major flag(s)</div>`;
+    (r.flags||[]).forEach(f=>{ const c={3:'var(--contra)',2:'var(--human)'}[f.severity]||'var(--dim)'; h+=`<div style="margin-top:6px;color:${c}">• <b>${esc(f.check)}</b>: ${esc(f.detail)}${f.span?`<div style="font-style:italic;color:var(--dim);font-size:12px">↳ “${esc((f.span||'').slice(0,180))}”</div>`:''}</div>`; });
+    h+=`<div style="margin-top:8px;font-size:12px;color:var(--dim)">forensics run in code · every flag traces to a source span · <a href="#" onclick="openDoc('deliverables/${esc(r.file)}','audit');return false;">full report ↗</a></div></div>`;
+    out.innerHTML=h;
+  }catch(e){ out.innerHTML=' <span style="color:var(--dim)">audit failed</span>'; }
 }
 
 /* =========================================================================
