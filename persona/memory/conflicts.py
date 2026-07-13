@@ -41,3 +41,43 @@ def type_conflict(claim_a: dict, claim_b: dict) -> str:
         if va and vb and va != vb:
             return "semantic"
     return "insufficient"
+
+
+def _oracle(is_retracted):
+    """The retraction lookup: a caller-injected one (tests / a cheaper source), else FC-6
+    `ingest.retraction.is_retracted` (imp4's, import-guarded so this never hard-blocks), else a safe
+    default that flags nothing (absence of evidence is never treated as a retraction)."""
+    if callable(is_retracted):
+        return is_retracted
+    try:
+        from ..ingest import retraction
+        return retraction.is_retracted
+    except Exception:
+        return lambda doi=None, pmid=None: {"retracted": False}
+
+
+def retraction_scan(claims, *, is_retracted=None) -> list[dict]:
+    """F2.13: flag every claim resting on a RETRACTED source — contamination a robustness audit must
+    surface (a belief built on withdrawn evidence must not be trusted; ties to type_conflict's
+    'misinformation'). Checks each claim's sources' doi/pmid against the FC-6 retraction oracle.
+    Returns [{claim_id, subject, object, retraction, source}] for the contaminated claims — read-only,
+    never mutates a belief."""
+    oracle = _oracle(is_retracted)
+    flagged = []
+    for c in (claims or []):
+        for s in (c.get("sources") or []):
+            if not isinstance(s, dict):
+                continue
+            doi, pmid = s.get("doi"), s.get("pmid")
+            if not doi and not pmid:
+                continue
+            try:
+                r = oracle(doi=doi, pmid=pmid) or {}
+            except Exception:
+                continue
+            if r.get("retracted"):
+                flagged.append({"claim_id": c.get("claim_id"), "subject": c.get("subject"),
+                                "object": c.get("object"), "retraction": r,
+                                "source": doi or pmid or s.get("slug")})
+                break                        # one retracted source is enough to flag the claim
+    return flagged
