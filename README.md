@@ -96,18 +96,56 @@ Candidate sign collisions are not verified contradictions. A result can be compu
 and still be scientifically contested. Persona keeps those states separate, preserves rejected and
 invalidated work for audit, and routes biological or methodological judgment to humans.
 
-## Run and verify
+## Setup
 
-```powershell
-python -m pytest -q
-python -m compileall -q persona experiments
+1. Install dependencies:
+
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Add your API keys. Create a file named `.env` in the repository root:
+
+   ```
+   ANTHROPIC_API_KEY=sk-ant-...        # required — powers the agents (console.anthropic.com)
+   ARISTOTLE_API_KEY=...               # optional — Lean 4 formal proofs (Harmonic Aristotle)
+   NCBI_API_KEY=...                    # optional — faster PubMed/Europe PMC access
+   CONTACT_EMAIL=you@example.com       # optional — polite User-Agent for the literature APIs
+   ```
+
+   `ANTHROPIC_API_KEY` is the only key required to run. The `.env` file is loaded automatically at
+   startup; it is git-ignored, so your keys never leave your machine.
+
+3. Optional services for full capability (Docker):
+
+   ```
+   docker run -d -p 6379:6379 falkordb/falkordb                      # the belief knowledge graph
+   docker build -t persona-sandbox -f docker/sandbox.Dockerfile .    # runs agent code + compiles PDFs
+   ```
+
+   The app starts and reads without these; without FalkorDB the graph shows as offline, and without the
+   `persona-sandbox` image, in-sandbox code execution and paper compilation are disabled.
+
+## Run
+
+```
 python -m persona --port 8137
 ```
 
-The capped default is three workers. For an explicitly uncapped bring-your-own-key run set
+Then open http://127.0.0.1:8137, create a persona, and seed it with a few interests.
+
+The capped default is three workers. For an uncapped bring-your-own-key run set
 `PERSONA_UNLIMITED_SPEND=1` (eight workers unless `PERSONA_WORKERS` is set); an explicit
-`PERSONA_DAILY_BUDGET_USD` always keeps the run capped. The browser smoke launches no autonomous
-workers and makes no paid model calls.
+`PERSONA_DAILY_BUDGET_USD` always keeps the run capped.
+
+## Test
+
+```
+python -m pytest -q
+python -m compileall -q persona experiments
+```
+
+The test suite runs offline and makes no paid model calls.
 
 ## How Claude was used
 
