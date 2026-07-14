@@ -1,51 +1,125 @@
 # Persona
 
-Persona is a persistent synthetic researcher for scientific work: disposable agents read and test, while a small durable self preserves only typed, evidence-linked state. Its core loop is:
+A persistent, always-on synthetic researcher for the scientific literature. It maintains a durable
+self and uses a disposable swarm of bounded agents to read at scale, closing an agentic loop from a
+flagged contradiction to a falsifiable hypothesis, a located public dataset, a first-pass reanalysis,
+and a written-back, provenance-typed belief — escalating to a human exactly when it needs experimental
+judgment.
+
+Demo: https://aryansingh.org/persona
+
+## The problem
+
+Science publishes millions of papers a year, but the tools we read it with are amnesiac. A chatbot
+returns fluent prose with citations that may be fabricated and are forgotten the moment the session
+closes. A search tool retrieves, but it holds no beliefs, never notices when two papers contradict,
+never re-checks itself when new evidence lands, and never acts. The bottleneck in research is not
+generating text. It is a trustworthy memory that reads at scale, believes with discipline, and
+compounds over time.
+
+## What Persona is
+
+Persona separates a small, durable **self** — interests, a provenance-typed belief-state, memory,
+taste — from a large, disposable **swarm** of bounded agents that read at scale and are then discarded.
+The principle is *scale of reading, discipline of believing*. Every belief carries a provenance type
+(`READ`, `INFERRED`, `HUMAN_CONFIRMED`, `TESTED`), so an inferred claim never wears the authority of a
+proven one. The product is deliberately not a chat or search dashboard: it exposes the evidence, code,
+outputs, uncertainty, and corrections behind every conclusion.
+
+Core loop:
 
 `candidate conflict -> exact evidence -> falsifiable question -> executable test -> replayable artifact -> human review or bounded belief update`
 
-The product is deliberately not a chat/search dashboard. It exposes the evidence, code, outputs, uncertainty, and corrections behind each conclusion.
+## How it works
 
-## What is working now
+1. A swarm of reader agents pulls papers from Europe PMC and OpenAlex and extracts structured claims,
+   each tied to an exact source span.
+2. A write-membrane admits claims by provenance and cross-source agreement; non-verbatim or unsupported
+   evidence is rejected before it can enter an active claim.
+3. A temporal knowledge graph tracks papers, claims, and contradictions over publication time.
+4. The reflecting self reweights interests, forms its own questions, and stakes falsifiable hypotheses.
+5. An analyst fetches public datasets and runs real code in an isolated sandbox.
+6. Results are machine-checked with sympy or formally proven in Lean 4 (via Harmonic Aristotle), then
+   written back into the belief-state.
+7. It re-audits its own past conclusions as the literature moves, and escalates to a human exactly when
+   a question needs wet-lab or experimental judgment.
 
-- Exact-span claim admission and correction overlays prevent non-verbatim evidence from entering active claims.
-- A content-addressed research-session substrate records code, artifacts, evidence IDs, costs, and a tamper-evident event-log digest.
-- Research UI surfaces show session trace integrity separately from scientific-review status.
-- Candidate conflicts open exact-evidence dossiers and write non-mutating human-review records; direct anchoring remains disabled pending human-gold RQ-E02.
-- One cached public-data GEO analysis is replayable offline (20/20 core numeric reruns) and honestly marked `contested`/`inconclusive` after sensitivity review.
-- The app has a domain-general OpenAlex literature tool alongside biomedical tools.
+## Features
 
-## Verified evidence and limits
+- **Grounded, exportable reports.** Every claim resolves to a real paper, year, and DOI. Select any
+  region of the graph or upload your own paper and get a cited report that exports to PDF, with no
+  hallucinated references.
+- **Robustness auditor.** Runs statistical forensics in code, never in a model (statcheck, GRIM,
+  GRIMMER, minimum-detectable-effect, p-curve), and produces a replication likelihood calibrated on
+  real replication outcomes (Open Science Collaboration 2015, Gordon 2021), so the number means what it
+  says. Adversarial refuters stress-test the soft judgments; a living watchlist re-audits papers as new
+  evidence arrives. Works on external papers and on the mind's own outputs.
+- **Verified reasoning.** Derivations are machine-checked (sympy) or formally proven (Lean 4); results
+  are provenance-typed and self-critiqued, and re-tested over time rather than frozen.
+- **Self-correcting memory.** A revisit loop re-tests past conclusions against evidence gathered since,
+  marking each still-verified, weakened, or refuted.
+- **Transparent workbench.** Watch the director, teams, and agents work in real time; open the code
+  editor and run their Python (torch, numpy, scipy, sympy preinstalled); clone a repository or upload a
+  folder and run an analysis pipeline in the sandbox without touching a terminal.
 
-- `RQ-E01a`: exact-span validation removed non-verbatim evidence in the Curie replay while retaining 76% of claims.
-- `RQ-E03a`: dense/hybrid retrieval did **not** meet its deployment gate; simple retrieval remains the production path.
-- `RQ-E07a/b`: source partitioning and selective verification won in replay; this is not evidence that huge live-agent teams reason better.
-- `RQ-E10`: a frozen-evaluator policy-optimization harness passes, but its exact-span proxy is not human contradiction gold and no learned policy is wired into runtime.
-- `RQ-E12b`: transcriptomic result is same-donor, FTL-sensitive, and not causal; it must not be called a biological discovery.
+## What it does — a representative run
 
-Read [the active continuation contract](docs/CONTINUATION_HANDOFF.md), [research-quality program](docs/RESEARCH_QUALITY_PROGRAM.md), and [findings](results/FINDINGS.md) before extending the system.
+On a fresh run seeded with *GLP-1 receptor agonists in neurodegeneration*, in roughly ten minutes
+Persona read more than twenty primary papers, synthesized ten cited notes, opened three parallel
+investigations, machine-checked three derivations of the direct-versus-indirect neuroprotection
+mechanism, and wrote four cited, compiled papers. In the process it flagged an internal inconsistency
+in one source regarding semaglutide and stroke direction and resolved it by deferring to the verbatim
+quote. This is a careful, auditable synthesis with its uncertainty labeled — not a claim of discovery.
+
+## Verified findings and honest limits
+
+Design decisions are backed by seeded, sandboxed experiments (`results/FINDINGS.md`), reported with
+their limits:
+
+- **Identity anchoring.** Under correlated literature poisoning, human-anchored protection retained
+  100% of human-verified beliefs versus 71% for naive continuous updating. Under benign, independent
+  noise the protection buys nothing — an honest reversal we kept and diagnosed.
+- **Replication calibration.** A curve fitted on real labeled replication outcomes beats a flat field
+  base rate on a proper scoring rule (Brier 0.218 vs 0.245) with real resolution (0.032 vs 0.000), so a
+  strong paper and a marginal one receive different, calibrated numbers.
+- **Retrieval.** Dense and hybrid retrieval did not clear their deployment gate; simple retrieval
+  remains the production path.
+- **Transcriptomic reanalysis.** The GEO result is same-donor, sensitive to a single gene, and not
+  causal; it is marked `contested`/`inconclusive` and must not be called a biological discovery.
+
+Persona cannot do wet-lab work. The human-as-resolver division of labor is a design feature: real
+experimental judgment is routed to humans, and their answers are anchored into the belief-state.
+
+## Safety boundary
+
+Candidate sign collisions are not verified contradictions. A result can be computationally replayable
+and still be scientifically contested. Persona keeps those states separate, preserves rejected and
+invalidated work for audit, and routes biological or methodological judgment to humans.
 
 ## Run and verify
 
 ```powershell
 python -m pytest -q
 python -m compileall -q persona experiments
-$env:PERSONA_WORKERS='0'
 python -m persona --port 8137
 ```
 
-The normal capped default is three workers. For an explicitly uncapped BYOK run, set
-`PERSONA_UNLIMITED_SPEND=1`; it uses eight workers unless `PERSONA_WORKERS` is set.
-An explicit `PERSONA_DAILY_BUDGET_USD` always keeps the run capped.
+The capped default is three workers. For an explicitly uncapped bring-your-own-key run set
+`PERSONA_UNLIMITED_SPEND=1` (eight workers unless `PERSONA_WORKERS` is set); an explicit
+`PERSONA_DAILY_BUDGET_USD` always keeps the run capped. The browser smoke launches no autonomous
+workers and makes no paid model calls.
 
-For the browser smoke, use the bundled runtime as documented in [the handoff](docs/CONTINUATION_HANDOFF.md#8-verification-commands-and-runtime-recipe). The smoke launches no autonomous workers and makes no paid model calls.
+## How Claude was used
 
-## Safety boundary
+Built end-to-end with **Claude Code**, including the sandboxed experiments behind each design decision.
+The **Claude model family** is the runtime engine — a heterogeneous fleet routed by task: Opus for the
+reflecting self (planning, judgment, adjudication), Sonnet for the reader, analyst, and writer swarm,
+and Haiku for cheap scouting. Claude's structured tool use and long context let a bounded agent read a
+full paper and return auditable, span-linked evidence rather than vibes. The governing pattern is
+model-reasons, code-verifies: Claude reads and reasons; the arithmetic is run in code and checked.
 
-Candidate sign collisions are not verified contradictions. A result can be computationally replayable and still be scientifically contested. Persona keeps those states separate, preserves rejected/invalidated work for audit, and routes biological or methodological judgment to humans.
+## Further reading
 
-## Hackathon handoff
-
-The three-minute cached demo is in [docs/HACKATHON_DEMO.md](docs/HACKATHON_DEMO.md).
-Use [docs/HACKATHON_SUBMISSION.md](docs/HACKATHON_SUBMISSION.md) for the written pitch and
-[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) for the local and public-launch gates.
+- `Initial Planning Docs/BUILD_PLAN.md` — architecture, the intellectual engine, and the sequenced build.
+- `results/FINDINGS.md` — the experiments behind each design choice.
+- `docs/HACKATHON_DEMO.md` — the three-minute cached demo script.
