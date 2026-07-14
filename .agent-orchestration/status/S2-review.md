@@ -146,3 +146,15 @@ Suite **350 green** (+10). Guards 2/2 (jail + SSRF).
 - **c8289ba public-beta security layer** — SECURITY-BOUNDARY DEEP-DIVE → PASS. Read public_auth.py + provider_settings.py + app.py middleware. Findings: single tenant boundary (non-public passthrough = zero regression), unauth→401/redirect, CSRF enforced on all mutating methods, per-sub rate limit, NO IDOR (persona route 404s on owner!=sub; provider owner derived from session `_settings_owner`, never client), Fernet BYOK encrypted at rest owner-scoped, SSRF-safe fixed 3-host allowlist, OAuth state via compare_digest + id_token signature/email_verified verified. No holes.
 - **453be93 feature-tree + orchestration record** — broad small deltas + kg.py write-policy trigger → PASS. kg.py change is purely additive `last_observed=$now` (CREATE+ON MATCH); no confidence-monotonicity/provenance weakening; membrane+kg oracles green within 350.
 Verdict: both PASS. Monitor brvbmyevi armed.
+
+## S2 — branch cycle (ultrareview snapshot) + ad15bfd — 2026-07-13
+Tree briefly switched to `engine-review` (curated 64-file API-stripped engine snapshot `59e1d82` on fresh init) for a 5-worktree ultrareview, then flipped back to build/persona-v5. No work lost — v5 preserved throughout. Held S2 (no branch switch, no worktree touch) during the review; per-commit oracle N/A on the static snapshot.
+Back on v5 HEAD **ad15bfd** — docs-only (LOOP_STATE, PRD-42/43, backlog), no product code, guards 2/2 → PASS. No req→S2, no new S0 directions.
+Monitor re-armed as `bdyigod85` (branch-aware: flip / new HEAD / v5-advance) — replaces board-path watcher that went noisy off-branch.
+
+## S2 oracle-review — 2026-07-13 (790bfac — ultrareview fixes)
+Suite **350 green**, guards 2/2. Touched forensics.py + membrane.py + synthesizer.py — membrane trigger deep-dived.
+- forensics GRIMMER: SS reconstruction denominator n→n*items in both (N-1) and /(N) terms — correct sample-variance→SS inversion; matches stated N; forensics consistency test (hardened f6e49f6) still green.
+- membrane ratio gate: substring→word-boundary regex (\b word \b) — precision tightening on recomposition magnitude parse, NOT the poisoning defense; test_membrane_poisoning + integrity green.
+- synthesizer citations: list-repr→joined [n] render fix.
+Verdict: PASS. These are the ultrareview's own fixes landing on v5 — clean.

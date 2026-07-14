@@ -43,6 +43,16 @@ surfaces only), `persona/sessions.py` (RO-Crate add only), `persona/eval/*`, `ex
 3. `persona/api/static/js/** persona/api/static/css/** persona/api/static/focus-demo.html tests/test_fe_*`
    + `persona/api/static/index.html` (surfaces + dedup + FL-1/A7/L2 + true_refutation toast + C1 feed)
 
+## ⚠️ ENV CHURN 2026-07-13 (~17:53+) — main tree being branch-switched by another actor
+An engine ultrareview is running from a separate worktree (`persona-review` @ `engine-review` 59e1d82;
+`engine-review` strips the whole frontend). The **main tree churns** build/persona-v5 ↔ engine-review, and
+build/persona-v5 HEAD moved f6e49f6 → ad15bfd (reset by another actor). **My uncommitted C1 value-queue fix
+was DISCARDED** from the working tree in the churn (it was commit-ready, never committed). Reproducible —
+exact 3-hunk patch saved to scratchpad `C1-value-queue-clickable.patch.md` (also recoverable from 12 dangling
+blobs). **Do NOT re-apply into the tree while it's being actively switched** (race). Re-apply on build/persona-v5
+once the ultrareview settles. Committed Lane-4 work (8279168, a7c0861 R-1, C1 feed) is safe. The monitor's
+"new request to S3/imp1" event is **spurious** — the `requests/` dir was wiped in the churn.
+
 ## RE-SYNC 2026-07-13 (~13:30) — reconciled: my lane is COMMITTED, not uncommitted
 Handoff above was written pre-commit. Reality now: **6 scoped commits landed (S2 c18) + Lane-4 is in HEAD**
 (`8279168` frontend+eval · `a39218c` fe-integration · `56956e1` filename+Review-hardening · `4931184` C1 feed

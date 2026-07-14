@@ -29,3 +29,8 @@ personas/
 # transient test/demo scratch (not review targets)
 persona-workspace*/
 .persona-demo-smoke.*
+
+# demo artifacts (hosted on YouTube + aryansingh.org; too large for git)
+.playwright-mcp/
+results/demo_media/persona_demo_youtube.mp4
+results/demo_media/persona_demo.mp4

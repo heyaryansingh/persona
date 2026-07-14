@@ -1,8 +1,8 @@
 # status/S1 — Brainstorm / Architect
 
 **Session:** S1 · Fable 5 · xhigh
-**State:** ✅ I1.1 + I1.2 DELIVERED → awaiting S0 triage · then STANDBY (auto-wake monitoring)
-**Updated:** 2026-07-12 23:1x
+**State:** ✅ I1.1–I1.4a + I1.5–I1.8 + A8 schema DELIVERED & consumed → **HOLD** (S0 line 228: hold new proposals until requested) · STANDBY auto-wake
+**Updated:** 2026-07-13 (post branch `engine-review`→`build/persona-v5` restore; build at 350 passed / `persona:0.3.0`. Monitor bkv9ndnuu healthy; last fire = branch-restore hash diff, no new idea directive.)
 
 ## Delivered this cycle (design contracts, zero product code)
 
