@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona — a synthetic researcher with a persistent self</title>
+<meta name="description" content="Persona is a persistent, always-on synthetic researcher for the scientific literature. It reads at scale, believes with discipline, verifies its own reasoning, and compounds knowledge you can audit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0c0e; --bg2:#141417; --panel:#17171b; --line:#2a2a30; --line2:#35353c;
+    --ink:#edece9; --dim:#a7a3a0; --faint:#6f6c69; --orange:#ff7a18; --live:#21b576;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --serif:'Newsreader',Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--orange);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+  code,.mono{font-family:var(--mono)}
+  h1,h2,h3{font-family:var(--mono);font-weight:600;letter-spacing:-0.01em;line-height:1.2}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
+
+  /* header / hero */
+  header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0e0e11,transparent)}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+  .brand{font-family:var(--mono);font-weight:600;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--orange);box-shadow:0 0 14px var(--orange)}
+  .nav a{color:var(--dim);font-family:var(--mono);font-size:13px;margin-left:20px}
+  .hero{padding:64px 0 30px;text-align:center}
+  .hero h1{font-size:clamp(38px,7vw,76px);margin:0 0 14px}
+  .hero h1 .o{color:var(--orange)}
+  .hero .lede{font-size:clamp(17px,2.5vw,22px);color:var(--dim);max-width:760px;margin:0 auto 26px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+  .btn{font-family:var(--mono);font-size:14px;padding:11px 20px;border-radius:9px;border:1px solid var(--line2);color:var(--ink);background:var(--panel);transition:.15s}
+  .btn:hover{border-color:var(--orange);color:var(--orange);text-decoration:none}
+  .btn.primary{background:var(--orange);color:#160c02;border-color:var(--orange);font-weight:600}
+  .btn.primary:hover{filter:brightness(1.08);color:#160c02}
+
+  /* video */
+  .videowrap{margin:26px 0 8px;border:1px solid var(--line2);border-radius:14px;overflow:hidden;background:#000;box-shadow:0 30px 80px -30px rgba(255,122,24,.18)}
+  video{display:block;width:100%;height:auto}
+  .vcap{font-family:var(--mono);font-size:12px;color:var(--faint);text-align:center;margin:10px 0 0}
+
+  /* sections */
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  section h2{font-size:clamp(22px,3.4vw,30px);margin:0 0 6px}
+  .sub{color:var(--dim);margin:0 0 26px;max-width:760px}
+  p{max-width:820px}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:6px 0}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .stat b{display:block;font-family:var(--mono);font-size:30px;color:var(--orange);line-height:1}
+  .stat span{font-family:var(--mono);font-size:12px;color:var(--dim);display:block;margin-top:8px}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+  .card h3{font-size:16px;margin:0 0 8px;color:var(--ink)}
+  .card h3 .m{color:var(--orange);font-size:13px}
+  .card p{font-size:15px;color:var(--dim);margin:0}
+
+  .diff{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+  .diff .col{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--panel)}
+  .diff ul{margin:8px 0 0;padding-left:18px}
+  .diff li{font-size:15px;color:var(--dim);margin:7px 0}
+  .diff .col.them{opacity:.85}
+  .diff .col.us{border-color:#4a3416;background:linear-gradient(180deg,#1a140b,#151114)}
+
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 0}
+  .chip{font-family:var(--mono);font-size:13px;border:1px solid var(--line2);border-radius:9px;padding:8px 12px;color:var(--dim)}
+  .chip b{color:var(--orange);font-weight:600}
+
+  pre{background:#0a0a0c;border:1px solid var(--line2);border-radius:10px;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.6;color:#d7d5d2}
+  pre .c{color:var(--faint)}
+  pre .k{color:var(--orange)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+  ol.steps>li{position:relative;padding:0 0 22px 46px;margin:0}
+  ol.steps>li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-2px;width:30px;height:30px;border-radius:50%;border:1px solid var(--orange);color:var(--orange);font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:center}
+  ol.steps h3{font-size:16px;margin:2px 0 8px}
+
+  footer{border-top:1px solid var(--line);padding:34px 0 60px;text-align:center;color:var(--faint);font-family:var(--mono);font-size:13px}
+  footer .big{font-family:var(--mono);color:var(--ink);font-size:15px;margin-bottom:10px}
+  .note{font-family:var(--mono);font-size:12px;color:var(--faint)}
+
+  @media(max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .grid,.diff{grid-template-columns:1fr}
+    .nav a:not(.gh){display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="nav">
+      <div class="brand"><span class="dot"></span> PERSONA</div>
+      <nav>
+        <a href="#what">What it is</a>
+        <a href="#caps">Capabilities</a>
+        <a href="#diff">Why different</a>
+        <a href="#run">Run it</a>
+        <a class="gh" href="https://github.com/heyaryansingh/persona">GitHub &nearr;</a>
+      </nav>
+    </div>
+    <div class="hero">
+      <div class="kicker">A synthetic researcher with a persistent self</div>
+      <h1>Read the whole field.<br><span class="o">Forget nothing.</span></h1>
+      <p class="lede">Persona is a persistent, always-on synthetic researcher for the scientific literature. It reads at scale, believes with discipline, verifies its own reasoning, and compounds knowledge you can audit.</p>
+      <div class="cta">
+        <a class="btn primary" href="#demo">Watch the 2-minute demo</a>
+        <a class="btn" href="https://github.com/heyaryansingh/persona">View the code</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div id="demo" class="videowrap">
+    <video controls preload="metadata" poster="poster.jpg" playsinline>
+      <source src="persona_demo_v3.mp4" type="video/mp4">
+      Your browser does not support embedded video. <a href="persona_demo_v3.mp4">Download the demo.</a>
+    </video>
+  </div>
+  <p class="vcap">Full demo &middot; a live run of "Neuro", a persona studying neurodegeneration</p>
+
+  <section id="problem">
+    <div class="kicker">The problem</div>
+    <h2>Our research tools are amnesiac</h2>
+    <p class="sub">Science publishes millions of papers a year, and there is a reproducibility crisis underneath them. But a chatbot answers and forgets, and a search tool retrieves without ever holding a belief, noticing a contradiction, re-checking itself, or acting. An on-off agent with no memory and no self cannot be a researcher. The bottleneck is not generating text — it is a trustworthy memory that reads at scale, believes with discipline, and compounds.</p>
+  </section>
+
+  <section id="what">
+    <div class="kicker">What it is</div>
+    <h2>A small durable self, a large disposable swarm</h2>
+    <p class="sub">Persona separates a persistent <b>self</b> — interests, a provenance-typed belief-state, memory, taste — from an ephemeral <b>swarm</b> of bounded agents that read at scale and are then discarded. Scale of reading, discipline of believing. Every belief carries a provenance type (READ, INFERRED, HUMAN&#95;CONFIRMED, TESTED), so an inferred claim never wears the authority of a proven one.</p>
+    <div class="stats">
+      <div class="stat"><b>~20 min</b><span>from blank slate to 13 cited papers</span></div>
+      <div class="stat"><b>350</b><span>primary sources read (one persona)</span></div>
+      <div class="stat"><b>200</b><span>beliefs on a temporal graph</span></div>
+      <div class="stat"><b>100%</b><span>verified beliefs kept under poisoning</span></div>
+    </div>
+  </section>
+
+  <section id="caps">
+    <div class="kicker">Capabilities</div>
+    <h2>What a researcher can actually use</h2>
+    <div class="grid">
+      <div class="card"><h3>Grounded, cited reports <span class="m">no hallucinations</span></h3><p>Select a region of the graph or upload a paper and get a report where every claim resolves to a real author, journal, and DOI, exportable to PDF.</p></div>
+      <div class="card"><h3>Robustness auditor <span class="m">forensics in code</span></h3><p>statcheck, GRIM, GRIMMER, power and p-curve run in code, never a model, then a replication likelihood calibrated on real replication outcomes. Adversarial refuters stress-test the soft calls.</p></div>
+      <div class="card"><h3>Verified reasoning <span class="m">sympy &amp; Lean 4</span></h3><p>Derivations are machine-checked in sympy or formally proven in Lean 4. Nothing is asserted that was not verified, and results are re-tested over time.</p></div>
+      <div class="card"><h3>Agent teams that act <span class="m">the acting loop</span></h3><p>A director assigns non-overlapping questions to teams that gather, synthesize, reason, prove, and write in parallel — then escalate to a human exactly when judgment is needed.</p></div>
+      <div class="card"><h3>Living knowledge graph <span class="m">over publication time</span></h3><p>Every claim becomes a node with its year and DOI; contradictions surface as the field moves, so you see what it actually rests on.</p></div>
+      <div class="card"><h3>A transparent workbench <span class="m">not a black box</span></h3><p>Its whole mind is on disk as folders. Watch agents work live, open the code editor, and run their Python in a sandbox yourself.</p></div>
+    </div>
+  </section>
+
+  <section id="diff">
+    <div class="kicker">What makes it different</div>
+    <h2>Others retrieve and score. Persona remembers and acts.</h2>
+    <div class="diff">
+      <div class="col them"><h3>A chatbot / search tool</h3><ul>
+        <li>Answers, then forgets the session</li>
+        <li>Citations may be fabricated</li>
+        <li>No beliefs, no contradictions, no self-correction</li>
+        <li>Never runs an experiment or acts</li>
+      </ul></div>
+      <div class="col us"><h3>Persona</h3><ul>
+        <li>Holds a durable, provenance-typed belief-state</li>
+        <li>Every claim traces to a real paper, year, and DOI</li>
+        <li>Flags contradictions and re-audits its own past conclusions</li>
+        <li>Runs code, proves math, and hands you what needs a human</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section id="hood">
+    <div class="kicker">Under the hood</div>
+    <h2>Built with Claude Code. Claude reasons, code verifies.</h2>
+    <p class="sub">A single mind runs on a heterogeneous fleet of Claude models, routed by task. The governing rule is that Claude reads and reasons while the arithmetic is run in code and checked — the difference between a plausible number and a trustworthy one.</p>
+    <div class="chips">
+      <span class="chip"><b>Opus</b> &nbsp;reflects &amp; judges</span>
+      <span class="chip"><b>Sonnet</b> &nbsp;reads, reasons &amp; writes</span>
+      <span class="chip"><b>Haiku</b> &nbsp;scouts</span>
+    </div>
+    <div class="grid" style="margin-top:22px">
+      <div class="card"><h3>We tested our own design</h3><p>Under sustained, correlated literature poisoning, human-anchored memory kept <b style="color:var(--orange)">100%</b> of verified beliefs; naive continuous updating kept only <b style="color:var(--orange)">71%</b>. Under benign noise, protection buys nothing — a reversal we kept and diagnosed.</p></div>
+      <div class="card"><h3>Calibrated, not vibes</h3><p>Replication likelihoods are fitted on real labeled outcomes (Open Science Collaboration 2015, Gordon 2021), beating a flat base rate on a proper scoring rule — so 70% means 70%.</p></div>
+    </div>
+  </section>
+
+  <section id="run">
+    <div class="kicker">Run and experiment yourself</div>
+    <h2>Seed a mind, then leave it running</h2>
+    <p class="sub">The whole system is open source and runs locally with your own Anthropic key. Give a persona a few interests and watch what it becomes.</p>
+    <ol class="steps">
+      <li><h3>Get the code</h3>
+        <pre><span class="k">git</span> clone https://github.com/heyaryansingh/persona
+<span class="k">cd</span> persona
+<span class="k">pip</span> install -r requirements.txt</pre></li>
+      <li><h3>Add your API key</h3>
+        <p style="color:var(--dim);font-size:15px;margin:0 0 10px">Create a <code>.env</code> file in the repo root. Only <code>ANTHROPIC_API_KEY</code> is required; it stays on your machine.</p>
+        <pre>ANTHROPIC_API_KEY=sk-ant-...        <span class="c"># required (console.anthropic.com)</span>
+ARISTOTLE_API_KEY=...               <span class="c"># optional - Lean 4 formal proofs</span>
+CONTACT_EMAIL=you@example.com       <span class="c"># optional - polite literature-API user-agent</span></pre></li>
+      <li><h3>Optional: the full stack (Docker)</h3>
+        <pre><span class="k">docker</span> run -d -p 6379:6379 falkordb/falkordb                   <span class="c"># the belief graph</span>
+<span class="k">docker</span> build -t persona-sandbox -f docker/sandbox.Dockerfile .   <span class="c"># runs agent code + compiles PDFs</span></pre></li>
+      <li><h3>Run it</h3>
+        <pre><span class="k">python</span> -m persona --port 8137</pre>
+        <p style="color:var(--dim);font-size:15px;margin:8px 0 0">Open <code>http://127.0.0.1:8137</code>, create a persona, and seed it with a few interests. Tests run offline with <code>python -m pytest -q</code>.</p></li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="big">Reads at scale. Believes with discipline. Verifies. Compounds.</div>
+    <div><a href="https://github.com/heyaryansingh/persona">github.com/heyaryansingh/persona</a></div>
+    <div style="margin-top:14px">Made by Aryan Singh &middot; Johns Hopkins University</div>
+    <div class="note" style="margin-top:8px">Persona synthesizes and verifies published work; it does not perform wet-lab experiments or claim discoveries.</div>
+  </div>
+</footer>
+
+</body>
+</html>
